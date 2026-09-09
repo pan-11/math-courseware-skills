@@ -1,0 +1,4 @@
+interface:
+  display_name: "可画课件文字回填"
+  short_description: "准备可画拆层交接，在回传PPTX中保留图层并校正或回填文字"
+  default_prompt: "使用 $math-courseware-editable 处理可画拆层后的课件并检查可编辑文字。"

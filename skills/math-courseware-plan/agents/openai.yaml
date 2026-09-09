@@ -1,0 +1,4 @@
+interface:
+  display_name: "数学情境与共享资产"
+  short_description: "制定教学情境、固定故事和数学条件，制作角色场景三视图资产"
+  default_prompt: "使用 $math-courseware-plan 制定情境方案并准备共享角色和场景资产。"

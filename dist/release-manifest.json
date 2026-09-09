@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "version": "0.1.0",
+  "archive": "math-courseware-skills-0.1.0.zip",
+  "sha256": "3a153fce50b03bb85405bac5fcca2d81ced3ed1ecaeea75fa2260d8fd061587b",
+  "bytes": 90135,
+  "entries": 38,
+  "skills": 6,
+  "local_links_checked": 34,
+  "zip_integrity": "PASS",
+  "manifest_hashes": "PASS",
+  "tested_source_hashes": "PASS",
+  "excluded": [
+    "sources",
+    "tests",
+    "projects",
+    "__pycache__",
+    "credentials",
+    "font files"
+  ],
+  "live_pilot": "pending user course materials and manual Canva/WPS checks"
+}

@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "tests": 47,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "elapsed_seconds": 37.625,
+  "command": "bundled Python -X utf8 -m unittest discover -s tests -p test_*.py -v",
+  "scope": "Synthetic offline behavior and real OfficeCLI fixture execution; no real generation/Canva/WPS acceptance",
+  "source_sha256": {
+    "skills/math-courseware-studio/scripts/courseware.py": "0c89c672fdc25b9009735818862db53a2e0ee3a447dda0b03d52245b1deb9fa5",
+    "skills/math-courseware-studio/scripts/runtime/checks.py": "d9682ade6abed59814123fe4f0b9ca81f8ff5fff97ce3c989ab208355101c3c2",
+    "skills/math-courseware-studio/scripts/runtime/exports.py": "b2bc5243156ea33133735c9625a80fd4414657959b4d4d786811c9c7798191d5",
+    "skills/math-courseware-studio/scripts/runtime/image_api.py": "c6b2a73e2acb537d5d9d9c04593af0fa51f314c113d6d83dfd0d8fa10d453e01",
+    "skills/math-courseware-studio/scripts/runtime/pptx_editor.py": "9bfa05a69aec960e0e8839e836c5a8a50e44cfa71d3e7c83a5bde8c57d5f50b2",
+    "skills/math-courseware-studio/scripts/runtime/prompts.py": "b57af1baee7d15380d8d64ffb05e4eefff82fa403205df3495cbd02bdb1d2336",
+    "skills/math-courseware-studio/scripts/runtime/state.py": "e716639078364fca6e8eb33cce2a2e1903947e148ed5a29ce1aaf0ebd6acf84a",
+    "skills/math-courseware-studio/scripts/runtime/__init__.py": "d98af0354a4868f08921de310d3c522bb5519cf961615c8f2b0163192457e5d7"
+  }
+}

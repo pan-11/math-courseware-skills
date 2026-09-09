@@ -1,0 +1,4 @@
+interface:
+  display_name: "数学课件分析"
+  short_description: "分析原课件和教材，核对小学数学任务、教学目标与关键图示"
+  default_prompt: "使用 $math-courseware-analyze 分析这节课的材料与数学任务。"

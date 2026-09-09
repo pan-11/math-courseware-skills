@@ -1,0 +1,4 @@
+interface:
+  display_name: "数学课件教学文稿"
+  short_description: "根据锁定课件生成课堂逐字稿、公开课说课稿和教学设计文档"
+  default_prompt: "使用 $math-courseware-documents 生成与定稿课件一致的三类教学文稿。"
