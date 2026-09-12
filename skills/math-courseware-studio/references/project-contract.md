@@ -2,7 +2,7 @@
 
 ## 执行与目录
 
-整个六Skill包放在同一父目录，专业Skill通过相邻`math-courseware-studio/scripts/courseware.py`定位执行器。路径相对于当前课件项目，调用时传项目绝对路径；包内不写某台机器的Python、字体或用户名路径。
+整个七Skill包放在同一父目录，专业Skill通过相邻`math-courseware-studio/scripts/courseware.py`定位执行器。路径相对于当前课件项目，调用时传项目绝对路径；包内不写某台机器的Python、字体或用户名路径。
 
 先用运行时发现工具找到已有Python及文档库，执行`courseware.py doctor`。普通用户以自然语言工作，JSON与命令由Codex维护。
 
@@ -20,6 +20,8 @@
 | deliveries | 当前有效交付物的副本与清单 |
 
 不自动清理旧版。原稿不覆盖，发布与全局安装另按实际授权处理。
+
+视频按需扩展`videos/<video_id>/<version>/`和`deliveries/video-delivery-vNNN/`，先补当前课AGENTS再创建；现有init不自动建立这些目录。具体文件、manifest和回传约定见[视频交接](../../math-courseware-video/references/handoff.md)。复用story.video_nodes及通用artifacts，保持现有schema；视频技术状态放视频manifest，避免每次生成导致共同故事失效。
 
 ## 权威数据
 
@@ -112,8 +114,10 @@
 | canva-import | --deck FILE --mapping FILE | 原样保存可画回传并列出对象 |
 | editable-build | --plan FILE | 校验正确文案后处理PPTX副本 |
 | export-documents | 无额外参数 | 三种文稿DOCX/PDF |
-| collect | 无额外参数 | 复制当前有效产物 |
+| collect | 无额外参数 | 复制当前有效课件产物；不包含视频，且依赖锁定页面 |
 
 `validate`检查通过不表示教学、视觉和WPS都通过。原材料图文冲突、生成画面计数、课程推理与实际投屏仍由Codex/教师检查。
+
+视频资料/成片可以登记为通用artifacts，但validate只查登记文件哈希，不会验证媒体内容或其全部来源版本；视频模块另外比较来源哈希并查看实际输出。控制器没有视频生成、配音、剪辑或视频打包命令，不能把image-run用于生成视频。
 
 提示词交付依据`_state/prompt-exports.json`中的`source_versions`与`files:[{path,sha256}]`。render-prompts自动登记逐页提示词和可见文字稿；Codex完成assets下的资产提示词时，核对其确由当前资产/故事/数学记录生成，再将真实文件及哈希补入同一manifest。资产prompt_path只指向assets内实际md/txt，不指向外部资料或密钥。源内容变化先修提示词再更新依据，不仅重写哈希来掩盖过期内容。

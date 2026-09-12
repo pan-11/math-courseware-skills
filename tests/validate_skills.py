@@ -43,7 +43,9 @@ def main():
         for path in folder.rglob('*.py'):
             compile(path.read_text(encoding='utf-8'), str(path), 'exec')
         results.append({'skill': folder.name, 'official_validator': 'PASS', 'local_links': links})
-    assert len(results) == 6
+    assert {item['skill'] for item in results} == {
+        'math-courseware-' + name for name in
+        ('studio', 'analyze', 'plan', 'video', 'pages', 'editable', 'documents')}
     print(json.dumps({'status': 'PASS', 'skills': results, 'yaml_version': yaml.__version__}, indent=2))
 
 

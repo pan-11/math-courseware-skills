@@ -31,10 +31,16 @@
 !/docs/exports-probe.md
 !/docs/test-results.json
 !/docs/test-results.txt
+!/docs/video-skill-checks.md
+!/docs/install-codex-prompt.md
+!/docs/install-workbuddy-prompt.md
+!/docs/install-prompt-notes.md
 
 /dist/*
 !/dist/math-courseware-skills-0.1.0.zip
 !/dist/release-manifest.json
+!/dist/math-courseware-skills-0.2.0.zip
+!/dist/release-manifest-0.2.0.json
 
 __pycache__/
 *.pyc

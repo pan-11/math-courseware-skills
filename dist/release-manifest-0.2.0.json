@@ -1,0 +1,46 @@
+{
+  "status": "PASS",
+  "version": "0.2.0",
+  "archive": "math-courseware-skills-0.2.0.zip",
+  "sha256": "b2dc19a66f2b1ceee89faffdd082ee648ee52f0166bcc4d459efcd39b16a3251",
+  "bytes": 124927,
+  "entries": 47,
+  "skills": 7,
+  "local_links_checked": 59,
+  "zip_integrity": "PASS",
+  "manifest_hashes": "PASS",
+  "tests": {
+    "passed": 50,
+    "failed": 0,
+    "official_skill_checks": 7,
+    "behavior_cases": [
+      {
+        "input": "case-rough.md",
+        "output": "forward-rough.md",
+        "status": "PASS",
+        "evidence": "Uses specified setting, gives two story paths and a concrete recommended story, marks price as self-authored, writes full dialogue and teacher handoff, shot draft and minimum asset prompts. No invented images, platform configuration, approvals or page number. Continues into production preparation without waiting for full PPT."
+      },
+      {
+        "input": "case-resume.md",
+        "output": "forward-resume.md",
+        "status": "PASS",
+        "evidence": "Does not restart story selection; preserves all dialogue and teacher live text. Treats 16 seconds as user-reported until audio arrives; proposes a 10-second motion source plus static continuation, not truncation. Uses controlled four-bead/three-drawer layers, leaves answer to inquiry. Missing files and unknown platform remain explicit; no fake upload-ready packet."
+      },
+      {
+        "input": "case-return.md",
+        "output": "forward-return.md",
+        "status": "PASS",
+        "evidence": "Keeps final empty without returned bytes, distinguishes at least from exactly and existence from locating the left drawer. Produces correction notes and draft sections for three teaching texts; no invented media metadata, playback approval or page-by-page final manuscript."
+      }
+    ]
+  },
+  "excluded": [
+    "sources",
+    "tests",
+    "projects",
+    "cache",
+    "credentials",
+    "font files"
+  ],
+  "live_pilot": "No real media generation, Canva return or WPS playback verified"
+}
