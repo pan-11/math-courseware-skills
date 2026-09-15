@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "version": "0.2.1",
+  "archive": "math-courseware-skills-0.2.1.zip",
+  "sha256": "f0d23809c16bb7a7445d4154a8d2ae8c39cba19bec29e595981946cbc8795f82",
+  "bytes": 130427,
+  "entries": 49,
+  "skills": 7,
+  "local_links_checked": 68,
+  "zip_integrity": "PASS",
+  "manifest_hashes": "PASS",
+  "tests": {
+    "passed": 50,
+    "failed": 0,
+    "date": "2026-09-15",
+    "run_seconds": 38.638,
+    "reused_validated_implementation_run": true,
+    "log_sha256": "42cee5609a462c570fbb47110e82e725a200dccb246df14e4306686d4d9574a9",
+    "official_skill_checks": 7,
+    "official_check_scope": "Same Skill source validated before packaging; 42 local Skill links checked.",
+    "initial_failure": "One OfficeCLI System.Private.Xml error; isolated and complete reruns passed without editor/environment changes."
+  },
+  "excluded": [
+    "sources",
+    "tests",
+    "projects",
+    "cache",
+    "credentials",
+    "font files"
+  ],
+  "new_cover_images_verified": false,
+  "global_install_performed": false
+}

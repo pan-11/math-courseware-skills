@@ -2,7 +2,7 @@
 
 包含一个总入口、六个工作Skill和共用执行脚本。支持从原课件或大致教学情境开始，形成共享故事与资产，再制作课堂视频、完整页面图、可画拆层后的可编辑PPT及配套文稿。
 
-当前版本：0.2.0，本地试用版，新增情景视频模块。真实课件、服务商出图、视频效果、可画往返和WPS显示需要首课实测；测试夹具不能代替首课验收。
+当前版本：0.2.1，本地试用版，修订公开课封面设计规则，保留七模块及情景视频流程。真实课件、服务商出图、视频效果、可画往返和WPS显示需要首课实测；测试夹具不能代替首课验收。
 
 ## 开始使用
 
@@ -16,7 +16,9 @@
 
 首次生图选Codex内置或Grsai一次。默认PPT楷体、WPS检查。不要把密钥粘贴进聊天；Grsai执行器可读取已有环境变量、stdin或项目外secret文件。
 
-七个Skill应成套保存，不能只取一个专业目录而遗漏共用脚本。当前包不自动安装到全局Skill目录；在本项目中按上述文件入口即可试用。迁移到其他电脑先运行doctor定位依赖，不直接照抄这台电脑路径。项目级安装提示词：[Codex](docs/install-codex-prompt.md)、[WorkBuddy](docs/install-workbuddy-prompt.md)；选择确实包含视频模块的来源或0.2.0包。
+七个Skill应成套保存，不能只取一个专业目录而遗漏共用脚本。当前包不自动安装到全局Skill目录；在本项目中按上述文件入口即可试用。迁移到其他电脑先运行doctor定位依赖，不直接照抄这台电脑路径。项目级安装提示词：[Codex](docs/install-codex-prompt.md)、[WorkBuddy](docs/install-workbuddy-prompt.md)；使用当前仓库源码或0.2.1包，已有其他项目的安装副本需按提示词更新。
+
+公开课封面按[封面设计规则](skills/math-courseware-plan/references/cover-design.md)组织完整故事场景、角色动作、标题和视觉层次，不机械套用知识页的背景元素上限或固定大片留白。规则适用于后续新课，具体画风服从当前课题和用户参考；不固定为3D、科技风或四种模板。知识与练习页继续保证题目、数量关系和操作区清楚。
 
 ## 模块
 
@@ -63,7 +65,7 @@ $controller = (Resolve-Path 'skills/math-courseware-studio/scripts/courseware.py
 
 ## 验证与当前边界
 
-首版基线见[实施与验证](docs/implementation-checks.md)，本次新增能力与验证见[视频扩展检查](docs/video-skill-checks.md)。开发目录的行为测试：
+首版基线见[实施与验证](docs/implementation-checks.md)，视频能力见[视频扩展检查](docs/video-skill-checks.md)，0.2.1变更见[封面规则检查](docs/cover-design-release-checks.md)。开发目录的行为测试：
 
 ```powershell
 & $python -X utf8 -m unittest discover -s tests -p 'test_*.py' -v

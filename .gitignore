@@ -32,6 +32,7 @@
 !/docs/test-results.json
 !/docs/test-results.txt
 !/docs/video-skill-checks.md
+!/docs/cover-design-release-checks.md
 !/docs/install-codex-prompt.md
 !/docs/install-workbuddy-prompt.md
 !/docs/install-prompt-notes.md
@@ -41,6 +42,8 @@
 !/dist/release-manifest.json
 !/dist/math-courseware-skills-0.2.0.zip
 !/dist/release-manifest-0.2.0.json
+!/dist/math-courseware-skills-0.2.1.zip
+!/dist/release-manifest-0.2.1.json
 
 __pycache__/
 *.pyc
