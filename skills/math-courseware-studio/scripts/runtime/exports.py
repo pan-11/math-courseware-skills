@@ -130,7 +130,7 @@ def export_slides(project):
 
 
 def export_handoff(project, selection):
-    """Export ordered A/B image selections without rewriting canonical page images."""
+    """Export authorized A pages or all ordered B pages without rewriting canonical images."""
     project = Path(project).resolve()
     route, chosen = selection.get('route'), selection.get('pages')
     if route not in ('A', 'B') or not isinstance(chosen, list) or not chosen:
@@ -140,6 +140,8 @@ def export_handoff(project, selection):
     canonical = {p['page_id']: p for p in pages}
     if len(set(ids)) != len(ids) or ids != [p['page_id'] for p in pages if p['page_id'] in ids]:
         raise ValueError('Handoff pages must be an ordered subset of canonical page IDs')
+    if route == 'B' and ids != [p['page_id'] for p in pages]:
+        raise ValueError('Route B requires every canonical page exactly once in page order')
     for item in chosen:
         image = item['image']
         state.require_approved(project, image['path'])
@@ -519,9 +521,12 @@ def collect(project):
         if asset.get('prompt_path'):
             path = state.resolve(project, asset['prompt_path'])
             relative = _relative(project, path)
-            if not relative.startswith('assets/') or path.suffix.lower() not in ('.md', '.txt') or any(
+            cover_reference = (asset.get('kind') == 'style_reference' and relative.startswith('slides/covers/')
+                               and any(path.parent == state.resolve(project, item['path']).parent
+                                       for item in asset.get('files', [])))
+            if (not relative.startswith('assets/') and not cover_reference) or path.suffix.lower() not in ('.md', '.txt') or any(
                     part.startswith('.') for part in Path(relative).parts):
-                raise ValueError('Asset prompt_path must name an explicit text file under assets/')
+                raise ValueError('Asset prompt_path must name an explicit text file under assets/ or beside its registered cover reference')
             if not path.is_file():
                 raise ValueError('Missing canonical asset prompt: ' + relative)
             prompt_paths.add(relative)

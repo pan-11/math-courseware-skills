@@ -1,0 +1,4 @@
+interface:
+  display_name: "情景视频剧本"
+  short_description: "把粗情境发展为儿童能看懂的可拍剧本、完整台词与二十五格关键画面预览"
+  default_prompt: "使用 $math-courseware-video-writer，把当前情境写成可见事件与完整剧本，制作关键画面25格预览；固定机位单人讲话则保留完整台词和一个持续画面，复用已定事实与当前制作线路。"

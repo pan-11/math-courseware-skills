@@ -1,4 +1,4 @@
 interface:
-  display_name: "数学课件情景视频"
-  short_description: "从大致情境开始，整理数学课堂视频的故事、剧本、素材、分镜与生成交接"
-  default_prompt: "使用 $math-courseware-video，从我已有的课题和大致情境开始，补齐故事并推进视频制作。"
+  display_name: "情景视频总入口"
+  short_description: "从粗情境统筹剧本预览、实际资产、导演、黑白故事板和完整视频提示词"
+  default_prompt: "使用 $math-courseware-video，从当前情境或已有进度自动安排五个专业Skill，按六步完成实际素材文件夹；固定讲话只做完整台词和首帧。"

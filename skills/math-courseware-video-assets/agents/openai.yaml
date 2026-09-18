@@ -1,0 +1,4 @@
+interface:
+  display_name: "情景视频图片资产"
+  short_description: "复用或生成角色场景道具实图与讲话首帧，并从采用彩色资产冻结统一风格"
+  default_prompt: "使用 $math-courseware-video-assets，检查现有图片，沿已选线路补齐当前视频真正需要的实图，平铺整理到普通素材文件夹，并从实际采用的彩色资产提炼固定风格。"

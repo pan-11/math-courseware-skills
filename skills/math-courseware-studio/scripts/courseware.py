@@ -13,7 +13,12 @@ def validate_editable_authority(project, plan):
     mapping = plan.get('mapping', {})
     if not mapping or set(mapping) - set(pages):
         raise ValueError('Editable plan maps unknown or no pages')
+    text_refill = plan.get('build_scope') == 'text-refill'
+    if text_refill and set(mapping) != set(pages):
+        raise ValueError('Full text-refill must cover every page')
     units = plan.get('text_units', [])
+    from runtime.pptx_editor import expand_text_units
+    expanded = expand_text_units(units)
     for page_id in mapping:
         source = {u['unit_id']: u['text'] for u in pages[page_id].get('text_units', [])}
         selected = [u for u in units if u['page_id'] == page_id]
@@ -27,6 +32,14 @@ def validate_editable_authority(project, plan):
             if isinstance(item, str) and item not in text_roles and item not in ('text', 'question', 'answer', 'title', 'step', 'label'):
                 required.add(item)
         provided = {x.get('object_id') for x in plan.get('required_native_objects', []) if x['page_id'] == page_id}
+        provided.update(unit['unit_id'] for unit, logical in expanded if unit['page_id'] == page_id)
+        if text_refill:
+            remaining = [item for item in plan.get('remaining_native_objects', []) if item.get('page_id') == page_id]
+            remaining_ids = {item.get('object_id') for item in remaining}
+            if (remaining_ids != required - provided or len(remaining_ids) != len(remaining)
+                    or any(not isinstance(item.get('reason'), str) or not item['reason'].strip() for item in remaining)):
+                raise ValueError(page_id + ': remaining native objects must list every unresolved requirement exactly')
+            continue
         if required - provided:
             raise ValueError(page_id + ': independently editable math objects still need mapping: ' + ', '.join(sorted(required - provided)))
     if any(u['page_id'] not in mapping for u in units):
@@ -104,13 +117,15 @@ def execute(args):
         versions = {f'_state/{name}.json': state.sha256(state.resolve(project, f'_state/{name}.json'))
                     for name in ('pages', 'story', 'math', 'assets')}
         versions[plan['source_deck']] = plan['source_sha256']
-        versions[plan['review']['evidence']] = plan['review']['sha256']
+        authority = plan.get('authorization', plan.get('review'))
+        versions[authority['evidence']] = authority['sha256']
         for page in state.read_json(state.resolve(project, '_state/pages.json'))['pages']:
             if page['page_id'] in plan['mapping'] and page.get('image'):
                 versions[page['image']['path']] = page['image']['sha256']
         state.register_artifact(project, 'editable-pptx', result['output'],
                                 [*versions, *plan['mapping']],
-                                {'source_versions': versions, 'review_status': 'structure_checked_wps_pending'})
+                                {'source_versions': versions, 'review_status': 'text_refilled_graphics_pending'
+                                 if result.get('remaining_native_objects') else 'structure_checked_wps_pending'})
         return result
     from runtime import exports
     if c == 'canva-handoff':

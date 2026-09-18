@@ -174,6 +174,62 @@ class EditorTests(unittest.TestCase):
                     editor.build_editable(self.project, self.plan)
                 self.assertFalse(list((self.project / "editable").rglob("work-*")))
 
+    def authorize(self, **changes):
+        evidence = self.project / '_state/synthetic-direct-authorization.json'
+        data = {'authorized': True, 'scope': 'editable-build',
+                'source_sha256': self.plan['source_sha256'], 'page_ids': list(self.plan['mapping']),
+                'requested_by': 'synthetic-unittest', 'user_instruction': 'Synthetic request: refill the entire fixture.',
+                'evidence_ref': 'Synthetic test only, not a real user instruction', **changes}
+        evidence.write_text(json.dumps(data), encoding='utf-8')
+        self.plan['authorization'] = {'evidence': '_state/synthetic-direct-authorization.json',
+                                      'sha256': editor.sha256(evidence)}
+
+    def test_direct_authorization_and_segmented_equation(self):
+        tokens = ['3 ', '+ ', '2 ', '= ', '5']
+        self.plan['text_units'][1] = {'page_id': 'P001', 'unit_id': 'question', 'text': '3 + 2 = 5',
+            'segments': [{'object_id': 'question-part-' + str(i), 'text': token,
+                          'display_text': token.strip(), 'box': {'x': 70 + i * 80, 'y': 180, 'width': 75, 'height': 48},
+                          'vertical_anchor': 'center'} for i, token in enumerate(tokens, 1)]}
+        self.authorize()
+        result = editor.build_editable(self.project, self.plan)
+        self.assertEqual(len(result['units']), 6)
+        self.assertTrue(result['source_unchanged'])
+        shapes = editor.inspect_deck(self.project / result['output'])['slides'][0]['shapes']
+        added = [s for s in shapes if s['name'].startswith('mcw:P001:question-part-')]
+        self.assertEqual([s['text'] for s in added], ['3', '+', '2', '=', '5'])
+        self.assertEqual(len({s['shape_id'] for s in added}), 5)
+        self.assertTrue(editor.build_editable(self.project, self.plan)['idempotent'])
+
+    def test_direct_authorization_rejects_wrong_source_range_or_empty_instruction(self):
+        for changes in [{'source_sha256': 'wrong'}, {'page_ids': []}, {'user_instruction': ''}, {'authorized': False}]:
+            with self.subTest(changes=changes):
+                self.authorize(**changes)
+                with self.assertRaisesRegex(ValueError, 'authorization'):
+                    editor.build_editable(self.project, self.plan)
+                self.assertFalse(list((self.project / 'editable').rglob('work-*')))
+
+    def test_segments_cannot_change_or_duplicate_authoritative_text(self):
+        self.plan['text_units'][1] = {'page_id': 'P001', 'unit_id': 'question', 'text': '3 + 2 = 5',
+            'segments': [{'object_id': 'question-part-1', 'text': '3 + 2 = 6',
+                          'box': {'x': 50, 'y': 180, 'width': 400, 'height': 48}}]}
+        self.authorize()
+        with self.assertRaisesRegex(ValueError, 'segments'):
+            editor.build_editable(self.project, self.plan)
+        self.assertFalse(list((self.project / 'editable').rglob('work-*')))
+
+    def test_repeated_prompt_instances_preserve_one_authoritative_unit(self):
+        self.plan['text_units'][1] = {'page_id': 'P001', 'unit_id': 'question', 'text': '3 + 2 = 5',
+            'instances': [{'object_id': name, 'text': '3 + 2 = 5',
+                           'box': {'x': x, 'y': 200, 'width': 220, 'height': 48}}
+                          for name, x in [('question', 50), ('question-copy-2', 330)]]}
+        self.authorize()
+        result = editor.build_editable(self.project, self.plan)
+        self.assertEqual([x['text'] for x in result['units'] if x['source_unit_id'] == 'question'],
+                         ['3 + 2 = 5', '3 + 2 = 5'])
+        self.plan['text_units'][1]['instances'][1]['text'] = 'wrong text'
+        with self.assertRaisesRegex(ValueError, 'instances'):
+            editor.expand_text_units(self.plan['text_units'])
+
 
 if __name__ == "__main__":
     unittest.main()

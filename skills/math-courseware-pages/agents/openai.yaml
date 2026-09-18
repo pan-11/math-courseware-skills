@@ -1,4 +1,4 @@
 interface:
   display_name: "数学课件页面制作"
   short_description: "安排逐页内容和准确文案，生成标准提示词与完整图片课件页面"
-  default_prompt: "使用 $math-courseware-pages 制作逐页方案、提示词和图片课件。"
+  default_prompt: "使用 $math-courseware-pages；从头整课在完整视频方案与流程确认后制作逐页方案和图片，并在总页数内预留独立视频页。"

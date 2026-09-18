@@ -1,0 +1,4 @@
+interface:
+  display_name: "儿童情景视频导演"
+  short_description: "从已定剧本安排专业节拍、构图和运镜，输出镜号一致的静态与动态双表"
+  default_prompt: "使用 $math-courseware-video-director，把我的剧本设计成有看点的导演分镜，保留完整台词并检查每次运镜的目的。"

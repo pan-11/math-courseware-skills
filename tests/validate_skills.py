@@ -45,7 +45,9 @@ def main():
         results.append({'skill': folder.name, 'official_validator': 'PASS', 'local_links': links})
     assert {item['skill'] for item in results} == {
         'math-courseware-' + name for name in
-        ('studio', 'analyze', 'plan', 'video', 'pages', 'editable', 'documents')}
+        ('studio', 'analyze', 'plan', 'video', 'video-writer', 'video-assets',
+         'video-director', 'video-storyboard', 'video-prompts',
+         'pages', 'editable', 'documents')}
     print(json.dumps({'status': 'PASS', 'skills': results, 'yaml_version': yaml.__version__}, indent=2))
 
 

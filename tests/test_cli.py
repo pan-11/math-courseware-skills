@@ -52,6 +52,51 @@ class CliTests(unittest.TestCase):
             args = courseware.parser().parse_args([command, '--project', str(self.root), *extras])
             self.assertEqual(args.command, command)
 
+    def test_full_text_refill_requires_complete_text_and_explicit_graphics_gaps(self):
+        self.plan['build_scope'] = 'text-refill'
+        self.plan['required_native_objects'] = []
+        self.plan['remaining_native_objects'] = [{'page_id': 'P001', 'object_id': 'group-1',
+                                                  'reason': 'Synthetic returned group is not separated.'}]
+        courseware.validate_editable_authority(self.root, self.plan)
+        self.plan['remaining_native_objects'] = []
+        with self.assertRaisesRegex(ValueError, 'remaining'):
+            courseware.validate_editable_authority(self.root, self.plan)
+        self.plan['text_units'] = []
+        with self.assertRaises(ValueError):
+            courseware.validate_editable_authority(self.root, self.plan)
+
+    def test_full_text_refill_rejects_partial_page_mapping(self):
+        data = state.read_json(self.root / '_state/pages.json')
+        data['pages'].append({'page_id': 'P002', 'order': 2, 'text_units': [], 'native_objects': []})
+        state.write_json(self.root / '_state/pages.json', data)
+        state.record_approval(self.root, {'targets': [{'path': '_state/pages.json',
+            'sha256': state.sha256(self.root / '_state/pages.json')}], 'user_evidence': 'Synthetic test'})
+        self.plan['build_scope'] = 'text-refill'
+        with self.assertRaisesRegex(ValueError, 'every page'):
+            courseware.validate_editable_authority(self.root, self.plan)
+
+    def test_direct_refill_dispatch_registers_real_authorization_dependency(self):
+        from fixture_factory import layered_deck
+        from runtime import pptx_editor
+        inventory = pptx_editor.import_deck(self.root, layered_deck(self.root), {'P001': 1})
+        self.plan.update(source_deck=inventory['source_deck'], source_sha256=inventory['source_sha256'],
+                         output='editable/output/direct.pptx', build_scope='text-refill',
+                         required_native_objects=[], remaining_native_objects=[{
+                             'page_id': 'P001', 'object_id': 'group-1', 'reason': 'Synthetic unmapped graphic.'}])
+        self.plan['text_units'][0]['box'] = {'x': 50, 'y': 180, 'width': 600, 'height': 60}
+        evidence = self.root / '_state/synthetic-direct.json'
+        state.write_json(evidence, {'authorized': True, 'scope': 'editable-build',
+            'source_sha256': inventory['source_sha256'], 'page_ids': ['P001'], 'requested_by': 'synthetic-unittest',
+            'user_instruction': 'Refill the complete synthetic deck.', 'evidence_ref': 'Synthetic fixture only'})
+        self.plan['authorization'] = {'evidence': '_state/synthetic-direct.json', 'sha256': state.sha256(evidence)}
+        plan_path = self.root / '_state/direct-plan.json'
+        state.write_json(plan_path, self.plan)
+        result = courseware.execute(argparse.Namespace(command='editable-build', project=self.root, plan=plan_path))
+        self.assertTrue((self.root / result['output']).exists())
+        self.assertFalse(result['full_editability_verified'])
+        artifact = state.load_project(self.root)['artifacts']['editable-pptx']
+        self.assertEqual(artifact['source_versions']['_state/synthetic-direct.json'], state.sha256(evidence))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,4 @@
 interface:
   display_name: "数学AI课件总入口"
   short_description: "统筹小学数学AI故事与视频、共享资产、可编辑PPT和配套教学文稿"
-  default_prompt: "使用 $math-courseware-studio 开始或继续我的小学数学AI赋能课件项目。"
+  default_prompt: "使用 $math-courseware-studio 开始或继续我的小学数学AI课件；从头整课先完成必做视频方案与流程，再制作含视频预留页的PPT。"

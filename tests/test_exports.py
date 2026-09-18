@@ -57,6 +57,21 @@ def fixture():
     return root
 
 
+def textless_selection(root):
+    pages = sorted(state.read_json(root / '_state/pages.json')['pages'], key=lambda p: p['order'])
+    selected = []
+    for number, page in enumerate(pages, 1):
+        target = root / 'slides' / f'textless-{number}.png'
+        with Image.open(root / page['image']['path']) as image:
+            size = image.size
+        Image.new('RGB', size, 'green' if number == 1 else 'yellow').save(target)
+        selected.append({'page_id': page['page_id'],
+                         'image': {'path': target.relative_to(root).as_posix(), 'sha256': state.sha256(target)}})
+    state.record_approval(root, {'user_evidence': 'Synthetic full textless review only',
+                                'targets': [p['image'] for p in selected]})
+    return selected
+
+
 class ExportTests(unittest.TestCase):
     def test_images_preserve_order_aspect_and_versions(self):
         root = fixture()
@@ -186,28 +201,38 @@ class ExportTests(unittest.TestCase):
     def test_handoff_b_preserves_canonical_and_selected_image_identity(self):
         root = fixture()
         original = state.sha256(root / '_state/pages.json')
-        textless = root / 'slides/textless-2.png'
-        Image.new('RGB', (400, 300), 'green').save(textless)
-        image = {'path': 'slides/textless-2.png', 'sha256': state.sha256(textless)}
-        state.record_approval(root, {'user_evidence': 'Synthetic textless review only', 'targets': [image]})
-        report = exports.export_handoff(root, {'route': 'B', 'pages': [{'page_id': 'page-2', 'image': image}]})
+        selected = textless_selection(root)
+        report = exports.export_handoff(root, {'route': 'B', 'pages': selected})
         self.assertEqual(state.sha256(root / '_state/pages.json'), original)
-        self.assertEqual(report['page_order'], ['page-2'])
+        self.assertEqual(report['page_order'], ['page-1', 'page-2'])
         self.assertEqual(report['review_status'], 'waiting_manual_canva')
         deck = Presentation(root / report['artifacts']['canva-handoff-b-pptx']['path'])
-        self.assertEqual(hashlib.sha256(deck.slides[0].shapes[0].image.blob).hexdigest(), image['sha256'])
-        self.assertEqual(state.sha256(root / report['page_mapping'][0]['image_copy']), image['sha256'])
+        pdf = PdfReader(root / report['artifacts']['canva-handoff-b-pdf']['path'])
+        self.assertEqual(len(deck.slides), len(selected))
+        self.assertEqual(len(pdf.pages), len(selected))
+        for number, (slide, item, mapping) in enumerate(zip(deck.slides, selected, report['page_mapping']), 1):
+            self.assertEqual(len(slide.shapes), 1)
+            self.assertEqual(slide.shapes[0].name, item['page_id'])
+            self.assertEqual(hashlib.sha256(slide.shapes[0].image.blob).hexdigest(), item['image']['sha256'])
+            self.assertEqual(state.sha256(root / mapping['image_copy']), item['image']['sha256'])
+            self.assertEqual(mapping['page_id'], item['page_id'])
+            self.assertEqual(mapping['handoff_slide_number'], number)
+            with Image.open(root / item['image']['path']) as source:
+                self.assertAlmostEqual(slide.shapes[0].width / slide.shapes[0].height,
+                                       source.width / source.height, places=5)
+                self.assertEqual(list(pdf.pages[number - 1].images)[0].image.convert('RGB').tobytes(),
+                                 source.convert('RGB').tobytes())
         collected = exports.collect(root)
         self.assertTrue(any(a['path'] == report['manifest'] for a in collected['artifacts'].values()))
         self.assertTrue(any(a['path'] == report['page_mapping'][0]['image_copy'] for a in collected['artifacts'].values()))
         pages = sorted(state.read_json(root / '_state/pages.json')['pages'], key=lambda p: p['order'])
         with self.assertRaisesRegex(ValueError, 'separate confirmed'):
-            exports.export_handoff(root, {'route': 'B', 'pages': [pages[0]]})
+            exports.export_handoff(root, {'route': 'B', 'pages': pages})
         with self.assertRaisesRegex(ValueError, 'ordered subset'):
             exports.export_handoff(root, {'route': 'A', 'pages': list(reversed(pages))})
         report_a = exports.export_handoff(root, {'route': 'A', 'pages': [pages[0]]})
         self.assertEqual(report_a['route'], 'A')
-        with textless.open('ab') as stream:
+        with (root / selected[1]['image']['path']).open('ab') as stream:
             stream.write(b'changed')
         with self.assertRaisesRegex(ValueError, 'Source version changed'):
             exports.collect(root)
@@ -220,6 +245,60 @@ class ExportTests(unittest.TestCase):
                                     'targets': [{'path': '_state/pages.json', 'sha256': state.sha256(root / '_state/pages.json')}]})
         sample = next(p for p in page_record['pages'] if p['page_id'] == 'page-2')
         self.assertEqual(exports.export_handoff(root, {'route': 'A', 'pages': [sample]})['page_order'], ['page-2'])
+
+    def test_handoff_b_rejects_missing_pages_before_creating_outputs(self):
+        root = fixture()
+        selected = textless_selection(root)
+        with self.assertRaisesRegex(ValueError, 'every canonical page'):
+            exports.export_handoff(root, {'route': 'B', 'pages': selected[1:]})
+        self.assertFalse(list((root / 'editable/handoff').glob('handoff-v*')))
+
+    def test_handoff_b_rejects_duplicate_unknown_and_misordered_pages(self):
+        root = fixture()
+        selected = textless_selection(root)
+        for items in ([selected[0], selected[0]], list(reversed(selected)),
+                      [selected[0], {'page_id': 'unknown', 'image': selected[1]['image']}]):
+            with self.subTest(page_ids=[p['page_id'] for p in items]):
+                with self.assertRaisesRegex(ValueError, 'ordered subset'):
+                    exports.export_handoff(root, {'route': 'B', 'pages': items})
+        self.assertFalse(list((root / 'editable/handoff').glob('handoff-v*')))
+
+    def test_collect_registered_cover_reference_prompt_without_changing_sources(self):
+        root = fixture()
+        cover_dir = root / 'slides/covers/example/v001'
+        cover_dir.mkdir(parents=True)
+        image = cover_dir / 'cover.png'
+        prompt = cover_dir / 'prompt.txt'
+        Image.new('RGB', (80, 45), 'green').save(image)
+        prompt.write_text('Synthetic adopted cover prompt.', encoding='utf-8')
+        asset = {'asset_id': 'REF001', 'kind': 'style_reference',
+                 'prompt_path': prompt.relative_to(root).as_posix(),
+                 'files': [{'path': image.relative_to(root).as_posix(), 'sha256': state.sha256(image)}]}
+        state.write_json(root / '_state/assets.json', {'assets': [asset]})
+        state.record_approval(root, {'user_evidence': 'Synthetic cover fixture only', 'targets': [
+            {'path': '_state/assets.json', 'sha256': state.sha256(root / '_state/assets.json')}]})
+        basis = exports._basis(root)[1]
+        state.write_json(root / '_state/prompt-exports.json', {'source_versions': basis, 'files': [
+            {'path': asset['prompt_path'], 'sha256': state.sha256(prompt)}]})
+        report = exports.collect(root)
+        copies = [a for a in report['artifacts'].values() if a['path'] == asset['prompt_path']]
+        self.assertEqual(len(copies), 1)
+        self.assertEqual(state.sha256(root / copies[0]['delivery_path']), state.sha256(prompt))
+        self.assertEqual(exports._basis(root)[1], basis)
+        for kind, relative in [('character', asset['prompt_path']),
+                               ('style_reference', 'slides/covers/unrelated/prompt.txt')]:
+            with self.subTest(kind=kind, path=relative):
+                changed = {**asset, 'kind': kind, 'prompt_path': relative}
+                other_prompt = root / relative
+                if not other_prompt.exists():
+                    other_prompt.parent.mkdir(parents=True, exist_ok=True)
+                    other_prompt.write_text('Unrelated synthetic prompt.', encoding='utf-8')
+                state.write_json(root / '_state/assets.json', {'assets': [changed]})
+                state.record_approval(root, {'user_evidence': 'Synthetic rejection fixture only', 'targets': [
+                    {'path': '_state/assets.json', 'sha256': state.sha256(root / '_state/assets.json')}]})
+                with self.assertRaisesRegex(ValueError, 'Asset prompt_path'):
+                    exports.collect(root)
+        self.assertEqual(len(list((root / 'deliveries').glob('delivery-v*'))), 1)
 
     def test_collect_shared_assets_and_current_prompt_manifest_only(self):
         root = fixture()

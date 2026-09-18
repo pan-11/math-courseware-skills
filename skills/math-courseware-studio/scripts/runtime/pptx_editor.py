@@ -34,7 +34,7 @@ def _digest(value):
 
 
 def plan_digest(plan):
-    return _digest({k: v for k, v in plan.items() if k != "review"})
+    return _digest({k: v for k, v in plan.items() if k not in {"review", "authorization"}})
 
 
 def _local(node):
@@ -214,7 +214,9 @@ def _known_fields(value, allowed, label):
 def _format(unit):
     _known_fields(unit, {"page_id", "unit_id", "text", "display_text", "target_shape_id", "expected_text",
                         "expected_geometry_sha256", "box", "box_px", "source_image_size", "source_content_rect",
-                        "font", "font_size", "paragraph", "auto_shrink"}, "text unit")
+                        "font", "font_size", "paragraph", "auto_shrink", "vertical_anchor"}, "text unit")
+    if unit.get("vertical_anchor", "top") not in {"top", "center", "bottom"}:
+        raise ValueError("Unsupported vertical_anchor")
     raw = unit.get("font", "KaiTi")
     if isinstance(raw, str):
         font = {"family": raw, "east_asian": raw, "size_pt": unit.get("font_size", 32)}
@@ -253,6 +255,8 @@ def _verify_format(node, operation):
     body = node.find("p:txBody/a:bodyPr", NS)
     if body is None or body.find("a:noAutofit", NS) is None or body.find("a:normAutofit", NS) is not None:
         raise ValueError("OfficeCLI autofit round-trip mismatch")
+    if "vertical_anchor" in operation and body.get("anchor", "t") != {"top": "t", "center": "ctr", "bottom": "b"}[operation["vertical_anchor"]]:
+        raise ValueError("OfficeCLI vertical anchor round-trip mismatch")
     for side, attr in {"left": "lIns", "top": "tIns", "right": "rIns", "bottom": "bIns"}.items():
         if abs(int(body.get(attr, "-1")) - round(paragraph["margin_pt"][side] * EMU)) > 1:
             raise ValueError("OfficeCLI margin round-trip mismatch")
@@ -279,6 +283,23 @@ def _office(args):
 
 
 def _review(project, plan):
+    if "authorization" in plan:
+        if "review" in plan:
+            raise ValueError("Choose authorization or historical review, not both")
+        authorization = plan["authorization"]
+        _known_fields(authorization, {"evidence", "sha256"}, "authorization")
+        evidence = _inside(project, authorization.get("evidence", ""))
+        if not evidence.is_file() or sha256(evidence) != authorization.get("sha256"):
+            raise ValueError("Direct authorization evidence missing or changed")
+        data = json.loads(evidence.read_text(encoding="utf-8"))
+        pages = [page for page, index in sorted(plan.get("mapping", {}).items(), key=lambda item: item[1])]
+        if (data.get("authorized") is not True or data.get("scope") != "editable-build"
+                or data.get("source_sha256") != plan.get("source_sha256")
+                or not pages or data.get("page_ids") != pages
+                or any(not isinstance(data.get(key), str) or not data[key].strip()
+                       for key in ("requested_by", "user_instruction", "evidence_ref"))):
+            raise ValueError("Direct authorization does not cover this source and page range")
+        return
     review = plan.get("review", {})
     if review.get("confirmed") is not True:
         raise ValueError("Explicit editable review confirmation required")
@@ -290,9 +311,49 @@ def _review(project, plan):
         raise ValueError("Review evidence does not confirm this exact plan")
 
 
+def expand_text_units(units):
+    expanded, logical_ids = [], set()
+    for unit in units:
+        key = (unit["page_id"], unit["unit_id"])
+        if key in logical_ids:
+            raise ValueError("Duplicate logical text unit")
+        logical_ids.add(key)
+        mode = "segments" if "segments" in unit else "instances" if "instances" in unit else None
+        if mode is None:
+            expanded.append((unit, unit["unit_id"]))
+            continue
+        _known_fields(unit, {"page_id", "unit_id", "text", mode}, "segmented or repeated text unit")
+        segments = unit[mode]
+        if (not isinstance(segments, list) or not segments
+                or any(not isinstance(s, dict) or not isinstance(s.get("text"), str) for s in segments)
+                or (mode == "segments" and "".join(s["text"] for s in segments) != unit["text"])
+                or (mode == "instances" and any(s["text"] != unit["text"] for s in segments))):
+            raise ValueError("Text " + mode + " must preserve the authoritative unit exactly")
+        for segment in segments:
+            if not isinstance(segment.get("object_id"), str) or not segment["object_id"]:
+                raise ValueError("Text segments need nonempty object_id")
+            if "page_id" in segment or "unit_id" in segment:
+                raise ValueError("Text segments inherit page and logical unit")
+            value = {k: v for k, v in segment.items() if k != "object_id"}
+            value.update(page_id=unit["page_id"], unit_id=segment["object_id"])
+            expanded.append((value, unit["unit_id"]))
+    return expanded
+
+
 def build_editable(project, plan):
     _review(project, plan)
-    _known_fields(plan, {"source_deck", "source_sha256", "output", "mapping", "review", "text_units", "required_native_objects"}, "plan")
+    _known_fields(plan, {"source_deck", "source_sha256", "output", "mapping", "review", "authorization", "text_units",
+                         "required_native_objects", "build_scope", "remaining_native_objects"}, "plan")
+    scope = plan.get("build_scope", "complete")
+    if scope not in {"complete", "text-refill"}:
+        raise ValueError("Unsupported build_scope")
+    remaining = plan.get("remaining_native_objects", [])
+    if not isinstance(remaining, list) or (remaining and scope != "text-refill"):
+        raise ValueError("Only text-refill can report remaining native objects")
+    for item in remaining:
+        _known_fields(item, {"page_id", "object_id", "reason"}, "remaining native object")
+        if item.get("page_id") not in plan["mapping"] or any(not isinstance(item.get(k), str) or not item[k].strip() for k in ("object_id", "reason")):
+            raise ValueError("Invalid remaining native object")
     source = _inside(project, plan["source_deck"])
     output = _inside(project, plan["output"])
     if source == output or output.suffix.lower() != ".pptx":
@@ -316,7 +377,7 @@ def build_editable(project, plan):
         existing_names = [shape["name"] for shape in slide["shapes"]]
         if len(existing_names) != len(set(existing_names)):
             raise ValueError("Duplicate source shape names require review")
-    for unit in plan.get("text_units", []):
+    for unit, source_unit_id in expand_text_units(plan.get("text_units", [])):
         font, paragraph = _format(unit)
         page_id, unit_id = unit["page_id"], unit["unit_id"]
         if page_id not in mapping or not isinstance(unit_id, str) or not unit_id:
@@ -350,7 +411,8 @@ def build_editable(project, plan):
         if margins["left"] + margins["right"] >= box["width"] or margins["top"] + margins["bottom"] >= box["height"]:
             raise ValueError("Paragraph margins leave no text area")
         operations.append({"index": index, "target_id": target_id, "name": name, "text": display,
-                           "box": box, "font": font, "paragraph": paragraph})
+                           "source_unit_id": source_unit_id, "box": box, "font": font, "paragraph": paragraph,
+                           "vertical_anchor": unit.get("vertical_anchor", "top")})
     native = plan.get("required_native_objects", [])
     for item in native:
         index = mapping.get(item["page_id"])
@@ -370,20 +432,19 @@ def build_editable(project, plan):
         props = {"text": operation["text"], "name": operation["name"], "font": font["family"],
                  "font.ea": font["east_asian"], "size": str(font["size_pt"]), "color": font["color"],
                  "bold": str(font["bold"]).lower(), "autoFit": "none", "align": paragraph["align"],
+                 "valign": {"top": "top", "center": "middle", "bottom": "bottom"}[operation["vertical_anchor"]],
                  "lineSpacing": str(paragraph["line_spacing"]) + "x",
                  "margin": ",".join(str(paragraph["margin_pt"][k]) + "pt" for k in ("left", "top", "right", "bottom")),
                  **{k: str(v) + "pt" for k, v in operation["box"].items()}}
         if operation["target_id"] is None:
-            command_log.append(_office(["add", work, f'/slide[{operation["index"]}]', "--type", "shape", "--prop", "name=" + operation["name"], "--prop", "text=" + operation["text"], "--prop", "fill=none", "--prop", "line=none"]))
-            command_log.append(_office(["save", work]))
-            added = next(s for s in inspect_deck(work)["slides"][operation["index"] - 1]["shapes"] if s["name"] == operation["name"])
-            args = ["set", work, f'/slide[{operation["index"]}]/shape[@id={added["shape_id"]}]']
+            args = ["add", work, f'/slide[{operation["index"]}]', "--type", "shape",
+                    "--prop", "fill=none", "--prop", "line=none"]
         else:
             args = ["set", work, f'/slide[{operation["index"]}]/shape[@id={operation["target_id"]}]']
         for key, value in props.items():
             args.extend(["--prop", key + "=" + value])
         command_log.append(_office(args))
-    command_log.append(_office(["save", work]))
+    command_log.append(_office(["close", work]))
     edited = _parts(work)
     original = _parts(source)
     slide_parts = _slides(original)
@@ -445,6 +506,8 @@ def build_editable(project, plan):
               "non_target_parts_preserved": True, "media_preserved": before["media"] == after["media"],
               "source_unchanged": True, "wps_render": "unverified", "idempotent": False,
               "officecli_validation": validation, "work_directory": work_dir.relative_to(Path(project).resolve()).as_posix()}
+    report.update(build_scope=scope, remaining_native_objects=remaining,
+                  full_editability_verified=scope == "complete" and not remaining)
     (work_dir / "officecli-log.json").write_text(json.dumps(command_log, ensure_ascii=False, indent=2), encoding="utf-8")
     for name, value in (("reviewed-plan.json", plan), ("source-inventory.json", before), ("output-inventory.json", after)):
         (work_dir / name).write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")

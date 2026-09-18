@@ -1,0 +1,4 @@
+interface:
+  display_name: "情景视频完整提示词"
+  short_description: "将正式分镜、实图和固定风格组装为完整视频词、精确上传映射与讲话操作包"
+  default_prompt: "使用 $math-courseware-video-prompts，依据当前导演双表、实际故事板、真实素材和冻结风格组装完整视频词与上传映射；固定机位讲话则交实际首帧与完整台词的数字人操作包，未知平台参数如实标注。"
