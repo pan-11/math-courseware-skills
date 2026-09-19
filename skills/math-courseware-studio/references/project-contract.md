@@ -6,6 +6,8 @@
 
 先用运行时发现工具找到已有Python及文档库，执行`courseware.py doctor`。普通用户以自然语言工作，JSON与命令由Codex维护。
 
+先读[共用流程](workflow.md)，将项目长期目标与本次任务范围分别记录。课程用`_state/workflow.json`；独立视频允许原manifest.workflow及普通素材目录，无需初始化整课。可靠外部成果按核验输入接入，不补造上游制作记录。
+
 项目初始化先写AGENTS.md和HANDOFF.md，再创建：
 
 | 目录 | 内容 |
@@ -79,7 +81,11 @@
 
 ## 确认与变更
 
-从头整课在AGENTS/HANDOFF记录视频必做范围；视频方案与制作流程先于PPT逐页制作；共享图片资产在视频剧本/预览之后、导演之前准备，plan协同风格与封面参考。按[视频前置清单](video-integration.md#ppt开工前的视频方案检查)核对全部计划视频，实际确认绑定已写好的方案文件/哈希。全课总表记录检查结论、缺项及下一步；这些是Skill执行检查，现有CLI不会自动判定方案语义完整、是否有视频页或媒体可播放，不能把validate退出0当作前置通过。
+从头整课先完成可见原课/需求分析，再形成并实际采用`planning/whole-course-plan.md`或其当前版本，随后按蓝图的全部视频清单创作准备。故事方向选择不等于接受教学活动、页数或视频数量。共享图片资产在剧本/预览之后、导演之前准备，plan协同四张封面候选及风格选择。按[视频前置清单](video-integration.md#ppt开工前的视频方案检查)核全部计划视频，再交PPT逐页制作。
+
+流程索引只引用实际产物、来源版本、内部核查和必要采用依据，不复制故事/数学正文；生产完成、内部检查、用户采用各自记录。专业步骤开始前运行只读`workflow-check`，结束后登记真实成果并检查下一动作的前置；返回允许执行不能证明当前动作已完成、内容质量或用户已采用。`status`展示流程与记录状态，`validate`仍检查数据/引用；教学语义、真实图片、WPS显示与播放由实际检查补充。
+
+缺流程索引的旧项目保持未分类，先按真实历史与文件建立适用范围，已有效内容继续复用。独立模块/局部维护按`current_task.mode`及实际所选范围检查；项目`project_mode`不随当前模块改变。外部PPT回填只建立必要页序/文字/来源与对象记录，不为接口批准空story/math；没执行的上游保持未执行。
 
 草稿可直接写入；已经定稿的记录用`record-change`保留前版并分析影响。数字、故事与资产改变时追踪引用，纯调序更新导出和讲稿对应，不重做未改内容的图片。
 
@@ -95,9 +101,9 @@
 
 `record-approval --record FILE`校验哈希并写入`decisions.jsonl`。同一记录不重复写入。脚本不能鉴定聊天来源，调用者必须使用实际证据；不得复制示例作为批准。
 
-可编辑路线须先按[editable强制询问节点](../../math-courseware-editable/SKILL.md)取得用户明确选择，再用现有确认记录保存路线、适用范围和真实原话，并在HANDOFF交接。页面图片采用不包含A/B选择；selection里的route仅是执行参数，不构成批准。缺选择时不得先生成路线交接、去字、拆层或回填，已确认带字图片课件导出和独立文稿可继续。
+可编辑路线按[editable路线节点](../../math-courseware-editable/SKILL.md)核用户明确方向，再保存路线、适用范围与真实原话并在HANDOFF交接。明确无字分层PPT直接回填已给出B后半段方向；明确带字PPT文字校正已给出A后半段方向。同范围选择沿用，缺选择才询问。页面采用不包含路线选择，selection.route也只是执行参数；等待选择时带字图片导出和独立文稿可继续。
 
-B路线固定覆盖当前`pages.json`全部页面：去字图完成、检查并确认后，selection按`pages.order`升序包含每个page_id恰好一次。导出完整PPTX时一页一张对应去字图，PPT/PDF总页数等于课件总页数，映射及图片哈希逐页核对。不能用少量页交接或图片目录替代完整PPT，也不能等待局部可画回传才生成余页。
+从本套带字图片开始的B交接固定覆盖当前`pages.json`全部页面：去字图完成、检查并确认后，selection按`pages.order`升序包含每个page_id恰好一次。导出完整PPTX时一页一张对应去字图，PPT/PDF总页数等于课件总页数，映射及图片哈希逐页核对。不能用少量页交接或图片目录替代完整PPT。外部已拆层PPT接回填后半段，不要求补造此前的去字交接。
 
 变更JSON：`path`、`expected_sha256`、`replacement`（完整新记录）、`reason`、`user_evidence`。先执行`impact --change FILE`看影响，再用`record-change --change FILE`应用已授权修改。执行器自动递增revision并保留旧文件。不是只有最后修改时间最新就算已确认。
 
@@ -113,6 +119,7 @@ B路线固定覆盖当前`pages.json`全部页面：去字图完成、检查并�
 |---|---|---|
 | init | --title TEXT [--route builtin/openai_image_api] | 不覆盖已有项目 |
 | status / validate | 无额外参数 | 读取进度/检查引用和哈希 |
+| workflow-check | --step STEP [--video-id ID] | 只读检查本次范围的实际依赖，返回允许项、缺失/过期产物及可继续步骤；步骤名见共用流程 |
 | record-approval | --record FILE | 记录实际用户批准 |
 | impact / record-change | --change FILE | 预览/应用授权变更 |
 | render-prompts | 无额外参数 | 从页面数据展开五段提示词与可见文字 |

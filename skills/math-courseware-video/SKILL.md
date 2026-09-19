@@ -7,7 +7,11 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 把大致情境推进为有具体事件、吸引儿童观看的剧本、实际图片和可复制的视频提示词。总入口安排专业模块、版本和交付，用户不必逐个调用Skill或先写故事。课堂接话、教学活动和PPT插入由课程总入口安排，不作为本视频流程的写作要求。
 
-先读当前项目AGENTS/HANDOFF及[文件与恢复](references/handoff.md)，核对实际文件和已有确认。单独视频可以直接开始，不要求先有PPT、完整课程JSON或视频平台；已有课程则遵守共同故事、角色及不可变数学事实。
+先读当前项目AGENTS/HANDOFF、[共用流程](../math-courseware-studio/references/workflow.md)及[文件与恢复](references/handoff.md)，核对实际文件、来源版本和已有确认。整课推进须有具体教学蓝图及共同核心的真实采用，当前视频属于已定全课清单；只选故事或已有V001想法时先回plan补蓝图。进入视频模块不改变整课项目目标。明确的局部维护按本次current_task范围检查，保留全课待办。
+
+独立视频可以直接开始，不要求PPT、教学蓝图、完整课程JSON或视频平台；范围索引可保存在原manifest.workflow。中途取得的剧本、实图、导演或板记录为核验输入，只补当前步骤真实缺口，不把未做上游登记为完成。已有课程共同故事、角色和数学仍是输入约束。
+
+专业步骤开始前执行相邻studio的`courseware.py workflow-check --project <目录> --step <当前步骤> --video-id <视频ID>`；步骤名见下表。结束后记录实际产物、来源、内部核查和必要采用依据，再检查下一适用步骤；整课全部视频准备交PPT时查`pages`，独立交付查本次范围的`complete`。只改上传顺序/标签使用`video-upload`，不倒退重做编剧、导演或正式板。
 
 ## 先分两路
 
@@ -20,14 +24,14 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 ## 六步与五个专业Skill
 
-| 步骤 | 专业入口 | 本步成果 |
+| 步骤/检查名 | 专业入口 | 本步成果 |
 |---|---|---|
-| 1 剧本与关键画面25宫格 | [writer 编剧](../math-courseware-video-writer/SKILL.md) | 可见事件、完整台词、script.md、实际plot-preview-25.png和映射；按反馈修剧本 |
-| 2 图片资产 | [assets 资产](../math-courseware-video-assets/SKILL.md) | 复用或实际生成角色三视图、场景多角度、必要道具；style.md初稿 |
-| 3 导演分镜 | [director 导演](../math-courseware-video-director/SKILL.md) | 节拍、空间和专业运镜；director.md的八部分及静态/动态双表 |
-| 4 黑白故事板 | [storyboard 制板](../math-courseware-video-storyboard/SKILL.md) | 按正式镜号生成并查看实图、提示词、映射和检查 |
-| 5 固定风格文字 | 再由[assets](../math-courseware-video-assets/SKILL.md)完成 | 从本项目实际采用的彩色图提炼并冻结style.md段落 |
-| 6 视频提示词 | [prompts 组装](../math-courseware-video-prompts/SKILL.md) | 逐段完整五部分提示词、实际上传映射及start-here.md |
+| 1 剧本与关键画面25宫格 / `video-script` | [writer 编剧](../math-courseware-video-writer/SKILL.md) | 可见事件、完整台词、script.md、实际plot-preview-25.png和映射；按反馈修剧本 |
+| 2 图片资产 / `video-assets` | [assets 资产](../math-courseware-video-assets/SKILL.md) | 复用或实际生成角色三视图、场景多角度、必要道具；style.md初稿；整课plan协同封面与共享资产 |
+| 3 导演分镜 / `video-director` | [director 导演](../math-courseware-video-director/SKILL.md) | 节拍、空间和专业运镜；director.md的八部分及静态/动态双表 |
+| 4 黑白故事板 / `video-board` | [storyboard 制板](../math-courseware-video-storyboard/SKILL.md) | 按正式镜号生成并查看实图、提示词、映射和检查 |
+| 5 固定风格文字 / `video-style` | 再由[assets](../math-courseware-video-assets/SKILL.md)完成 | 从本项目实际采用的彩色图提炼并冻结style.md段落 |
+| 6 视频提示词 / `video-prompts` | [prompts 组装](../math-courseware-video-prompts/SKILL.md) | 逐段完整五部分提示词、实际上传映射及start-here.md |
 
 顺序按依赖推进，不把六步变成六次询问。资产在剧本/预览之后、导演之前；预览可用已有或临时形象，不能先要求齐备全部三视图。导演确实需要新视角时返回资产补该项。25格是剧情关键状态，不是25秒或25个正式镜头；正式板格数由导演镜头决定，不固定13格。
 
@@ -47,4 +51,4 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 用户要素材到即梦等平台自行制作时，文件夹齐备是本轮交付终点，视频仍待制作。实际视频生成/声音/剪辑须有当次工具与授权，能力以核实入口为准；本套没有内置视频API。成片回传按[实际媒体检查](references/production.md#实际成片检查)核对。
 
-从头整课的视频仍必做且准备先于PPT逐页制作；范围、观察问题、教师接话、预留页及播放验收由[课程总入口](../math-courseware-studio/references/video-integration.md)统筹。单独视频不自动扩展这些课程任务。更新HANDOFF并指出当前成果、检查证据、缺项和下一步。
+从头整课按已采用蓝图的全部视频清单完成准备后才交PPT逐页制作，V001完成不代替其他计划视频；范围、观察问题、教师接话、预留页及播放验收由[课程总入口](../math-courseware-studio/references/video-integration.md)统筹。独立视频不扩展这些课程任务。更新HANDOFF并指出当前成果、检查证据、缺项和当前范围内最早可做的下一步。

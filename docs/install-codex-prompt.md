@@ -1,4 +1,4 @@
-源码要求：本提示词面向2026-09-18拆分后的十二Skill源码。先核对math-courseware-video及其writer/assets/director/storyboard/prompts五专业目录、plan/references/cover-design.md和所有入口引用。旧0.2.1 ZIP只有七模块，不含本次视频拆分；来源缺新目录时报告缺口，使用用户提供的完整新源码，不能声称旧包已具备新流程。从下列仓库或用户指定来源取得源码后，按实际文件和commit核对，不根据旧包版本号推断已经含有新模块。
+源码要求：本提示词面向2026-09-19流程修订后的十二Skill源码。先核对math-courseware-video及其writer/assets/director/storyboard/prompts五专业目录、math-courseware-plan/references/cover-design.md，以及math-courseware-studio/references/workflow.md、math-courseware-studio/scripts/runtime/workflow.py和math-courseware-analyze/references/source-report-template.md及所有入口引用。旧0.2.1 ZIP只有七模块，旧20260918完整源码包也不含本次流程检查；来源缺新文件时报告缺口，使用完整新源码，不能声称旧包已具备新流程。从下列仓库或用户指定来源取得源码后，按实际文件和commit核对，不根据旧包版本号推断能力。
 
 这是一项项目级 Skill 安装/更新与环境检查任务。请安装完成后教我使用，本次先不要制作课件、调用生图、消耗额度或修改密钥。
 

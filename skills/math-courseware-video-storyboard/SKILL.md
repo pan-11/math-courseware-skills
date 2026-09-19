@@ -9,6 +9,8 @@ description: Use when an approved children's video shot list needs a black-and-w
 
 ## 输入与范围
 
+先读[共用流程](../math-courseware-studio/references/workflow.md)，执行相邻studio的`courseware.py workflow-check --project <目录> --step video-board --video-id <视频ID>`。整课推进核蓝图采用和对应视频节点；独立制板只核本步导演/实图与约束，不补整课方案或强制补已跳过的25格。固定讲话按路线记本步不适用，交首帧制作。
+
 需要当前`director.md`的静态分镜表及必要的同镜关键帧映射、实际角色/场景/道具参考、画幅和当前生图线路。读取动态表只用于理解已有动作，不借此发明新镜头。核对输入版本与实际文件，图片存在时实际查看。共用[文件与版本交接](../math-courseware-video/references/handoff.md)；缺导演表交[导演](../math-courseware-video-director/SKILL.md)，缺实际参考交[资产](../math-courseware-video-assets/SKILL.md)。正式板完成后先由资产模块核对并冻结风格，同版已冻结则直接沿用，再交[视频词组装](../math-courseware-video-prompts/SKILL.md)。
 
 - 用户本次只要提示词或审查：交完整文字及检查结果，不调用生图。
@@ -47,5 +49,7 @@ description: Use when an approved children's video shot list needs a black-and-w
 - 已采用：有用户采用依据，记录图片及导演版本；不等于视频生成效果已验证。
 
 实际交付文件：`storyboard.png`（或明确分板文件）、`storyboard-prompt.md`、`storyboard-map.md`及已有参考副本/来源，全部保存在同一普通素材文件夹，不自动压缩。提示词组装步骤读取正式镜号和文件映射，不重新猜故事板内容。
+
+结束后将真实板、来源版本、逐镜检查及实际审阅/采用依据写回索引或manifest，交风格冻结前检查`video-style`；内部看图通过与用户采用分开，沿用导演＋正式板这一组审阅。
 
 此规范参考第25期13镜结果与第18期生图模板，保留空间、镜号和参考映射方法；纯镜头板、与双表对应和状态核查为本项目适配。未获取作者v3在线应用的内部提示词，不宣称是其原版Skill。

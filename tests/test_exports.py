@@ -16,9 +16,10 @@ from pypdf import PdfReader
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] /
                        'skills/math-courseware-studio/scripts'))
 from runtime import state, exports
+from workflow_fixture import enable_modules
 
 
-def fixture():
+def fixture(register_scope=True):
     root = Path(__file__).parent.resolve() / 'runs' / (
         'exports-' + datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:8])
     state.init_project(root, '合成数学课件测试，不是真实首课')
@@ -33,7 +34,7 @@ def fixture():
     paths = list(exports.CORE) + [p['image']['path'] for p in pages]
     state.record_approval(root, {'user_evidence': 'Synthetic fixture approval only; not user course approval',
                                 'targets': [{'path': p, 'sha256': state.sha256(root / p)} for p in paths]})
-    versions = {p: state.sha256(root / p) for p in paths}
+    versions = {p: state.sha256(root / p) for p in ['_state/pages.json', *[page['image']['path'] for page in pages]]}
     common = {'source_versions': versions, 'page_order': ['page-1', 'page-2']}
     documents = {
         'classroom-script': {'title': '合成测试课堂逐字稿', 'content': [
@@ -54,6 +55,8 @@ def fixture():
     }
     for kind, record in documents.items():
         state.write_json(root / f'_state/documents/{kind}.json', {**common, **record})
+    if register_scope:
+        enable_modules(root)
     return root
 
 
@@ -69,10 +72,106 @@ def textless_selection(root):
                          'image': {'path': target.relative_to(root).as_posix(), 'sha256': state.sha256(target)}})
     state.record_approval(root, {'user_evidence': 'Synthetic full textless review only',
                                 'targets': [p['image'] for p in selected]})
+    enable_modules(root, route='B')
     return selected
 
 
 class ExportTests(unittest.TestCase):
+    def test_direct_export_functions_reject_unclassified_scope(self):
+        for operation in (exports.export_slides, exports.export_documents, exports.collect):
+            with self.subTest(operation=operation.__name__):
+                root = fixture(register_scope=False)
+                with self.assertRaisesRegex(ValueError, 'workflow|Workflow|scope|mode'):
+                    operation(root)
+
+    def test_selected_export_does_not_require_unused_empty_core_approval(self):
+        root = fixture()
+        unused = ['_state/' + name + '.json' for name in ('story', 'math', 'assets')]
+        state.record_approval(root, {'decision': 'rejected', 'user_evidence': 'Unused empty records are not adopted',
+            'targets': [{'path': path, 'sha256': state.sha256(root / path)} for path in unused]})
+        try:
+            result = exports.export_slides(root)
+        except ValueError as exc:
+            self.fail('Selected image export must only require its real input records: ' + str(exc))
+        self.assertTrue((root / result['artifacts']['image-slides-pptx']['path']).exists())
+        self.assertTrue(set(unused).isdisjoint(result['source_versions']))
+
+    def test_selected_export_checks_used_math_reference(self):
+        root = fixture()
+        pages = state.read_json(root / '_state/pages.json')
+        pages['pages'][0]['math_ids'] = ['MISSING']
+        state.write_json(root / '_state/pages.json', pages)
+        state.record_approval(root, {'user_evidence': 'Synthetic malformed content approval', 'targets': [
+            {'path': '_state/pages.json', 'sha256': state.sha256(root / '_state/pages.json')}]})
+        enable_modules(root)
+        with self.assertRaisesRegex(ValueError, 'math|Math|MISSING'):
+            exports.export_slides(root)
+        self.assertFalse(list((root / 'slides').glob('export-v*')))
+
+    def test_handoff_route_must_match_explicit_choice(self):
+        root = fixture()
+        selected = textless_selection(root)
+        enable_modules(root, route='A')
+        with self.assertRaisesRegex(ValueError, 'route|Route'):
+            exports.export_handoff(root, {'route': 'B', 'pages': selected})
+        self.assertFalse(list((root / 'editable/handoff').glob('handoff-v*')))
+
+    def test_scoped_collect_excludes_unrequested_stale_outputs_and_assets(self):
+        for module, prefix in [('documents', 'documents/export-v'), ('editable', 'editable/handoff/')]:
+            with self.subTest(module=module):
+                root = fixture()
+                exports.export_slides(root)
+                exports.export_documents(root)
+                pages = sorted(state.read_json(root / '_state/pages.json')['pages'], key=lambda page: page['order'])
+                exports.export_handoff(root, {'route': 'A', 'pages': pages})
+                record = state.load_project(root)
+                record['stale_targets'].append('image-slides-pdf')
+                state.write_json(root / '_state/project.json', record)
+                state.write_json(root / '_state/assets.json', {'assets': [{
+                    'asset_id': 'UNRELATED', 'version': 'v001',
+                    'files': [{'path': 'assets/not-part-of-this-task.png', 'sha256': '0' * 64}]}]})
+                (root / 'slides/image-prompts.md').write_text('Unrelated historic prompt.', encoding='utf-8')
+                enable_modules(root, modules=[module])
+                try:
+                    result = exports.collect(root)
+                except ValueError as exc:
+                    self.fail('Unrequested historic products must not block a scoped collection: ' + str(exc))
+                self.assertTrue(result['artifacts'])
+                self.assertTrue(all(item['path'].startswith(prefix) for item in result['artifacts'].values()))
+                self.assertNotIn('_state/assets.json', result['source_versions'])
+
+    def test_collect_requires_adoption_for_shared_assets_it_copies(self):
+        root = fixture()
+        path = root / 'assets/unapproved.png'
+        Image.new('RGB', (32, 18), 'red').save(path)
+        state.write_json(root / '_state/assets.json', {'assets': [{
+            'asset_id': 'UNAPPROVED', 'version': 'v001',
+            'files': [{'path': 'assets/unapproved.png', 'sha256': state.sha256(path)}]}]})
+        with self.assertRaisesRegex(ValueError, 'confirmation'):
+            exports.collect(root)
+        self.assertFalse(list((root / 'deliveries').glob('delivery-v*')))
+
+    def test_selected_documents_can_use_page_text_without_page_images(self):
+        root = fixture()
+        pages = state.read_json(root / '_state/pages.json')
+        for page in pages['pages']:
+            page.pop('image')
+        state.write_json(root / '_state/pages.json', pages)
+        source = {'_state/pages.json': state.sha256(root / '_state/pages.json')}
+        state.record_approval(root, {'user_evidence': 'Synthetic source text adopted without page-image work',
+            'targets': [{'path': path, 'sha256': digest} for path, digest in source.items()]})
+        for kind in exports.DOCUMENTS:
+            path = root / f'_state/documents/{kind}.json'
+            record = state.read_json(path)
+            record['source_versions'] = source
+            state.write_json(path, record)
+        enable_modules(root, modules=['documents'])
+        try:
+            result = exports.export_documents(root)
+        except ValueError as exc:
+            self.fail('Standalone documents do not require unrelated page-image production: ' + str(exc))
+        self.assertEqual(set(result['documents']), set(exports.DOCUMENTS))
+
     def test_images_preserve_order_aspect_and_versions(self):
         root = fixture()
         report = exports.export_slides(root)
@@ -177,7 +276,7 @@ class ExportTests(unittest.TestCase):
         report = exports.export_slides(root)
         source = root / '_state/pages.json'
         source.write_text(source.read_text(encoding='utf-8') + ' ', encoding='utf-8')
-        with self.assertRaisesRegex(ValueError, 'Source version changed|confirmation'):
+        with self.assertRaisesRegex(ValueError, 'Source version changed|confirmation|Workflow blocked.*stale'):
             exports.collect(root)
         root = fixture()
         report = exports.export_slides(root)
@@ -228,6 +327,7 @@ class ExportTests(unittest.TestCase):
         pages = sorted(state.read_json(root / '_state/pages.json')['pages'], key=lambda p: p['order'])
         with self.assertRaisesRegex(ValueError, 'separate confirmed'):
             exports.export_handoff(root, {'route': 'B', 'pages': pages})
+        enable_modules(root, route='A')
         with self.assertRaisesRegex(ValueError, 'ordered subset'):
             exports.export_handoff(root, {'route': 'A', 'pages': list(reversed(pages))})
         report_a = exports.export_handoff(root, {'route': 'A', 'pages': [pages[0]]})
@@ -243,6 +343,7 @@ class ExportTests(unittest.TestCase):
         state.write_json(root / '_state/pages.json', page_record)
         state.record_approval(root, {'user_evidence': 'Synthetic partial sample approval',
                                     'targets': [{'path': '_state/pages.json', 'sha256': state.sha256(root / '_state/pages.json')}]})
+        enable_modules(root, route='A')
         sample = next(p for p in page_record['pages'] if p['page_id'] == 'page-2')
         self.assertEqual(exports.export_handoff(root, {'route': 'A', 'pages': [sample]})['page_order'], ['page-2'])
 
@@ -278,7 +379,8 @@ class ExportTests(unittest.TestCase):
         state.record_approval(root, {'user_evidence': 'Synthetic cover fixture only', 'targets': [
             {'path': '_state/assets.json', 'sha256': state.sha256(root / '_state/assets.json')}]})
         basis = exports._basis(root)[1]
-        state.write_json(root / '_state/prompt-exports.json', {'source_versions': basis, 'files': [
+        prompt_basis = {**basis, '_state/assets.json': state.sha256(root / '_state/assets.json')}
+        state.write_json(root / '_state/prompt-exports.json', {'source_versions': prompt_basis, 'files': [
             {'path': asset['prompt_path'], 'sha256': state.sha256(prompt)}]})
         report = exports.collect(root)
         copies = [a for a in report['artifacts'].values() if a['path'] == asset['prompt_path']]

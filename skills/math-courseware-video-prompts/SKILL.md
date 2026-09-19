@@ -9,7 +9,8 @@ description: 当已有导演双表、实际故事板和参考资产需要整理�
 
 ## 入口与输入
 
-- 运镜切镜路线：读取同版`director.md`的静态表和动态表、实际黑白故事板及`storyboard-map.md`、实际资产及`asset-list.md`、已冻结`style.md`、完整声音稿和当前平台证据。检查实际文件、版本、来源哈希和采用/审阅状态。
+- 先读[共用流程](../math-courseware-studio/references/workflow.md)，执行相邻studio的`courseware.py workflow-check --project <目录> --step video-prompts --video-id <视频ID>`；仅改上传顺序/标签用`video-upload`。整课推进核已采用蓝图及本片清单，明确局部维护按current_task范围处理。独立入口只核当前必要文件，不补整课JSON；只改映射不迁移旧导演格式或倒退补25格/重制板。
+- 完整组装运镜切镜视频词时：读取同版`director.md`的静态表和动态表、实际黑白故事板及`storyboard-map.md`、实际资产及`asset-list.md`、已冻结`style.md`、完整声音稿和当前平台证据。检查实际文件、版本、来源哈希和采用/审阅状态。
 - 单角色全程讲话、固定机位且无切镜：读取实际彩色单首帧、完整`voice-script.txt`及构图/身份依据，按[讲话操作包](references/talking-packet.md)制作`talking-packet.md`；不强制导演双表、黑白板或多段电影提示词。
 - 前段运镜游玩、后段固定讲话仍是运镜切镜路线。可以为独立讲话部分另给数字人操作包，但不能漏掉前段或把整段塞入数字人入口。
 - 单独视频无需完整课程状态记录；存在共同记录时沿用其事实与稳定ID。教师接话和PPT回填由课程总入口处理。
@@ -29,3 +30,5 @@ description: 当已有导演双表、实际故事板和参考资产需要整理�
 遵守[共同交接与恢复](../math-courseware-video/references/handoff.md)：实际图片副本、完整文本和说明平铺在同一个普通`asset-kit/`，交文件夹及关键文件链接，不自动生成ZIP。清单只登记真实存在文件，保留来源路径/版本/SHA256和待办。
 
 分别报告材料齐备、图片采用、平台参数已核实、可提交与实际成片状态。没有真实视频不能称成片完成；没有当前平台证据不能称上传方案已验证。根据真实缺口返回[资产模块](../math-courseware-video-assets/SKILL.md)、[导演模块](../math-courseware-video-director/SKILL.md)或[故事板模块](../math-courseware-video-storyboard/SKILL.md)，完成后只重组受影响片段。
+
+结束后登记真实产物、来源哈希、内部检查与已有采用依据；后续修改上传方案查`video-upload`，整课交studio核`pages`，独立交付核本次范围的`complete`。映射小改只同步upload-map、相关提示词标签及受影响说明，保留同版镜头、对白、实图与固定风格；外部资料作为核验输入接入，不伪造上游完成。

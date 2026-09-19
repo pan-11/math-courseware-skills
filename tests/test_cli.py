@@ -1,5 +1,8 @@
 """Entrypoint and authority checks using retained synthetic projects."""
 import argparse
+from contextlib import redirect_stdout, redirect_stderr
+import io
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -9,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'skills/math-courseware-studio/scripts'))
 import courseware
 from runtime import state
+from workflow_fixture import enable_modules
 
 
 class CliTests(unittest.TestCase):
@@ -33,6 +37,41 @@ class CliTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             courseware.validate_editable_authority(self.root, self.plan)
 
+    def test_default_init_and_status_do_not_infer_task_scope(self):
+        self.assertEqual(state.status(self.root).get('workflow', {}).get('task_mode'), 'unclassified')
+
+    def test_workflow_check_is_read_only_without_course_project(self):
+        independent = self.root / 'independent-video'
+        try:
+            result = courseware.execute(argparse.Namespace(
+                command='workflow-check', project=independent, step='video-script', video_id='V001'))
+        except FileNotFoundError as exc:
+            self.fail('Workflow checking must run before loading course project.json: ' + str(exc))
+        self.assertFalse(result['allowed'])
+        self.assertFalse(independent.exists())
+
+    def test_workflow_check_cli_reports_blocked_with_exit_one(self):
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err):
+            try:
+                code = courseware.main(['workflow-check', '--project', str(self.root), '--step', 'pages'])
+            except SystemExit as exc:
+                self.fail('The documented workflow-check CLI must parse: ' + str(exc))
+        self.assertEqual(code, 1)
+        self.assertFalse(json.loads(out.getvalue())['allowed'])
+
+    def test_editable_commands_check_scope_before_reading_mutation_inputs(self):
+        for command in ('canva-import', 'editable-build'):
+            with self.subTest(command=command):
+                args = argparse.Namespace(command=command, project=self.root,
+                    deck=self.root / 'missing.pptx', mapping=self.root / 'mapping.json',
+                    plan=self.root / 'plan.json')
+                try:
+                    with self.assertRaisesRegex(ValueError, 'workflow|Workflow|scope|mode'):
+                        courseware.execute(args)
+                except FileNotFoundError as exc:
+                    self.fail('Editable mutation inputs were read before workflow scope: ' + str(exc))
+
     def test_dispatch_exports_through_actual_entrypoint(self):
         from test_exports import fixture
         project = fixture()
@@ -46,6 +85,7 @@ class CliTests(unittest.TestCase):
     def test_all_documented_commands_parse(self):
         for command, extras in [
             ('status', []), ('validate', []), ('render-prompts', []),
+            ('workflow-check', ['--step', 'video-script', '--video-id', 'V001']),
             ('image-prepare', ['--selection', 'input.json']),
             ('canva-handoff', ['--selection', 'input.json']),
             ('editable-build', ['--plan', 'input.json'])]:
@@ -79,6 +119,7 @@ class CliTests(unittest.TestCase):
         from fixture_factory import layered_deck
         from runtime import pptx_editor
         inventory = pptx_editor.import_deck(self.root, layered_deck(self.root), {'P001': 1})
+        enable_modules(self.root, deck=inventory['source_deck'])
         self.plan.update(source_deck=inventory['source_deck'], source_sha256=inventory['source_sha256'],
                          output='editable/output/direct.pptx', build_scope='text-refill',
                          required_native_objects=[], remaining_native_objects=[{

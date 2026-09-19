@@ -9,6 +9,8 @@ description: Use when a children's scenario video needs cinematic shot design, p
 
 ## 输入与分流
 
+先读[共用流程](../math-courseware-studio/references/workflow.md)，执行相邻studio的`courseware.py workflow-check --project <目录> --step video-director --video-id <视频ID>`。整课推进核已采用蓝图和本视频节点；独立导演只核所需剧本、完整声音及实际参考，外部成果按核验输入接入，不要求先有整课JSON或补无关上游。固定讲话的导演步骤按路线不适用，不造八节空表。
+
 读取当前剧本、用户想让观众看到/感到什么、实际资产清单与可用图片、画幅、估计时长和完整对白。已有信息直接使用。版本与同目录文件遵守[视频交接](../math-courseware-video/references/handoff.md)；缺剧情交[编剧](../math-courseware-video-writer/SKILL.md)，缺实际角度交[资产](../math-courseware-video-assets/SKILL.md)，完成双表交[故事板](../math-courseware-video-storyboard/SKILL.md)。
 
 - 单角色全程固定讲话、无切镜：说明无需多镜头导演表，交出单画面构图要求、原完整台词和资产需求给首帧制作；不添加切镜或25格要求。
@@ -41,6 +43,8 @@ description: Use when a children's scenario video needs cinematic shot design, p
 ## 交付与继续
 
 运镜切镜路线把完整`director.md`保存在当前普通素材文件夹，登记依据版本、资产、镜号及待补项目，保留原v3八节顺序和双表列名。固定讲话按前述分流只交单画面构图、完整台词和资产需求，不加载或强制填写八节双表。
+
+结束后登记实际产物、来源、双表内部核查与已有审阅依据，交正式板前运行`video-board`检查；导演与实际正式板仍合为第二组创作审阅，不把双表字段各设确认节点。
 
 结论分开写：文字设计是否覆盖需求、实际参考是否已核对、需要用户审阅的内容、实际运动/音效仍未验证。若需要新角度/道具图，列出缺哪张及服务哪个镜头，交回资产制作补齐；不能将这项制作默认为用户自行完成。
 

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import re
 from PIL import Image
-from . import state, checks
+from . import state, checks, workflow
 
 LESS = ('版式疏朗，视觉重心明确，标题与正文大而清晰，适合课堂投屏。'
         '按页面用途控制密度：封面突出课题形象与故事入口，可展开有层次的完整主场景，'
@@ -66,6 +66,7 @@ def page_prompt(page, data):
 
 
 def render_pages(project):
+    workflow.require(project, 'pages')
     checked = checks.validate(project)
     if not checked['ok']:
         raise ValueError('; '.join(checked['errors']))
@@ -80,11 +81,11 @@ def render_pages(project):
         formatted.append(full)
         visible.append(f'## {page["page_id"]} {page["title"]}\n\n' +
                        '\n'.join(unit['text'] for unit in page['text_units']))
+    used = set(workflow.basis_paths(project)) | {'_state/story.json'}
+    versions = {path: state.sha256(state.resolve(project, path)) for path in sorted(used)}
     for relative, body in [('slides/image-prompts.md', '\n\n'.join(formatted)),
                            ('planning/visible-text.md', '\n\n'.join(visible))]:
         state.resolve(project, relative).write_text(body + '\n', encoding='utf-8')
-    versions = {f'_state/{name}.json': state.sha256(state.resolve(project, f'_state/{name}.json'))
-                for name in ('pages', 'story', 'math', 'assets')}
     manifest_path = state.resolve(project, '_state/prompt-exports.json')
     prior = state.read_json(manifest_path) if manifest_path.exists() else {}
     retained = []
@@ -128,12 +129,18 @@ def prepare(project, selection):
         purpose, target = task['purpose'], task['target_id']
         if purpose not in ('page', 'asset', 'cover', 'erase', 'repair', 'test'):
             raise ValueError('Unknown image task purpose')
+        workflow.require_image(project, purpose)
         version = task.get('version', 'v001')
         if not re.fullmatch(r'[A-Za-z0-9_-]+', target) or not re.fullmatch(r'v\d{3,}', version):
             raise ValueError('Unsafe task ID or version')
-        required = [] if purpose == 'test' else ['_state/story.json', '_state/math.json']
-        if purpose in ('page', 'erase', 'repair'):
-            required += ['_state/pages.json', '_state/assets.json']
+        if purpose == 'test':
+            required = []
+        elif purpose in ('page', 'erase', 'repair'):
+            required = list(workflow.basis_paths(project))
+            if purpose == 'page' and '_state/story.json' not in required:
+                required.append('_state/story.json')
+        else:
+            required = [path for path in workflow.basis_paths(project) if path != '_state/pages.json']
         state.require_approved(project, *required)
         snapshots = {p: state.sha256(state.resolve(project, p)) for p in required}
         page = pages.get(target)

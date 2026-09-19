@@ -14,7 +14,7 @@
 
 `_state/documents/classroom-script.json`：title、source_versions、page_order、content。
 content按展示顺序逐页包含`{page_id,title,paragraphs:[完整口播段落]}`，一次覆盖全部页面。
-source_versions记录pages/story/math/assets以及各确认页图实际哈希，可补真实教材来源；page_order必须对应当前稳定ID顺序。
+整课source_versions记录pages/story/math/assets以及各确认页图实际哈希，可补真实教材来源；page_order对应当前稳定ID顺序。独立逐字稿只登记本次实际输入来源；有课件时保留真实页序，没有课件时按明确用途写段落稿，不伪造页面或全套课程记录。
 
 导出器不撰写课堂内容，Codex先完成全文再运行export-documents。三类文稿均准备好后一起导出。
 

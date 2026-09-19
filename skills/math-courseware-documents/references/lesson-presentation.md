@@ -31,4 +31,4 @@
 `_state/documents/lesson-presentation.json`含title、source_versions、page_order、content。
 content为`[{heading,paragraphs:[完整段落],page_ids:[内部关联页ID]}]`。开场和结尾可独立章节，page_ids可为空；全稿关联并集覆盖课件全部页，正文不显示内部ID。
 
-source_versions含当前确认pages/story/math/assets和全部页图哈希；三类文稿共用同一锁定依据。export-documents生成A4 DOCX/PDF，中文可选文字，结构清晰，无独立花哨封面。
+整课source_versions含当前确认pages/story/math/assets和全部页图哈希，三类文稿共用同一锁定依据；独立文稿按本次实际课件/教案等输入保存来源版本，不补不存在的课程记录或采用。export-documents生成A4 DOCX/PDF，中文可选文字，结构清晰，无独立花哨封面；接口不覆盖的独立文稿按实际能力交付并注明。

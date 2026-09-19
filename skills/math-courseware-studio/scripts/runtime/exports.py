@@ -5,7 +5,7 @@ import os
 import shutil
 from xml.sax.saxutils import escape
 
-from . import state
+from . import state, workflow
 
 DOCUMENTS = ('classroom-script', 'lesson-presentation', 'lesson-plan')
 CORE = ('_state/pages.json', '_state/story.json', '_state/math.json', '_state/assets.json')
@@ -38,7 +38,8 @@ def _check_versions(project, versions):
 
 def _basis(project, image_page_ids=None):
     state.load_project(project)
-    state.require_approved(project, *CORE)
+    used = workflow.basis_paths(project)
+    state.require_approved(project, *used)
     pages = state.read_json(state.resolve(project, CORE[0]))['pages']
     if not pages:
         raise ValueError('Approved pages must not be empty')
@@ -49,7 +50,7 @@ def _basis(project, image_page_ids=None):
     if any(type(x) is not int or x < 1 for x in orders) or len(set(orders)) != len(orders):
         raise ValueError('Unique positive page order required')
     pages = sorted(pages, key=lambda p: p['order'])
-    versions = {path: state.sha256(state.resolve(project, path)) for path in CORE}
+    versions = {path: state.sha256(state.resolve(project, path)) for path in used}
     for page in pages:
         if image_page_ids is not None and page['page_id'] not in image_page_ids:
             continue
@@ -122,6 +123,7 @@ def _render_images(project, pages, output, name):
 def export_slides(project):
     """Export existing approved images as a 960x540 pt image deck and matching PDF."""
     project = Path(project).resolve()
+    workflow.require(project, 'image-export')
     pages, versions = _basis(project)
     output = _version_dir(project, 'slides')
     paths, rects = _render_images(project, pages, output, 'lesson-images')
@@ -135,6 +137,7 @@ def export_handoff(project, selection):
     route, chosen = selection.get('route'), selection.get('pages')
     if route not in ('A', 'B') or not isinstance(chosen, list) or not chosen:
         raise ValueError('Handoff requires route A/B and nonempty pages selection')
+    workflow.require(project, 'editable-handoff', route=route)
     ids = [item['page_id'] for item in chosen]
     pages, versions = _basis(project, ids)
     canonical = {p['page_id']: p for p in pages}
@@ -208,7 +211,7 @@ def _document(project, kind, pages, versions):
     locked = record.get('source_versions')
     _check_versions(project, locked)
     if any(locked.get(path) != digest for path, digest in versions.items()):
-        raise ValueError('Document must lock approved story/math/assets/pages and page images')
+        raise ValueError('Document must lock the current required records and page images')
     ids = [p['page_id'] for p in pages]
     if record.get('page_order') != ids:
         raise ValueError('Document page_order differs from current approved page order')
@@ -443,7 +446,9 @@ def _markdown(blocks):
 def export_documents(project):
     """Render all three validated canonical records; final user approval is not required."""
     project = Path(project).resolve()
-    pages, versions = _basis(project)
+    workflow.require(project, 'documents')
+    scoped = workflow.summary(project)['task_mode'] == 'selected_modules'
+    pages, versions = _basis(project, [] if scoped else None)
     records = {kind: _document(project, kind, pages, versions) for kind in DOCUMENTS}
     family, font_path, font = _font()
     output = _version_dir(project, 'documents')
@@ -465,7 +470,20 @@ def export_documents(project):
 def collect(project):
     """Collect explicit current artifacts, canonical media and verified prompt manifests."""
     project = Path(project).resolve()
-    pages, basis = _basis(project)
+    workflow.require(project, 'collect')
+    scope = workflow.summary(project)
+    scoped = scope['task_mode'] == 'selected_modules'
+    modules = {name.removeprefix('math-courseware-') for name in scope['modules']}
+    page_media = not scoped or 'pages' in modules
+    shared_media = not scoped or bool(modules & {'plan', 'pages', 'video', 'video-assets'})
+    pages, basis = _basis(project, None if page_media else [])
+    source_paths = list(workflow.basis_paths(project))
+    assets = state.read_json(state.resolve(project, '_state/assets.json')).get('assets', []) if shared_media else []
+    if assets:
+        state.require_approved(project, '_state/assets.json')
+        basis['_state/assets.json'] = state.sha256(state.resolve(project, '_state/assets.json'))
+        if '_state/assets.json' not in source_paths:
+            source_paths.append('_state/assets.json')
     record = state.load_project(project)
     artifacts = record.get('artifacts', {})
     selected = {}
@@ -483,6 +501,12 @@ def collect(project):
     for key, artifact in artifacts.items():
         path = state.resolve(project, artifact['path'])
         relative = _relative(project, path)
+        if scoped:
+            owner = ('pages' if relative.startswith('slides/export-v') else
+                     'documents' if relative.startswith('documents/export-v') else
+                     'editable' if relative.startswith(('editable/output/', 'editable/handoff/handoff-v')) else None)
+            if owner not in modules:
+                continue
         if artifact.get('handoff_manifest'):
             if not relative.startswith('editable/handoff/handoff-v') or path.name != 'manifest.json':
                 raise ValueError('Handoff manifest must be inside a versioned handoff folder')
@@ -511,10 +535,12 @@ def collect(project):
         with Image.open(path) as image:
             image.verify()
         add(key, {**item, 'source_versions': basis, 'destination': destination + path.suffix.lower()})
-    for number, page in enumerate(pages, 1):
-        media('page-image-' + page['page_id'], page['image'], f'slides/page-images/page-{number:03d}')
-    assets = state.read_json(state.resolve(project, '_state/assets.json')).get('assets', [])
-    prompt_paths = {'slides/image-prompts.md', 'planning/visible-text.md', 'assets/asset-prompts.md'}
+    if page_media:
+        for number, page in enumerate(pages, 1):
+            media('page-image-' + page['page_id'], page['image'], f'slides/page-images/page-{number:03d}')
+    prompt_paths = {'slides/image-prompts.md', 'planning/visible-text.md'} if page_media else set()
+    if shared_media:
+        prompt_paths.add('assets/asset-prompts.md')
     for index, asset in enumerate(assets, 1):
         for number, item in enumerate(asset.get('files', []), 1):
             media(f'shared-asset-{index}-{number}', item, f'assets/shared/asset-{index:03d}-file-{number:03d}')
@@ -538,7 +564,7 @@ def collect(project):
         manifest = state.read_json(manifest_path)
         sources = manifest.get('source_versions')
         _check_versions(project, sources)
-        if any(sources.get(path) != basis[path] for path in CORE):
+        if any(sources.get(path) != basis[path] for path in source_paths):
             raise ValueError('Prompt manifest must lock current core records')
         files = {item['path']: item for item in manifest.get('files', [])}
         for number, relative in enumerate(available):

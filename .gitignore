@@ -23,6 +23,7 @@
 /tests/*
 !/tests/test_*.py
 !/tests/fixture_factory.py
+!/tests/workflow_fixture.py
 !/tests/validate_skills.py
 
 /docs/*
@@ -37,6 +38,8 @@
 !/docs/install-codex-prompt.md
 !/docs/install-workbuddy-prompt.md
 !/docs/install-prompt-notes.md
+!/docs/friend-install-and-use.md
+!/docs/friend-install-and-use.html
 
 /dist/*
 !/dist/math-courseware-skills-0.1.0.zip

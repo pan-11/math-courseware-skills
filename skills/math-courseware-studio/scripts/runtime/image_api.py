@@ -15,7 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from PIL import Image
-from . import state
+from . import state, workflow
 
 BASE_URL = 'https://grsai.dakka.com.cn'
 ENDPOINT = '/v1/draw/completions'
@@ -185,6 +185,10 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
             job['status'] = 'submission_unknown'
             state.write_json(path, job)
         return job
+    if job['status'] == 'pending' and resume:
+        return job
+    if job['status'] == 'pending':
+        workflow.require_image(project, job['purpose'])
     changed = []
     for target, expected in job.get('input_versions', {}).items():
         target_path = state.resolve(project, target)
@@ -215,8 +219,6 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
         state.write_json(path, job)
     job['prior_elapsed_seconds'] = job.get('elapsed_seconds', 0)
     if job['status'] == 'pending':
-        if resume:
-            return job
         body = build_payload(project, job)
         job.update(status='submitting', api_base_url=BASE_URL, api_endpoint=ENDPOINT,
                    model=body['model'], aspectRatio=body['aspectRatio'], size=body['aspectRatio'])
@@ -315,10 +317,13 @@ def register_builtin(project, result):
         raise ValueError('Output already exists with different bytes')
     if source != output:
         shutil.copy2(source, output)
+    changed = [relative for relative, expected in job.get('input_versions', {}).items()
+               if not state.resolve(project, relative).is_file()
+               or state.sha256(state.resolve(project, relative)) != expected]
     job.update(status='downloaded', output_path=output.relative_to(Path(project).resolve()).as_posix(),
                width_px=width, height_px=height, sha256=state.sha256(output),
                tool_evidence=result['tool_evidence'], review_status='pending_visual_review',
                response_id=result.get('response_id'), task_id=result.get('task_id'),
-               registered_at=state.now())
+               registered_at=state.now(), stale_inputs=changed)
     state.write_json(path, job)
     return job

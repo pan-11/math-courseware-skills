@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light" data-accent="teal">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-33KG5iC6IbPoTIja_N0t9n0j'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light dark"><meta name="generator" content="readhtml 1.1.0">
+<title>课件 Skill：朋友安装与使用说明 · 阅读版</title><style>
+:root{--bg:#f3f6f5;--paper:#fff;--ink:#20373b;--muted:#647b80;--line:#dce7e3;--accent:#177a65;--tint:#edf6f1;--hero:#153f3c;--code:#f1f5f4;--fs:17px;--shadow:0 8px 30px rgba(21,58,54,.035)}
+html[data-accent="blue"]{--accent:#366baf;--tint:#edf3fc;--hero:#1b385e}
+html[data-accent="purple"]{--accent:#7560a7;--tint:#f3effa;--hero:#352953}
+html[data-theme="dark"]{--bg:#111d20;--paper:#1a2a2d;--ink:#e3eeeb;--muted:#a1b8b6;--line:#314448;--accent:#78cdb5;--tint:#243e38;--hero:#193d39;--code:#112124;--shadow:none;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}body{margin:0;background:var(--bg);color:var(--ink);font:var(--fs)/1.88 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;overflow-wrap:anywhere}
+button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:var(--accent)}button,a,input,summary{-webkit-tap-highlight-color:transparent}button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #d5993d;outline-offset:3px}::selection{background:#cfebdf;color:#173f35}
+.wrap{width:min(1240px,calc(100% - 64px));margin:auto}.topbar{position:sticky;top:0;z-index:8;background:var(--bg);border-bottom:1px solid var(--line)}.top-inner{min-height:70px;display:flex;justify-content:space-between;align-items:center;gap:16px}.brand{display:flex;gap:10px;align-items:center;font-size:14px;font-weight:750;letter-spacing:.03em;text-decoration:none;color:var(--ink)}.brand-mark{display:grid;place-items:center;background:var(--accent);color:var(--paper);width:32px;height:32px;border-radius:9px;font:700 17px Georgia,serif}
+.tools{display:flex;flex-wrap:wrap;gap:7px;align-items:center}.btn{padding:7px 12px;font-size:12px;line-height:1.5;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font-weight:600}.btn:hover{border-color:var(--accent);color:var(--accent)}.tools .sep{width:1px;height:18px;background:var(--line);margin:0 4px}.scroll-meter{height:3px;background:transparent;position:absolute;bottom:-1px;left:0;right:0}.scroll-meter span{height:3px;background:var(--accent);display:block;width:0;transition:width .1s}
+.hero{margin:28px 0 22px;padding:36px 40px;border-radius:24px;background:var(--hero);color:#fff;position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:220px;height:220px;border:1px solid #ffffff15;border-radius:100%;top:-60px;right:-80px;pointer-events:none}.eyebrow{font-size:11px;letter-spacing:.13em;margin:0 0 13px;color:#b9d7cc;font-weight:700}.hero h1{font-size:clamp(28px,3vw,40px);line-height:1.4;margin:0 0 12px;max-width:980px;position:relative}.subtitle{color:#d5e5df;font-size:15px;line-height:1.8;margin:0;max-width:900px}.stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:23px;align-items:center;font-size:12px;color:#d1e4de}.stats b{font-size:17px;color:#f4d5a0;font-weight:650;margin-right:4px}.stat{border-right:1px solid #ffffff26;padding-right:14px}.stats .file-name{opacity:.8;max-width:440px}
+.overview{display:flex;gap:10px;align-items:center;margin:0 0 26px;padding:14px 17px;border:1px solid var(--line);border-radius:13px;background:var(--paper)}.overview-label{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;margin-right:5px}.flow-links{display:flex;gap:8px;overflow-x:auto;min-width:0;padding:2px 1px;scrollbar-width:thin}.flow-links a{flex:0 0 auto;border:1px solid var(--line);border-radius:7px;padding:5px 10px;white-space:nowrap;text-decoration:none;font-size:12px;color:var(--ink);background:var(--tint);max-width:220px;overflow:hidden;text-overflow:ellipsis}.flow-links a span{color:var(--accent);margin-right:7px;font-size:11px;font-weight:750}
+.layout{display:grid;grid-template-columns:223px minmax(0,1fr);gap:30px;align-items:start}.sidebar{position:sticky;top:96px;min-width:0;max-height:calc(100vh - 112px);overflow-y:auto;scrollbar-width:thin}.toc-box{padding-bottom:4px}.toc-box summary{font-size:12px;color:var(--muted);font-weight:750;letter-spacing:.05em;cursor:pointer;padding:0 4px 12px;list-style:none;display:flex;justify-content:space-between}.toc-box summary:after{content:"−"}.toc-box:not([open]) summary:after{content:"+"}.toc-box summary::-webkit-details-marker{display:none}.toc-search{width:100%;font-size:12px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);padding:9px 11px;margin:0 0 10px}.toc-links{display:grid;gap:3px}.toc-link{font-size:13px;text-decoration:none;display:block;padding:8px 10px;color:var(--muted);border-left:2px solid transparent;border-radius:0 7px 7px 0;line-height:1.6}.toc-link.lvl3{font-size:12px;padding-left:23px}.toc-link:hover,.toc-link.active{background:var(--tint);border-color:var(--accent);color:var(--accent)}.toc-link[hidden]{display:none}.sidebar-note{font-size:11px;color:var(--muted);margin:12px 6px;line-height:1.7}.completion{padding:16px;background:var(--paper);border:1px solid var(--line);border-radius:13px;margin-top:21px}.completion-title{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}.completion strong{font-size:22px;line-height:1.5;letter-spacing:-.02em;display:block;margin:6px 0}.completion strong small{font-size:12px;color:var(--muted);font-weight:400}.done-meter{height:5px;border-radius:8px;background:var(--tint);overflow:hidden;margin:10px 0}.done-meter span{display:block;width:0;height:100%;background:var(--accent)}.text-btn{border:0;background:none;color:var(--muted);font-size:11px;padding:0;text-decoration:underline}.storage-note{font-size:10px;color:var(--muted);line-height:1.6;margin:10px 0 0}
+.main{min-width:0}.chapter{background:var(--paper);border:1px solid var(--line);border-radius:19px;padding:26px 32px 30px;margin:0 0 19px;box-shadow:var(--shadow);scroll-margin-top:94px;min-width:0}.chapter.done{border-color:var(--accent)}.chapter-top{display:flex;align-items:center;gap:10px;margin:0 0 11px;line-height:1.4}.chapter-no{font-size:11px;letter-spacing:.11em;color:var(--accent);font-weight:800}.chapter-no b{font-size:17px;letter-spacing:0;margin-left:6px}.read-label{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);margin-left:auto;cursor:pointer;user-select:none}.read-check{width:14px;height:14px;accent-color:var(--accent);margin:0}.article h1{font-size:1.7em;line-height:1.4;margin:0 0 16px}.article h2{font-size:1.4em;line-height:1.5;margin:0 0 20px;letter-spacing:-.02em}.article h3{font-size:1.09em;line-height:1.7;margin:26px 0 9px;padding-left:11px;border-left:3px solid var(--accent)}.article h4,.article h5,.article h6{font-size:1em;margin:20px 0 8px}.article h1,.article h2,.article h3,.article h4{scroll-margin-top:94px}.article p{margin:12px 0}.article>p:first-child{margin-top:0}.article p:last-child{margin-bottom:0}.article a{text-underline-offset:3px}.article strong{font-weight:750;color:var(--accent)}.article em{font-style:normal;background:var(--tint);padding:1px 3px;border-radius:3px}.article ul,.article ol{padding-left:1.6em;margin:12px 0}.article li{padding-left:.2em;margin:7px 0}.article li::marker{color:var(--accent);font-weight:700}.article li>p{margin:5px 0}.article hr{height:1px;border:0;background:var(--line);margin:24px 0}.article blockquote{background:var(--tint);border-left:3px solid var(--accent);margin:18px 0;padding:12px 19px;border-radius:0 10px 10px 0;font-size:.94em;color:var(--ink)}.article blockquote p{margin:5px 0}.article blockquote blockquote{background:var(--paper)}.article code{font-family:ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:.88em;background:var(--code);padding:2px 6px;border:1px solid var(--line);border-radius:5px;overflow-wrap:anywhere}.code-wrap{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:18px 0;background:var(--code);max-width:100%}.code-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:7px 12px;color:var(--muted);font:11px/1.6 ui-monospace,Consolas,monospace}.copy-code{font:11px/1.5 inherit;border:0;background:none;color:var(--accent);padding:2px 4px;cursor:pointer}.article pre{margin:0;padding:17px;overflow-x:auto;line-height:1.75;font-size:14px;tab-size:4}.article pre code{display:block;border:0;padding:0;background:none;white-space:pre;overflow-wrap:normal;font-size:inherit;border-radius:0}.table-wrap{overflow:auto;max-width:100%;border:1px solid var(--line);border-radius:11px;margin:18px 0;scrollbar-width:thin}.article table{width:100%;border-collapse:collapse;font-size:.88em;line-height:1.85;min-width:380px}.article th,.article td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}.article th{background:var(--tint);font-weight:700}.article tr:last-child td{border-bottom:0}.article th+th,.article td+td{border-left:1px solid var(--line)}.article td code{white-space:normal}.article img{max-width:100%;height:auto;border-radius:10px;display:block;margin:14px auto}.image-note{display:flex;gap:10px;align-items:center;padding:15px;border:1px dashed var(--line);border-radius:10px;font-size:12px;color:var(--muted);background:var(--tint);margin:14px 0}.image-note small{display:block;font-size:11px}.task-item{list-style:none}.task-box{margin-left:-1.4em;margin-right:.5em;width:16px;height:16px;vertical-align:middle;accent-color:var(--accent);cursor:pointer}.task-item.task-done{color:var(--muted)}
+.notice{background:#fff7e6;border:1px solid #e8d6ae;border-radius:12px;padding:13px 17px;font-size:12px;color:#72592c;margin:18px 0 24px}.notice summary{cursor:pointer;font-weight:700}.notice ul{margin:8px 0 0;padding-left:20px}.empty-toc{font-size:12px;color:var(--muted);padding:6px}.footer{font-size:11px;color:var(--muted);text-align:center;margin:32px 0;padding-bottom:25px}.back-top{position:fixed;bottom:22px;right:22px;width:40px;height:40px;padding:0;box-shadow:var(--shadow);z-index:7}.toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,12px);max-width:calc(100% - 40px);padding:11px 19px;background:#183c37;color:#fff;border-radius:10px;font-size:13px;z-index:50;opacity:0;pointer-events:none;transition:.18s}.toast.show{opacity:1;transform:translate(-50%,0)}.mobile-toc{display:none}body.no-toc .layout{grid-template-columns:1fr}body.no-toc .sidebar{display:none}
+@media(min-width:1550px){.wrap{width:min(1320px,calc(100% - 80px))}.chapter{padding:28px 39px 33px}}
+@media(max-width:900px){.wrap{width:calc(100% - 36px)}.layout{grid-template-columns:1fr;gap:0}.sidebar{position:static;max-height:none;overflow:visible;margin-bottom:18px}.toc-box{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:12px 15px}.toc-box summary{padding:0}.toc-box[open] summary{padding-bottom:12px}.toc-links{max-height:280px;overflow-y:auto}.completion{display:none}.sidebar-note{display:none}.hero{padding:28px 26px}.mobile-toc{display:inline-block}.chapter{padding:23px 25px}.brand-label{display:none}.tools{gap:5px}.tools .sep{display:none}.overview{margin-bottom:18px}.footer{padding-bottom:55px}}
+@media(max-width:520px){:root{--fs:16px}.wrap{width:calc(100% - 24px)}.top-inner{min-height:60px;gap:8px}.tools .btn{padding:6px 8px;font-size:11px}.tools .font-plus,.tools .font-minus{padding:6px 8px}.brand-mark{width:28px;height:28px;font-size:15px}.hero{padding:24px 22px;margin-top:18px;border-radius:18px}.hero h1{font-size:27px}.eyebrow{font-size:10px}.subtitle{font-size:14px}.stats{gap:10px;font-size:11px;margin-top:20px}.stats .file-name{display:none}.overview{padding:11px 12px;gap:7px}.overview-label{display:none}.chapter{padding:20px;border-radius:15px;margin-bottom:14px}.article h2{font-size:1.3em}.article blockquote{padding:10px 13px}.article table{font-size:13px}.article th,.article td{padding:9px 11px}.article pre{font-size:12px;padding:13px}.back-top{width:35px;height:35px;right:12px;bottom:12px}.article ol,.article ul{padding-left:1.3em}.task-box{margin-left:-1.2em}.copy-full-text{display:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+@media print{html{color-scheme:light!important}body{background:#fff!important;color:#222!important;font:11pt/1.65 "Microsoft YaHei",sans-serif}.topbar,.sidebar,.overview,.read-label,.back-top,.toast,.copy-code,.notice,.chapter-top{display:none!important}.wrap{width:100%;max-width:none}.hero{margin:0 0 18pt;padding:0 0 12pt;color:#111!important;background:none!important;border-radius:0;border-bottom:1pt solid #bbb}.hero:after,.eyebrow,.stats .file-name{display:none}.hero h1{font-size:22pt;color:#111}.hero .subtitle,.hero .stats,.hero .stats b{color:#444!important}.layout{display:block}.chapter{box-shadow:none;border:0;border-radius:0;margin:0 0 18pt;padding:0;background:#fff!important}.article h2{font-size:16pt}.article h3{font-size:12pt}h1,h2,h3,h4{break-after:avoid}p,li{orphans:3;widows:3}.article strong,.article a{color:#222!important}.table-wrap{overflow:visible;border:1px solid #ccc}.article table{min-width:0;font-size:10pt}.article th,.article td{border-color:#ccc}.article tr{break-inside:avoid}.article pre{white-space:pre-wrap;overflow:visible}.article pre code{white-space:pre-wrap;overflow-wrap:anywhere}.code-wrap{break-inside:avoid}.footer{padding:0;margin-top:20pt}.task-box{appearance:auto}.article img{max-height:180mm;break-inside:avoid}}
+
+.hero h1 a{color:inherit}.hero h1 img{max-width:100%;max-height:240px;height:auto;object-fit:contain;vertical-align:middle}
+.plain-text .article p{white-space:pre-wrap;tab-size:4}.toc-link.lvl4{padding-left:24px}.toc-link.lvl5{padding-left:32px}.toc-link.lvl6{padding-left:40px}
+.article h5,.article h6,.footnotes li,.footnote-extra{scroll-margin-top:94px}.footnotes{border-top:1px solid var(--line);padding-top:12px;font-size:.9em}.footnote-extra{border:1px solid var(--line);padding:12px 16px;margin:16px 0;border-radius:10px}
+.math-source[data-display="true"]{display:block;margin:16px 0;overflow-x:auto}.math-source .katex{font-size:1.1em}.math-label{color:var(--muted)}.render-error{display:block;color:#b33625;font-size:12px;margin:6px 0}
+.diagram-wrap{margin:18px 0;max-width:100%}.diagram-preview{overflow:auto;background:#fff;color:#222;padding:16px;border:1px solid var(--line);border-radius:12px}.diagram-preview svg{display:block;max-width:100%;height:auto;margin:auto}.diagram-source{font-size:12px;margin-top:8px}.diagram-source summary{cursor:pointer;color:var(--muted)}.render-status{font-size:12px}.diagram-source .code-wrap{margin-top:8px}
+</style></head>
+<body class=""><header class="topbar"><div class="wrap top-inner"><a href="#page-top" class="brand"><span class="brand-mark">R</span><span class="brand-label">文稿 · 阅读版</span></a>
+<div class="tools"><button id="toc-toggle" class="btn mobile-toc" type="button">目录</button><button class="btn font-minus" data-font="-1" type="button" aria-label="减小正文字号">A−</button><button class="btn font-plus" data-font="1" type="button" aria-label="增大正文字号">A＋</button><span class="sep"></span><button class="btn" id="theme-toggle" type="button">深色</button><button class="btn" id="copy-all" type="button"><span class="copy-full-text">复制</span>原文</button><button class="btn" id="print-page" type="button">打印</button></div></div>
+<div class="scroll-meter" id="scroll-progress" role="progressbar" aria-label="页面阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="read-progress"></span></div></header>
+<div class="wrap" id="page-top"><section class="hero"><p class="eyebrow">READABLE DOCUMENT / 离线阅读</p><h1 id="sec-课件-skill朋友安装与使用说明">课件 Skill：朋友安装与使用说明</h1><p class="subtitle">沿着目录阅读，按章节记录进度。保留原文内容，让长文更好读。</p><div class="stats"><span class="stat"><b>5</b>章节板块</span><span class="stat"><b>10,259</b>非空白字符</span><span class="stat">Markdown → HTML</span><span class="file-name">friend-install-and-use.md</span></div></section><div class="overview"><span class="overview-label">章节速览</span><nav class="flow-links" aria-label="章节速览"><a href="#sec-一直接复制给ai的安装提示词"><span>01</span>一、直接复制给AI的安装提示词</a><a href="#sec-二这套skill是什么整套课件怎么用"><span>02</span>二、这套Skill是什么，整套课件怎么用</a><a href="#sec-三单独使用可编辑ppt接收可画无字版并回填文字"><span>03</span>三、单独使用可编辑PPT：接收可画无字版并回填文字</a><a href="#sec-四单独使用视频模块"><span>04</span>四、单独使用视频模块</a><a href="#sec-五以后怎样继续"><span>05</span>五、以后怎样继续</a></nav></div>
+<div class="layout"><aside class="sidebar"><details id="toc-box" class="toc-box" open><summary>阅读目录</summary><input id="toc-search" class="toc-search" type="search" placeholder="筛选目录标题…" aria-label="筛选目录标题"><nav class="toc-links" aria-label="阅读目录"><a class="toc-link lvl2" href="#sec-一直接复制给ai的安装提示词" data-target="sec-一直接复制给ai的安装提示词">一、直接复制给AI的安装提示词</a><a class="toc-link lvl2" href="#sec-二这套skill是什么整套课件怎么用" data-target="sec-二这套skill是什么整套课件怎么用">二、这套Skill是什么，整套课件怎么用</a><a class="toc-link lvl2" href="#sec-三单独使用可编辑ppt接收可画无字版并回填文字" data-target="sec-三单独使用可编辑ppt接收可画无字版并回填文字">三、单独使用可编辑PPT：接收可画无字版并回填文字</a><a class="toc-link lvl3" href="#sec-你需要先准备什么" data-target="sec-你需要先准备什么">你需要先准备什么</a><a class="toc-link lvl3" href="#sec-完整执行顺序" data-target="sec-完整执行顺序">完整执行顺序</a><a class="toc-link lvl3" href="#sec-上传材料后复制这段" data-target="sec-上传材料后复制这段">上传材料后，复制这段</a><a class="toc-link lvl2" href="#sec-四单独使用视频模块" data-target="sec-四单独使用视频模块">四、单独使用视频模块</a><a class="toc-link lvl3" href="#sec-路线一一个角色固定讲话" data-target="sec-路线一一个角色固定讲话">路线一：一个角色固定讲话</a><a class="toc-link lvl3" href="#sec-路线二有运镜切镜或场景变化" data-target="sec-路线二有运镜切镜或场景变化">路线二：有运镜、切镜或场景变化</a><a class="toc-link lvl2" href="#sec-五以后怎样继续" data-target="sec-五以后怎样继续">五、以后怎样继续</a></nav></details><p class="sidebar-note">点击标题跳转。查找正文可使用<br>Ctrl＋F / Command＋F。</p><section class="completion"><div class="completion-title"><span>章节进度</span><button class="text-btn" id="reset-state" type="button">重置</button></div><strong><span id="done-count">0</span> <small>/ 5 已读</small></strong><div class="done-meter"><span id="done-fill"></span></div><p class="storage-note" id="storage-note">勾选记录仅保存在本浏览器，不会回写原文件。</p></section></aside>
+<main class="main" id="main-content"><section class="chapter" id="readhtml-card-1"><div class="chapter-top"><span class="chapter-no">导读 / INTRODUCTION</span></div><div class="article"><p>本说明对应2026-09-19流程修订，包含可见原课分析、整课蓝图检查与按模块接入。使用新规则请获取<a href="https://github.com/pan-11/math-courseware-skills" target="_blank" rel="noopener noreferrer">仓库完整源码</a>。原配套<code>math-courseware-skills-20260918-0f33012.zip</code>虽然包含12个Skill，但不含这次修订；转发前应核对实际交付的源码版本，不能把新说明当成旧包已经具备的新能力。</p>
+<p>朋友先在Codex或WorkBuddy中打开一个用于制作课件的本地工作文件夹，再把ZIP放进该文件夹或提供它的本机路径。随后复制下面的安装提示词发送给AI。安装阶段只安装和介绍用法；后文的课件、回填和视频指令，等需要制作时再分别发送。</p>
+</div></section><section class="chapter" id="readhtml-card-2"><div class="chapter-top"><span class="chapter-no">SECTION <b>01</b></span><label class="read-label"><input class="read-check" type="checkbox" data-section="readhtml-card-2">已读</label></div><div class="article"><h2 id="sec-一直接复制给ai的安装提示词">一、直接复制给AI的安装提示词</h2>
+<div class="code-wrap"><div class="code-head"><span>text</span><button class="copy-code" type="button">复制代码</button></div><pre><code>请把我提供的完整课件Skill工具包安装到当前项目，并在安装后用普通教师能理解的话教我使用。
+
+本次只执行安装、环境检查和使用说明整理。后面的课件、PPT回填和视频案例是今后的使用场景，不要在安装结束后自动开始制作，不调用生图、视频或配音，不消耗媒体生成额度。
+
+【来源】
+优先使用我本次提供的完整课件Skill源码目录或ZIP，核对实际版本及随包清单。应包含12个Skill，不能换成只有7个模块的旧0.2.1包。需要本说明中的新流程检查时，还须实际包含studio/references/workflow.md、studio/scripts/runtime/workflow.py及analyze/references/source-report-template.md（studio/analyze指对应math-courseware目录）；旧20260918-0f33012包不含这些文件，不能假称安装了新规则。
+可选来源仓库：https://github.com/pan-11/math-courseware-skills.git。
+如果我已提供本地完整包，直接使用本地包，不强制登录GitHub。若必须取仓库，先核对我的账号能否访问；无权限时说明需要所有者授权或提供完整包，不改变仓库可见性、不索取别人的凭据。
+
+【安装位置与完整性】
+1. 识别当前宿主是Codex还是WorkBuddy，以及当前工作文件夹的实际绝对路径；以下把这个文件夹记为R。
+2. 先读取现有项目规则；新工作区先建立简短目录约定和接力记录。保留已有AGENTS.md、HANDOFF.md及课程数据。
+3. 将源码保存在R/tools下独立的版本目录。ZIP解包前检查路径不得越出目标目录，识别真正包含skills/的根目录，核对随包manifest和源文件哈希。
+4. 参考包内docs/install-codex-prompt.md或docs/install-workbuddy-prompt.md执行当前宿主的项目级安装，并核对本机版本的实际识别方式。Codex按R/.agents/skills，WorkBuddy按R/.codebuddy/skills检查；不要未经核实就称已经被软件识别，也不要静默改成全局安装。
+5. 成套安装以下12个同级目录，每个目录都保留SKILL.md、agents、references及原有scripts。共用执行器在math-courseware-studio/scripts中，不能只复制SKILL.md：
+   math-courseware-studio
+   math-courseware-analyze
+   math-courseware-plan
+   math-courseware-pages
+   math-courseware-editable
+   math-courseware-documents
+   math-courseware-video
+   math-courseware-video-writer
+   math-courseware-video-assets
+   math-courseware-video-director
+   math-courseware-video-storyboard
+   math-courseware-video-prompts
+6. 写入前检查全部目标位置。遇到同名来源不明目录、本地修改或版本冲突，先列明具体差异让我选择，不强行覆盖、删除或回滚。
+7. 只在本项目指定位置安装；不修改其他Skill、全局目录、系统配置、密钥或CI/CD。项目资料与Skill目录分开保存。
+
+【环境检查】
+先查已有运行时，不照搬工具包作者电脑的路径。检查Python 3.12+、Pillow、python-pptx、python-docx、pypdf、ReportLab、OfficeCLI，以及实际可用的字体和WPS/PowerPoint。
+检查共用控制器的导入和doctor实现后，运行只读的--help与doctor；核对12个Skill名称、参考链接、共用脚本及源文件哈希。
+依赖缺失时写清缺什么、影响哪个功能、建议如何补齐；需要新增全局依赖或系统改动时先征得我同意，不把文件复制完成说成所有功能均可运行。
+Codex内置生图是否可用，以本次真实工具为准。WorkBuddy不能假装拥有Codex专用工具；包内WorkBuddy说明使用Grsai线路，实际使用前需本人的可用服务和安全凭据来源，并说明费用归属。本次不读取、配置密钥或测试付费生成。
+旧20260918验证曾记录1项OfficeCLI文字回填异常；20260919在修改前重跑原60项测试均通过，未复现旧异常，这不等于已定位旧异常原因或验证实际WPS显示。按收到的具体版本说明历史记录与本机实测，不声称安装就证明回填稳定。后续遇到错误需保留实际证据，不屏蔽校验或冒充输出成功。
+
+【安装完成后的交付】
+在R/tools保存math-courseware-installation.md和math-courseware-install-manifest.json，记录真实来源、commit或ZIP哈希、安装路径、各文件哈希、检查结果和未就绪项。
+分别说明：文件已安装、宿主是否识别、依赖是否就绪、哪些实际功能尚未验证。
+如果当前软件暂未识别Skill，保留文件，提供读取实际SKILL.md绝对路径的调用方式；不要编造已经可用的快捷命令。只有Codex已识别时，才提供$math-courseware-studio等名称调用示例；WorkBuddy按本机真实用法说明。
+
+然后生成一份本机使用说明，所有调用例句都替换为我电脑上的实际绝对路径，不让我自己猜路径。必须包含下面三种使用方式。
+
+1. 整套小学数学课件：介绍12个模块，说明一般只需使用math-courseware-studio总入口；从材料分析、故事与数学定稿、视频准备、逐页制作、可编辑PPT及三文稿，到成片回填和播放检查。给出新建、继续已有课件的可复制指令。
+
+2. 单独使用math-courseware-editable：我会先在可画做好“无文字、图片元素已拆成可独立选择对象”的PPTX，再上传给你。这里直接从接收回传和文字回填开始。我后续提交回填任务时会明确选择B路线，不需要再去字、重做图片或重新导入可画，也不强加整课分析、新视频或文稿。
+   告诉我同时提供逐页定稿文字，最好附带字参考PPT/PDF/图片供定位。只有无字PPT无法确定被删掉的原文；只有带字参考图时，先提取并核对文字，不把OCR结果自动当定稿。
+   说明完整顺序：核对实际PPT页数/页序和拆层对象→核对逐页文字来源与映射→由AI建立必要项目记录和文字/坐标计划→保留原件、在副本直接整套回填原生文字→逐页检查文字与原图层→交付新版PPTX、预览及检查清单→我在WPS/PPT复核并手动添加动画。
+   外部PPT没有本套pages.json等记录时，由AI根据真实材料和实际确认建立最少必要记录，调用现有接口；不要让我写JSON，不伪造上游完成记录或确认，不跳过执行器检查。
+   内容未定的缺口集中核对；文字已定且已授权整套回填后，不额外增加单页试样或坐标批准节点，不做一页就停下。原有图片、分组、裁切和叠放关系要保留，文字为独立文本框，标题/题干/答案等分开。默认楷体，按参考逐项排版，不能用整页截图覆盖图层。
+
+3. 单独使用math-courseware-video：允许只有一个粗情境，没有故事或图片，由AI负责补齐剧本并制作实际所需图片。
+   固定讲话路线：完整台词和画面安排→真实单张彩色首帧→审阅人物与台词→整理即梦数字人使用材料→根据当前平台实际入口制作→检查口型、声音和画面。全程固定机位，不强加25格或故事板。
+   运镜切镜路线：①剧本＋实际25格关键画面预览；②角色三视图、场景多角度及必要道具；③导演节拍与静态/动态分镜双表；④正式黑白故事板；⑤从实际采用彩色资产提炼固定风格；⑥每段完整视频提示词与真实上传映射。顺序必须讲清，图片资产在剧本与导演之间，风格由资产模块在第5步整理。25格不是25秒或25个正式镜头。
+   重点审阅剧本＋预览、导演＋正式故事板两组成果；同版已确认内容复用。实际素材与完整文字集中到一个普通文件夹，并给出按顺序使用的说明，不能只交提示词却说图片完成。工具不可用或未返回时，明确实际缺项和待续步骤。
+   讲清六步之后怎样在实际视频平台上传、按段生成、检查、必要时拼接；参数与上传标签必须按当期真实入口核对。本套没有内置视频生成API，图片和提示词齐备不等于成片已生成。单独视频不自动扩展教师接话、课堂活动或PPT制作。
+
+请先完成本次安装和以上使用说明，最后告诉我下一次分别要提供哪些材料，以及可以直接复制发送的整课、PPT回填、固定讲话、运镜视频、恢复进度五类启动语。安装完成后等待我的实际制作任务。
+</code></pre></div>
+</div></section><section class="chapter" id="readhtml-card-3"><div class="chapter-top"><span class="chapter-no">SECTION <b>02</b></span><label class="read-label"><input class="read-check" type="checkbox" data-section="readhtml-card-3">已读</label></div><div class="article"><h2 id="sec-二这套skill是什么整套课件怎么用">二、这套Skill是什么，整套课件怎么用</h2>
+<p>这是一套让AI按固定流程协助制作课件的工作规则和执行脚本，整套流程按小学数学设计。一般从总入口开始，AI根据已有进度调用专业模块。</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="可左右滚动的表格"><table>
+<thead>
+<tr>
+<th>Skill名称</th>
+<th>负责的工作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>math-courseware-studio</code></td>
+<td>整课总入口，安排流程、确认、版本与交付</td>
+</tr>
+<tr>
+<td><code>math-courseware-analyze</code></td>
+<td>可见原课质量分析、优点与优化、逐页流程、视频清单及数学核查</td>
+</tr>
+<tr>
+<td><code>math-courseware-plan</code></td>
+<td>整课教学蓝图、教学情境、共同故事、风格及共享资产</td>
+</tr>
+<tr>
+<td><code>math-courseware-pages</code></td>
+<td>逐页文案、页面提示词与实际页面图</td>
+</tr>
+<tr>
+<td><code>math-courseware-editable</code></td>
+<td>可画交接、已有PPT文字校正或回填</td>
+</tr>
+<tr>
+<td><code>math-courseware-documents</code></td>
+<td>教师课堂逐字稿、说课稿、教学设计</td>
+</tr>
+<tr>
+<td><code>math-courseware-video</code></td>
+<td>视频总入口，组织两条视频路线</td>
+</tr>
+<tr>
+<td><code>math-courseware-video-writer</code></td>
+<td>剧本、完整台词、25格剧情预览</td>
+</tr>
+<tr>
+<td><code>math-courseware-video-assets</code></td>
+<td>角色/场景/道具实图、讲话首帧及固定风格</td>
+</tr>
+<tr>
+<td><code>math-courseware-video-director</code></td>
+<td>节拍、调度、运镜及静态/动态分镜双表</td>
+</tr>
+<tr>
+<td><code>math-courseware-video-storyboard</code></td>
+<td>正式黑白故事板实图及检查</td>
+</tr>
+<tr>
+<td><code>math-courseware-video-prompts</code></td>
+<td>完整视频词、上传映射及使用说明</td>
+</tr>
+</tbody>
+</table></div>
+<p>准备原课件、教材页或明确的课题/年级/目标，再提供页数要求、想要的情境和参考画风；没有完整故事也可以开始。具体教材题目和数据应有可靠来源。</p>
+<p>整课依次推进：</p>
+<ol>
+<li><strong>展示原课分析。</strong> 先说明原课制作得怎样、哪些地方值得借鉴、哪里需要优化；报告实际总页数、隐藏页及读取范围，列完整教学流程和每页作用。另列视频去重片数与播放位置数、原页码、具体内容、教学作用和前后衔接；没有实际看听的视频说明依据与未知项。只有PDF不能断言原PPT没有视频，没有原课件时做需求分析。</li>
+<li><strong>采用整课蓝图与共同故事/数学。</strong> 一起确定目标、活动、评价、教学流程、课时、页数预算、全部视频的数量和作用，以及故事和不可改数学。只选定一个故事不代表整课方案已采用。</li>
+<li><strong>完成全部计划视频的创作与准备。</strong> 从头制作整课时视频为必做；按后面的两路流程逐一准备所有计划视频。视频第二步可同时完成共享风格和角色、场景资产。只完成第一段视频不能直接跳到整课逐页制作。</li>
+<li><strong>制作PPT逐页文案和实际图片。</strong> 视频页计入总页数；先完成视频方案与流程，再推进逐页制作。实际视频成片可在准备完成后与PPT并行制作。</li>
+<li><strong>制作可编辑PPT和三类文稿。</strong> 可画A为带字拆层后校正，B为去字拆层后回填；进入制作前明确选择。三文稿可以在图片课件锁定后开始。</li>
+<li><strong>回填实际视频并检查播放。</strong> 检查课件、视频及文稿一致。动画由使用者在WPS/PPT手动设置；尚无成片时属于视频待回填阶段稿。</li>
+</ol>
+<p>整课中进入视频或可编辑模块，仍保留全课目标和其他待办。只做已有PPT回填、某段视频或某份文稿时，直接检查本模块真实输入，不要求从头重做。AI维护范围、产物和采用记录；旧项目缺少新索引时先依据真实历史核对接入，保留成果，不要求你手写JSON。</p>
+<p>安装后可以发送：</p>
+<div class="code-wrap"><div class="code-head"><span>text</span><button class="copy-code" type="button">复制代码</button></div><pre><code>读取本项目的math-courseware-installation.md，定位并使用math-courseware-studio。
+我要制作【年级】【课题】，预计【课时/页数】，参考资料是我上传的文件，情境想法是【填写或说明还没有】。
+先给我看原课质量、优点与优化、总页数、全页流程和视频数量/所在页/内容/作用，再补齐整课方案，采用后按全部视频清单推进。把课程放在独立项目中，保存整课目标、本次范围和真实进度；已确认的同版内容继续沿用。
+</code></pre></div>
+</div></section><section class="chapter" id="readhtml-card-4"><div class="chapter-top"><span class="chapter-no">SECTION <b>03</b></span><label class="read-label"><input class="read-check" type="checkbox" data-section="readhtml-card-4">已读</label></div><div class="article"><h2 id="sec-三单独使用可编辑ppt接收可画无字版并回填文字">三、单独使用可编辑PPT：接收可画无字版并回填文字</h2>
+<h3 id="sec-你需要先准备什么">你需要先准备什么</h3>
+<p>你的起点是：<strong>已在可画完成去字与拆层，导出一份PPTX，页面中的图片元素可以分别选中、移动或缩放。</strong> AI接下来负责文字回填和检查。</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="可左右滚动的表格"><table>
+<thead>
+<tr>
+<th>材料</th>
+<th>要求与作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无文字、已拆层的PPTX</td>
+<td>必需，保留完整页数与顺序；交PPTX文件，PDF/截图不能替代待编辑文件</td>
+</tr>
+<tr>
+<td>每页正确文字</td>
+<td>必需的内容依据，可提供逐页定稿文字，或提供可读取的带字原版后核对提取结果；包含标题、题目、算式、答案和标签</td>
+</tr>
+<tr>
+<td>带字参考PPT/PDF/图片</td>
+<td>建议同时提供，用于恢复文字位置、字体、字号、颜色和换行；按原页序对应</td>
+</tr>
+<tr>
+<td>字体及特殊要求</td>
+<td>例如默认楷体、哪些算式或答案要分开用于动画；有特殊字体需本机实际可用</td>
+</tr>
+</tbody>
+</table></div>
+<p>无字页面本身不能说明原来写了什么。只有带字参考图时，AI先提取并核对文字，遇到模糊字符、数学符号或来源冲突集中确认；你已明确指定的定稿文字直接沿用。没有带字版式参考但有完整文字时，AI可以根据页面实际留白排版，并说明版式为本次安排。</p>
+<h3 id="sec-完整执行顺序">完整执行顺序</h3>
+<ol>
+<li><strong>接收原件并检查。</strong> 保存上传原件的副本和哈希；查看实际页数、比例、顺序及对象。核实导出的图片元素确实仍可独立选择，记录未拆开区域、残留文字或异常分组。</li>
+<li><strong>对应逐页文字。</strong> 把每页文字与真实PPT页码对应。以你指定的定稿为准，带字参考负责视觉定位；提取出来但尚未核准的内容明确标注。</li>
+<li><strong>建立回填记录。</strong> AI自动建立必要项目记录、页面与文字单元、对象清单、字体和坐标计划。若这是外部制作的PPT，从真实输入建立最少记录即可，不要求先重做课程故事、页面生图或视频。已有记录直接复用；真实内容确认和整套制作授权分别记录。</li>
+<li><strong>直接整套回填。</strong> 本次明确采用B路线的回填阶段，已完成的去字和可画拆层不重复。文字来源确定后在工作副本中完成全部页面，不额外设置单页试样或坐标审批。标题、题干、答案、步骤及数学标签分别建立原生文字对象；需要逐项动画的算式可分片，拼回后仍须与原文完全一致。</li>
+<li><strong>整套逐页检查。</strong> 回读文字，核对漏字、错字、数学符号、字体、字号、位置、换行和遮挡；检查图片、分组、裁切与叠放关系。保留原图层，不以整页截图替换。仍未独立的必要数学对象单列，不能把文字回填完成当成所有图形都已拆好。</li>
+<li><strong>交付并实际复核。</strong> 交付新版PPTX、逐页预览或PDF及检查清单，说明未解决项。你在自己的WPS/PPT打开检查，按需设置动画；结构检查、视觉检查和实际软件显示分别记录。</li>
+</ol>
+<p>可画导入/拆层/导出由你操作；AI处理你上传的实际PPTX及文字。回填本身不依赖重新调用生图服务或可画在线插件。原图中仍粘在一起的细节按实际对象记录，不承诺自动拆成任意粒度。</p>
+<p>20260918测试曾出现OfficeCLI回填异常，20260919修改前的原60项回归均通过，未复现该异常。后续制作仍以朋友机器上的实际结果为准，写入失败时保留原件和错误记录，不能交一个仅改名或只有预览的文件并宣称回填成功。</p>
+<h3 id="sec-上传材料后复制这段">上传材料后，复制这段</h3>
+<div class="code-wrap"><div class="code-head"><span>text</span><button class="copy-code" type="button">复制代码</button></div><pre><code>读取本项目的math-courseware-installation.md，定位并使用math-courseware-editable及其共用脚本。
+
+我上传的是在可画完成的无文字PPTX，图片元素已经拆层。我明确选择B路线，现在直接从接收回传和文字回填阶段接入，不需要重新去字、制作页面图片或再次拆层。
+
+以我提供的逐页定稿文字为准，带字参考用于定位和还原版式。先核对页数、页序、实际对象与文字来源。缺少文字或页码对应不清时集中指出；只有参考图时先提取并让我核准，不要猜原文。
+
+如果没有本套项目记录，请根据真实文件建立必要记录和映射，不要求我写JSON，不伪造此前的制作或确认过程。
+在已核准内容范围内，我授权直接完成整套文字回填，完成后统一逐页检查；不设置单页试样或坐标预览批准节点。
+
+保留原有图片、分组、裁切和叠放关系，原件不覆盖；文字使用原生可编辑文本框，默认楷体，标题/题干/答案/数学标签分开。已有明确格式要求优先沿用。
+交付新PPTX、预览或PDF、逐页检查结果及未解决对象清单。这次只做PPT文字回填，不额外制作新故事、视频、课件图片或教学文稿。
+</code></pre></div>
+</div></section><section class="chapter" id="readhtml-card-5"><div class="chapter-top"><span class="chapter-no">SECTION <b>04</b></span><label class="read-label"><input class="read-check" type="checkbox" data-section="readhtml-card-5">已读</label></div><div class="article"><h2 id="sec-四单独使用视频模块">四、单独使用视频模块</h2>
+<p>统一从<code>math-courseware-video</code>开始，不必分别安装或手动切换五个专业模块。可以只有“游乐园”“小动物商店”等粗情境，再说明学生年龄、想让他们看到什么、预计时长及已有素材；已有台词、角色图和不可改条件一并给出。没有故事或角色图时由AI补齐。</p>
+<h3 id="sec-路线一一个角色固定讲话">路线一：一个角色固定讲话</h3>
+<p>适用：全程同一个角色说话，固定机位，没有运镜和切镜。自然口型、表情与轻微手势仍属于这一路线。</p>
+<p>顺序是：</p>
+<ol>
+<li><strong>完整台词与画面安排。</strong> 明确角色、场景、站位、说什么、说话语气及结束状态。</li>
+<li><strong>生成实际彩色单首帧。</strong> 复用已有角色/场景参考，缺失部分由AI制作；脸和嘴要清楚，构图符合你的要求。三视图是形象参考，实际首帧是完整单画面。</li>
+<li><strong>审阅人物、构图与台词。</strong> 修改有问题的部分，同版已有确认继续沿用。</li>
+<li><strong>整理数字人操作材料。</strong> 交付首帧、完整台词及必要参考，核实当前即梦数字人入口的输入方法。入口支持台词时使用完整正文，需要音频时使用实际配音文件，不能把文字文件当作已生成音频。</li>
+<li><strong>实际生成并检查。</strong> 在平台按核实后的操作制作，再检查口型、声音、台词完整性和画面。默认无BGM、无字幕，保留角色说话和适用音效。</li>
+</ol>
+<p>这一路线不安排25格剧情预览、导演多镜头双表或黑白故事板。若要求“先环绕场景，再切角色讲话”，整段应走下一条运镜切镜路线。</p>
+<p>启动语：</p>
+<div class="code-wrap"><div class="code-head"><span>text</span><button class="copy-code" type="button">复制代码</button></div><pre><code>读取本项目安装说明，定位并使用math-courseware-video。
+我要做一个单角色讲话视频：【角色】在【场景】中介绍【内容】，面向【学生年龄】，预计【时长】。
+全程固定机位、无运镜、无切镜。请写完整台词，生成实际彩色首帧，整理即梦数字人使用材料。若我已有台词或角色图，优先沿用。
+本次先完成图片与台词素材，放在同一个普通文件夹，不默认生成付费视频。
+</code></pre></div>
+<h3 id="sec-路线二有运镜切镜或场景变化">路线二：有运镜、切镜或场景变化</h3>
+<p>固定六步，图片资产位于第一步和导演步骤之间：</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="可左右滚动的表格"><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>谁负责</th>
+<th>做什么、拿到什么</th>
+<th>主要检查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. 剧本＋25格剧情预览</td>
+<td>video-writer</td>
+<td>从粗情境写可见事件、完整台词，实际生成5×5关键画面预览；根据反馈改剧本与相关预览</td>
+<td>想看的事件是否真的出现，开头有无明确看点，动作与结尾是否连贯</td>
+</tr>
+<tr>
+<td>2. 图片资产</td>
+<td>video-assets</td>
+<td>复用或生成角色正侧背三视图、场景多角度和必要道具，整理风格初稿</td>
+<td>同一个角色/地点是否一致，数量与结构是否正确，后续镜头所需视角是否齐备</td>
+</tr>
+<tr>
+<td>3. 导演分镜</td>
+<td>video-director</td>
+<td>先安排节拍与空间，再输出规范的导演文档及静态/动态双表</td>
+<td>运镜有没有观看目标，起止与揭示内容是否清楚，动作/对白是否容纳得下</td>
+</tr>
+<tr>
+<td>4. 正式黑白故事板</td>
+<td>video-storyboard</td>
+<td>根据正式静态分镜和实际参考图生图，按镜号核对并修改</td>
+<td>板格、构图、人物位置、动作状态和镜号是否与导演一致</td>
+</tr>
+<tr>
+<td>5. 固定风格文字</td>
+<td>video-assets</td>
+<td>从本片实际采用的彩色角色/场景图提炼固定风格描述，各段统一复用</td>
+<td>媒介、材质、配色和人物比例是否符合本片实图；黑白板不决定成片颜色</td>
+</tr>
+<tr>
+<td>6. 完整视频提示词</td>
+<td>video-prompts</td>
+<td>按自然动作和当前平台能力划分片段，输出每段可单独复制的完整词与上传文件映射</td>
+<td>台词完整、镜号对应、各段风格一致、引用是真实且正确的文件</td>
+</tr>
+</tbody>
+</table></div>
+<p>25格用来看剧情，不等于每格一秒，也不等于25个正式镜头。第四步的黑白故事板控制正式镜头构图，格数随镜头需要确定，不固定为13格。第一步预览可以使用已有或临时形象，不必先做齐第二步的全部正式设定图。</p>
+<p>导演文档中，<strong>节拍</strong>说明剧情、信息或情绪怎样变化；<strong>静态分镜</strong>说明每镜看见什么、如何构图；<strong>动态分镜／视频词基础表</strong>说明怎么动、说什么、持续多久及有什么音效。第六步把动态表内容与参考图、风格等组装成平台使用的完整提示词。</p>
+<p>重点看两组创作成果：<strong>剧本＋25格预览</strong>、<strong>导演方案＋正式黑白故事板</strong>。人物和场景效果可以结合这些成果审阅，同版已有确认沿用。平台或配音尚未确定，不阻断已明确的图片资产制作；工具不可用或未返回时，如实列出实际缺图与下一步。</p>
+<p>每段最终视频提示词包含五部分：</p>
+<ol>
+<li><strong>声音要求：</strong> 不要出现BGM，不要出现字幕，保留剧本对白和环境／动作音效。</li>
+<li><strong>真实参考映射：</strong> 逐张说明角色、场景、道具和故事板的用途。场景图默认用于环境设定，不自动锁成首帧或要求逐帧照搬；明确制作的实际首帧另行说明。</li>
+<li><strong>统一风格原文：</strong> 每段使用同一份已冻结的文字描述。</li>
+<li><strong>故事板范围与状态接续：</strong> 这次生成哪几个镜号，从什么状态开始、在哪里结束，怎样接上一段。</li>
+<li><strong>动态镜头全文：</strong> 完整写出时长、构图、景别、机位、运镜、台词、动作、节奏和音效。</li>
+</ol>
+<p>六步结束后，实际素材与文字放在一个普通文件夹，提供一个<code>start-here.md</code>入口，说明每段该上传哪些真实文件、复制哪段词、按什么顺序制作。实际图、台词和提示词集中保存，不自动压缩；只有提示词而缺图片时不能称素材已经齐备。</p>
+<p><strong>接着制作成片：</strong> 核实当前平台的参考输入、标签和时长限制 → 按上传映射生成有代表性的片段 → 检查人物、动作、声音和约定事实 → 修正对应环节 → 制作其余片段 → 需要时按顺序拼接 → 看完整视频并听声音。已有工具和费用授权允许AI操作时按实际能力执行，否则由你在平台操作并回传结果。素材准备完整、平台可提交、实际成片通过是不同状态；本套没有内置视频生成API。</p>
+<p>启动语：</p>
+<div class="code-wrap"><div class="code-head"><span>text</span><button class="copy-code" type="button">复制代码</button></div><pre><code>读取本项目安装说明，定位并使用math-courseware-video。
+我要做一个面向【学生年龄】的情景视频，大致情境是【填写】，预计【时长】，需要运镜和切换镜头。我目前没有完整故事，请从粗情境开始。
+我希望学生实际看到：【填写具体活动或想要的观看体验】。
+已有角色、台词、场景图和不可改变的条件：【填写；没有就说明没有】。
+
+按六步推进：剧本＋实际25格剧情预览→角色/场景/道具图片资产→导演分镜→正式黑白故事板→从采用彩色图提炼固定风格→完整视频提示词。
+先完成剧本和实际预览供我审阅，再按已确认进度继续。图片由你用当前真实可用且已选定的生图线路生成并查看，不能只交提示词代替图片。
+最终把实际素材、完整台词、分镜、逐段视频词和上传用法放在同一个普通文件夹。本次先完成这些素材，实际视频生成按我后续指定的平台和授权执行。
+</code></pre></div>
+</div></section><section class="chapter" id="readhtml-card-6"><div class="chapter-top"><span class="chapter-no">SECTION <b>05</b></span><label class="read-label"><input class="read-check" type="checkbox" data-section="readhtml-card-6">已读</label></div><div class="article"><h2 id="sec-五以后怎样继续">五、以后怎样继续</h2>
+<p>在同一工作文件夹里，提供原课程或视频项目路径，发送：</p>
+<div class="code-wrap"><div class="code-head"><span>text</span><button class="copy-code" type="button">复制代码</button></div><pre><code>读取本项目安装说明，继续【已有课件或视频项目的实际路径】。
+先读该项目AGENTS.md和HANDOFF.md，再核对真实文件与已确认版本。
+从未完成的步骤继续，保留已有成果和原编号；先说明现在在哪一步、还缺什么，再执行当前已授权工作。
+</code></pre></div>
+<p>提示词中的制作例句是后续主动发起任务时使用。安装成功表示工具文件与已检查环境的状态，真实生图、可画回传、视频效果和WPS显示仍以当次实际成果为准。</p>
+</div></section></main></div><footer class="footer">文字 / Markdown 阅读版 · 本地生成 · 可离线浏览<br>页面样式与交互由脚本添加，原文内容未自动改写。</footer></div>
+<button id="back-top" class="btn back-top" type="button" aria-label="返回顶部">↑</button><div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script id="doc-config" type="application/json" nonce="33KG5iC6IbPoTIja_N0t9n0j">{"key": "96c53561a3751c7a91105d6c", "source": "# 课件 Skill：朋友安装与使用说明\n\n本说明对应2026-09-19流程修订，包含可见原课分析、整课蓝图检查与按模块接入。使用新规则请获取[仓库完整源码](https://github.com/pan-11/math-courseware-skills)。原配套`math-courseware-skills-20260918-0f33012.zip`虽然包含12个Skill，但不含这次修订；转发前应核对实际交付的源码版本，不能把新说明当成旧包已经具备的新能力。\n\n朋友先在Codex或WorkBuddy中打开一个用于制作课件的本地工作文件夹，再把ZIP放进该文件夹或提供它的本机路径。随后复制下面的安装提示词发送给AI。安装阶段只安装和介绍用法；后文的课件、回填和视频指令，等需要制作时再分别发送。\n\n## 一、直接复制给AI的安装提示词\n\n```text\n请把我提供的完整课件Skill工具包安装到当前项目，并在安装后用普通教师能理解的话教我使用。\n\n本次只执行安装、环境检查和使用说明整理。后面的课件、PPT回填和视频案例是今后的使用场景，不要在安装结束后自动开始制作，不调用生图、视频或配音，不消耗媒体生成额度。\n\n【来源】\n优先使用我本次提供的完整课件Skill源码目录或ZIP，核对实际版本及随包清单。应包含12个Skill，不能换成只有7个模块的旧0.2.1包。需要本说明中的新流程检查时，还须实际包含studio/references/workflow.md、studio/scripts/runtime/workflow.py及analyze/references/source-report-template.md（studio/analyze指对应math-courseware目录）；旧20260918-0f33012包不含这些文件，不能假称安装了新规则。\n可选来源仓库：https://github.com/pan-11/math-courseware-skills.git。\n如果我已提供本地完整包，直接使用本地包，不强制登录GitHub。若必须取仓库，先核对我的账号能否访问；无权限时说明需要所有者授权或提供完整包，不改变仓库可见性、不索取别人的凭据。\n\n【安装位置与完整性】\n1. 识别当前宿主是Codex还是WorkBuddy，以及当前工作文件夹的实际绝对路径；以下把这个文件夹记为R。\n2. 先读取现有项目规则；新工作区先建立简短目录约定和接力记录。保留已有AGENTS.md、HANDOFF.md及课程数据。\n3. 将源码保存在R/tools下独立的版本目录。ZIP解包前检查路径不得越出目标目录，识别真正包含skills/的根目录，核对随包manifest和源文件哈希。\n4. 参考包内docs/install-codex-prompt.md或docs/install-workbuddy-prompt.md执行当前宿主的项目级安装，并核对本机版本的实际识别方式。Codex按R/.agents/skills，WorkBuddy按R/.codebuddy/skills检查；不要未经核实就称已经被软件识别，也不要静默改成全局安装。\n5. 成套安装以下12个同级目录，每个目录都保留SKILL.md、agents、references及原有scripts。共用执行器在math-courseware-studio/scripts中，不能只复制SKILL.md：\n   math-courseware-studio\n   math-courseware-analyze\n   math-courseware-plan\n   math-courseware-pages\n   math-courseware-editable\n   math-courseware-documents\n   math-courseware-video\n   math-courseware-video-writer\n   math-courseware-video-assets\n   math-courseware-video-director\n   math-courseware-video-storyboard\n   math-courseware-video-prompts\n6. 写入前检查全部目标位置。遇到同名来源不明目录、本地修改或版本冲突，先列明具体差异让我选择，不强行覆盖、删除或回滚。\n7. 只在本项目指定位置安装；不修改其他Skill、全局目录、系统配置、密钥或CI/CD。项目资料与Skill目录分开保存。\n\n【环境检查】\n先查已有运行时，不照搬工具包作者电脑的路径。检查Python 3.12+、Pillow、python-pptx、python-docx、pypdf、ReportLab、OfficeCLI，以及实际可用的字体和WPS/PowerPoint。\n检查共用控制器的导入和doctor实现后，运行只读的--help与doctor；核对12个Skill名称、参考链接、共用脚本及源文件哈希。\n依赖缺失时写清缺什么、影响哪个功能、建议如何补齐；需要新增全局依赖或系统改动时先征得我同意，不把文件复制完成说成所有功能均可运行。\nCodex内置生图是否可用，以本次真实工具为准。WorkBuddy不能假装拥有Codex专用工具；包内WorkBuddy说明使用Grsai线路，实际使用前需本人的可用服务和安全凭据来源，并说明费用归属。本次不读取、配置密钥或测试付费生成。\n旧20260918验证曾记录1项OfficeCLI文字回填异常；20260919在修改前重跑原60项测试均通过，未复现旧异常，这不等于已定位旧异常原因或验证实际WPS显示。按收到的具体版本说明历史记录与本机实测，不声称安装就证明回填稳定。后续遇到错误需保留实际证据，不屏蔽校验或冒充输出成功。\n\n【安装完成后的交付】\n在R/tools保存math-courseware-installation.md和math-courseware-install-manifest.json，记录真实来源、commit或ZIP哈希、安装路径、各文件哈希、检查结果和未就绪项。\n分别说明：文件已安装、宿主是否识别、依赖是否就绪、哪些实际功能尚未验证。\n如果当前软件暂未识别Skill，保留文件，提供读取实际SKILL.md绝对路径的调用方式；不要编造已经可用的快捷命令。只有Codex已识别时，才提供$math-courseware-studio等名称调用示例；WorkBuddy按本机真实用法说明。\n\n然后生成一份本机使用说明，所有调用例句都替换为我电脑上的实际绝对路径，不让我自己猜路径。必须包含下面三种使用方式。\n\n1. 整套小学数学课件：介绍12个模块，说明一般只需使用math-courseware-studio总入口；从材料分析、故事与数学定稿、视频准备、逐页制作、可编辑PPT及三文稿，到成片回填和播放检查。给出新建、继续已有课件的可复制指令。\n\n2. 单独使用math-courseware-editable：我会先在可画做好“无文字、图片元素已拆成可独立选择对象”的PPTX，再上传给你。这里直接从接收回传和文字回填开始。我后续提交回填任务时会明确选择B路线，不需要再去字、重做图片或重新导入可画，也不强加整课分析、新视频或文稿。\n   告诉我同时提供逐页定稿文字，最好附带字参考PPT/PDF/图片供定位。只有无字PPT无法确定被删掉的原文；只有带字参考图时，先提取并核对文字，不把OCR结果自动当定稿。\n   说明完整顺序：核对实际PPT页数/页序和拆层对象→核对逐页文字来源与映射→由AI建立必要项目记录和文字/坐标计划→保留原件、在副本直接整套回填原生文字→逐页检查文字与原图层→交付新版PPTX、预览及检查清单→我在WPS/PPT复核并手动添加动画。\n   外部PPT没有本套pages.json等记录时，由AI根据真实材料和实际确认建立最少必要记录，调用现有接口；不要让我写JSON，不伪造上游完成记录或确认，不跳过执行器检查。\n   内容未定的缺口集中核对；文字已定且已授权整套回填后，不额外增加单页试样或坐标批准节点，不做一页就停下。原有图片、分组、裁切和叠放关系要保留，文字为独立文本框，标题/题干/答案等分开。默认楷体，按参考逐项排版，不能用整页截图覆盖图层。\n\n3. 单独使用math-courseware-video：允许只有一个粗情境，没有故事或图片，由AI负责补齐剧本并制作实际所需图片。\n   固定讲话路线：完整台词和画面安排→真实单张彩色首帧→审阅人物与台词→整理即梦数字人使用材料→根据当前平台实际入口制作→检查口型、声音和画面。全程固定机位，不强加25格或故事板。\n   运镜切镜路线：①剧本＋实际25格关键画面预览；②角色三视图、场景多角度及必要道具；③导演节拍与静态/动态分镜双表；④正式黑白故事板；⑤从实际采用彩色资产提炼固定风格；⑥每段完整视频提示词与真实上传映射。顺序必须讲清，图片资产在剧本与导演之间，风格由资产模块在第5步整理。25格不是25秒或25个正式镜头。\n   重点审阅剧本＋预览、导演＋正式故事板两组成果；同版已确认内容复用。实际素材与完整文字集中到一个普通文件夹，并给出按顺序使用的说明，不能只交提示词却说图片完成。工具不可用或未返回时，明确实际缺项和待续步骤。\n   讲清六步之后怎样在实际视频平台上传、按段生成、检查、必要时拼接；参数与上传标签必须按当期真实入口核对。本套没有内置视频生成API，图片和提示词齐备不等于成片已生成。单独视频不自动扩展教师接话、课堂活动或PPT制作。\n\n请先完成本次安装和以上使用说明，最后告诉我下一次分别要提供哪些材料，以及可以直接复制发送的整课、PPT回填、固定讲话、运镜视频、恢复进度五类启动语。安装完成后等待我的实际制作任务。\n```\n\n## 二、这套Skill是什么，整套课件怎么用\n\n这是一套让AI按固定流程协助制作课件的工作规则和执行脚本，整套流程按小学数学设计。一般从总入口开始，AI根据已有进度调用专业模块。\n\n| Skill名称 | 负责的工作 |\n|---|---|\n| `math-courseware-studio` | 整课总入口，安排流程、确认、版本与交付 |\n| `math-courseware-analyze` | 可见原课质量分析、优点与优化、逐页流程、视频清单及数学核查 |\n| `math-courseware-plan` | 整课教学蓝图、教学情境、共同故事、风格及共享资产 |\n| `math-courseware-pages` | 逐页文案、页面提示词与实际页面图 |\n| `math-courseware-editable` | 可画交接、已有PPT文字校正或回填 |\n| `math-courseware-documents` | 教师课堂逐字稿、说课稿、教学设计 |\n| `math-courseware-video` | 视频总入口，组织两条视频路线 |\n| `math-courseware-video-writer` | 剧本、完整台词、25格剧情预览 |\n| `math-courseware-video-assets` | 角色/场景/道具实图、讲话首帧及固定风格 |\n| `math-courseware-video-director` | 节拍、调度、运镜及静态/动态分镜双表 |\n| `math-courseware-video-storyboard` | 正式黑白故事板实图及检查 |\n| `math-courseware-video-prompts` | 完整视频词、上传映射及使用说明 |\n\n准备原课件、教材页或明确的课题/年级/目标，再提供页数要求、想要的情境和参考画风；没有完整故事也可以开始。具体教材题目和数据应有可靠来源。\n\n整课依次推进：\n\n1. **展示原课分析。** 先说明原课制作得怎样、哪些地方值得借鉴、哪里需要优化；报告实际总页数、隐藏页及读取范围，列完整教学流程和每页作用。另列视频去重片数与播放位置数、原页码、具体内容、教学作用和前后衔接；没有实际看听的视频说明依据与未知项。只有PDF不能断言原PPT没有视频，没有原课件时做需求分析。\n2. **采用整课蓝图与共同故事/数学。** 一起确定目标、活动、评价、教学流程、课时、页数预算、全部视频的数量和作用，以及故事和不可改数学。只选定一个故事不代表整课方案已采用。\n3. **完成全部计划视频的创作与准备。** 从头制作整课时视频为必做；按后面的两路流程逐一准备所有计划视频。视频第二步可同时完成共享风格和角色、场景资产。只完成第一段视频不能直接跳到整课逐页制作。\n4. **制作PPT逐页文案和实际图片。** 视频页计入总页数；先完成视频方案与流程，再推进逐页制作。实际视频成片可在准备完成后与PPT并行制作。\n5. **制作可编辑PPT和三类文稿。** 可画A为带字拆层后校正，B为去字拆层后回填；进入制作前明确选择。三文稿可以在图片课件锁定后开始。\n6. **回填实际视频并检查播放。** 检查课件、视频及文稿一致。动画由使用者在WPS/PPT手动设置；尚无成片时属于视频待回填阶段稿。\n\n整课中进入视频或可编辑模块，仍保留全课目标和其他待办。只做已有PPT回填、某段视频或某份文稿时，直接检查本模块真实输入，不要求从头重做。AI维护范围、产物和采用记录；旧项目缺少新索引时先依据真实历史核对接入，保留成果，不要求你手写JSON。\n\n安装后可以发送：\n\n```text\n读取本项目的math-courseware-installation.md，定位并使用math-courseware-studio。\n我要制作【年级】【课题】，预计【课时/页数】，参考资料是我上传的文件，情境想法是【填写或说明还没有】。\n先给我看原课质量、优点与优化、总页数、全页流程和视频数量/所在页/内容/作用，再补齐整课方案，采用后按全部视频清单推进。把课程放在独立项目中，保存整课目标、本次范围和真实进度；已确认的同版内容继续沿用。\n```\n\n## 三、单独使用可编辑PPT：接收可画无字版并回填文字\n\n### 你需要先准备什么\n\n你的起点是：**已在可画完成去字与拆层，导出一份PPTX，页面中的图片元素可以分别选中、移动或缩放。** AI接下来负责文字回填和检查。\n\n| 材料 | 要求与作用 |\n|---|---|\n| 无文字、已拆层的PPTX | 必需，保留完整页数与顺序；交PPTX文件，PDF/截图不能替代待编辑文件 |\n| 每页正确文字 | 必需的内容依据，可提供逐页定稿文字，或提供可读取的带字原版后核对提取结果；包含标题、题目、算式、答案和标签 |\n| 带字参考PPT/PDF/图片 | 建议同时提供，用于恢复文字位置、字体、字号、颜色和换行；按原页序对应 |\n| 字体及特殊要求 | 例如默认楷体、哪些算式或答案要分开用于动画；有特殊字体需本机实际可用 |\n\n无字页面本身不能说明原来写了什么。只有带字参考图时，AI先提取并核对文字，遇到模糊字符、数学符号或来源冲突集中确认；你已明确指定的定稿文字直接沿用。没有带字版式参考但有完整文字时，AI可以根据页面实际留白排版，并说明版式为本次安排。\n\n### 完整执行顺序\n\n1. **接收原件并检查。** 保存上传原件的副本和哈希；查看实际页数、比例、顺序及对象。核实导出的图片元素确实仍可独立选择，记录未拆开区域、残留文字或异常分组。\n2. **对应逐页文字。** 把每页文字与真实PPT页码对应。以你指定的定稿为准，带字参考负责视觉定位；提取出来但尚未核准的内容明确标注。\n3. **建立回填记录。** AI自动建立必要项目记录、页面与文字单元、对象清单、字体和坐标计划。若这是外部制作的PPT，从真实输入建立最少记录即可，不要求先重做课程故事、页面生图或视频。已有记录直接复用；真实内容确认和整套制作授权分别记录。\n4. **直接整套回填。** 本次明确采用B路线的回填阶段，已完成的去字和可画拆层不重复。文字来源确定后在工作副本中完成全部页面，不额外设置单页试样或坐标审批。标题、题干、答案、步骤及数学标签分别建立原生文字对象；需要逐项动画的算式可分片，拼回后仍须与原文完全一致。\n5. **整套逐页检查。** 回读文字，核对漏字、错字、数学符号、字体、字号、位置、换行和遮挡；检查图片、分组、裁切与叠放关系。保留原图层，不以整页截图替换。仍未独立的必要数学对象单列，不能把文字回填完成当成所有图形都已拆好。\n6. **交付并实际复核。** 交付新版PPTX、逐页预览或PDF及检查清单，说明未解决项。你在自己的WPS/PPT打开检查，按需设置动画；结构检查、视觉检查和实际软件显示分别记录。\n\n可画导入/拆层/导出由你操作；AI处理你上传的实际PPTX及文字。回填本身不依赖重新调用生图服务或可画在线插件。原图中仍粘在一起的细节按实际对象记录，不承诺自动拆成任意粒度。\n\n20260918测试曾出现OfficeCLI回填异常，20260919修改前的原60项回归均通过，未复现该异常。后续制作仍以朋友机器上的实际结果为准，写入失败时保留原件和错误记录，不能交一个仅改名或只有预览的文件并宣称回填成功。\n\n### 上传材料后，复制这段\n\n```text\n读取本项目的math-courseware-installation.md，定位并使用math-courseware-editable及其共用脚本。\n\n我上传的是在可画完成的无文字PPTX，图片元素已经拆层。我明确选择B路线，现在直接从接收回传和文字回填阶段接入，不需要重新去字、制作页面图片或再次拆层。\n\n以我提供的逐页定稿文字为准，带字参考用于定位和还原版式。先核对页数、页序、实际对象与文字来源。缺少文字或页码对应不清时集中指出；只有参考图时先提取并让我核准，不要猜原文。\n\n如果没有本套项目记录，请根据真实文件建立必要记录和映射，不要求我写JSON，不伪造此前的制作或确认过程。\n在已核准内容范围内，我授权直接完成整套文字回填，完成后统一逐页检查；不设置单页试样或坐标预览批准节点。\n\n保留原有图片、分组、裁切和叠放关系，原件不覆盖；文字使用原生可编辑文本框，默认楷体，标题/题干/答案/数学标签分开。已有明确格式要求优先沿用。\n交付新PPTX、预览或PDF、逐页检查结果及未解决对象清单。这次只做PPT文字回填，不额外制作新故事、视频、课件图片或教学文稿。\n```\n\n## 四、单独使用视频模块\n\n统一从`math-courseware-video`开始，不必分别安装或手动切换五个专业模块。可以只有“游乐园”“小动物商店”等粗情境，再说明学生年龄、想让他们看到什么、预计时长及已有素材；已有台词、角色图和不可改条件一并给出。没有故事或角色图时由AI补齐。\n\n### 路线一：一个角色固定讲话\n\n适用：全程同一个角色说话，固定机位，没有运镜和切镜。自然口型、表情与轻微手势仍属于这一路线。\n\n顺序是：\n\n1. **完整台词与画面安排。** 明确角色、场景、站位、说什么、说话语气及结束状态。\n2. **生成实际彩色单首帧。** 复用已有角色/场景参考，缺失部分由AI制作；脸和嘴要清楚，构图符合你的要求。三视图是形象参考，实际首帧是完整单画面。\n3. **审阅人物、构图与台词。** 修改有问题的部分，同版已有确认继续沿用。\n4. **整理数字人操作材料。** 交付首帧、完整台词及必要参考，核实当前即梦数字人入口的输入方法。入口支持台词时使用完整正文，需要音频时使用实际配音文件，不能把文字文件当作已生成音频。\n5. **实际生成并检查。** 在平台按核实后的操作制作，再检查口型、声音、台词完整性和画面。默认无BGM、无字幕，保留角色说话和适用音效。\n\n这一路线不安排25格剧情预览、导演多镜头双表或黑白故事板。若要求“先环绕场景，再切角色讲话”，整段应走下一条运镜切镜路线。\n\n启动语：\n\n```text\n读取本项目安装说明，定位并使用math-courseware-video。\n我要做一个单角色讲话视频：【角色】在【场景】中介绍【内容】，面向【学生年龄】，预计【时长】。\n全程固定机位、无运镜、无切镜。请写完整台词，生成实际彩色首帧，整理即梦数字人使用材料。若我已有台词或角色图，优先沿用。\n本次先完成图片与台词素材，放在同一个普通文件夹，不默认生成付费视频。\n```\n\n### 路线二：有运镜、切镜或场景变化\n\n固定六步，图片资产位于第一步和导演步骤之间：\n\n| 步骤 | 谁负责 | 做什么、拿到什么 | 主要检查 |\n|---|---|---|---|\n| 1. 剧本＋25格剧情预览 | video-writer | 从粗情境写可见事件、完整台词，实际生成5×5关键画面预览；根据反馈改剧本与相关预览 | 想看的事件是否真的出现，开头有无明确看点，动作与结尾是否连贯 |\n| 2. 图片资产 | video-assets | 复用或生成角色正侧背三视图、场景多角度和必要道具，整理风格初稿 | 同一个角色/地点是否一致，数量与结构是否正确，后续镜头所需视角是否齐备 |\n| 3. 导演分镜 | video-director | 先安排节拍与空间，再输出规范的导演文档及静态/动态双表 | 运镜有没有观看目标，起止与揭示内容是否清楚，动作/对白是否容纳得下 |\n| 4. 正式黑白故事板 | video-storyboard | 根据正式静态分镜和实际参考图生图，按镜号核对并修改 | 板格、构图、人物位置、动作状态和镜号是否与导演一致 |\n| 5. 固定风格文字 | video-assets | 从本片实际采用的彩色角色/场景图提炼固定风格描述，各段统一复用 | 媒介、材质、配色和人物比例是否符合本片实图；黑白板不决定成片颜色 |\n| 6. 完整视频提示词 | video-prompts | 按自然动作和当前平台能力划分片段，输出每段可单独复制的完整词与上传文件映射 | 台词完整、镜号对应、各段风格一致、引用是真实且正确的文件 |\n\n25格用来看剧情，不等于每格一秒，也不等于25个正式镜头。第四步的黑白故事板控制正式镜头构图，格数随镜头需要确定，不固定为13格。第一步预览可以使用已有或临时形象，不必先做齐第二步的全部正式设定图。\n\n导演文档中，**节拍**说明剧情、信息或情绪怎样变化；**静态分镜**说明每镜看见什么、如何构图；**动态分镜／视频词基础表**说明怎么动、说什么、持续多久及有什么音效。第六步把动态表内容与参考图、风格等组装成平台使用的完整提示词。\n\n重点看两组创作成果：**剧本＋25格预览**、**导演方案＋正式黑白故事板**。人物和场景效果可以结合这些成果审阅，同版已有确认沿用。平台或配音尚未确定，不阻断已明确的图片资产制作；工具不可用或未返回时，如实列出实际缺图与下一步。\n\n每段最终视频提示词包含五部分：\n\n1. **声音要求：** 不要出现BGM，不要出现字幕，保留剧本对白和环境／动作音效。\n2. **真实参考映射：** 逐张说明角色、场景、道具和故事板的用途。场景图默认用于环境设定，不自动锁成首帧或要求逐帧照搬；明确制作的实际首帧另行说明。\n3. **统一风格原文：** 每段使用同一份已冻结的文字描述。\n4. **故事板范围与状态接续：** 这次生成哪几个镜号，从什么状态开始、在哪里结束，怎样接上一段。\n5. **动态镜头全文：** 完整写出时长、构图、景别、机位、运镜、台词、动作、节奏和音效。\n\n六步结束后，实际素材与文字放在一个普通文件夹，提供一个`start-here.md`入口，说明每段该上传哪些真实文件、复制哪段词、按什么顺序制作。实际图、台词和提示词集中保存，不自动压缩；只有提示词而缺图片时不能称素材已经齐备。\n\n**接着制作成片：** 核实当前平台的参考输入、标签和时长限制 → 按上传映射生成有代表性的片段 → 检查人物、动作、声音和约定事实 → 修正对应环节 → 制作其余片段 → 需要时按顺序拼接 → 看完整视频并听声音。已有工具和费用授权允许AI操作时按实际能力执行，否则由你在平台操作并回传结果。素材准备完整、平台可提交、实际成片通过是不同状态；本套没有内置视频生成API。\n\n启动语：\n\n```text\n读取本项目安装说明，定位并使用math-courseware-video。\n我要做一个面向【学生年龄】的情景视频，大致情境是【填写】，预计【时长】，需要运镜和切换镜头。我目前没有完整故事，请从粗情境开始。\n我希望学生实际看到：【填写具体活动或想要的观看体验】。\n已有角色、台词、场景图和不可改变的条件：【填写；没有就说明没有】。\n\n按六步推进：剧本＋实际25格剧情预览→角色/场景/道具图片资产→导演分镜→正式黑白故事板→从采用彩色图提炼固定风格→完整视频提示词。\n先完成剧本和实际预览供我审阅，再按已确认进度继续。图片由你用当前真实可用且已选定的生图线路生成并查看，不能只交提示词代替图片。\n最终把实际素材、完整台词、分镜、逐段视频词和上传用法放在同一个普通文件夹。本次先完成这些素材，实际视频生成按我后续指定的平台和授权执行。\n```\n\n## 五、以后怎样继续\n\n在同一工作文件夹里，提供原课程或视频项目路径，发送：\n\n```text\n读取本项目安装说明，继续【已有课件或视频项目的实际路径】。\n先读该项目AGENTS.md和HANDOFF.md，再核对真实文件与已确认版本。\n从未完成的步骤继续，保留已有成果和原编号；先说明现在在哪一步、还缺什么，再执行当前已授权工作。\n```\n\n提示词中的制作例句是后续主动发起任务时使用。安装成功表示工具文件与已检查环境的状态，真实生图、可画回传、视频效果和WPS显示仍以当次实际成果为准。\n"}</script><script nonce="33KG5iC6IbPoTIja_N0t9n0j">
+(()=>{'use strict';
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+const config=JSON.parse($('#doc-config').textContent), key='readhtml:'+config.key;
+let state={},canStore=true,timer;
+function notice(text){const n=$('#toast');n.textContent=text;n.classList.add('show');clearTimeout(timer);timer=setTimeout(()=>n.classList.remove('show'),2600)}
+try{const x=JSON.parse(localStorage.getItem(key)||'{}');if(x&&typeof x==='object'&&!Array.isArray(x))state=x;const prefs=JSON.parse(localStorage.getItem('readhtml:prefs')||'{}');if(prefs.theme==='dark'||prefs.theme==='light')document.documentElement.dataset.theme=prefs.theme;if([16,17,18,19,20,21,22].includes(prefs.font))document.documentElement.style.setProperty('--fs',prefs.font+'px')}catch(e){canStore=false}
+function store(){try{localStorage.setItem(key,JSON.stringify(state))}catch(e){canStore=false}storageTip()}
+function storageTip(){const n=$('#storage-note');if(n)n.textContent=canStore?'勾选记录仅保存在本浏览器，不会回写原文件。':'此浏览器不支持保存，勾选仅在本次打开时有效。'}
+function prefs(){try{localStorage.setItem('readhtml:prefs',JSON.stringify({theme:document.documentElement.dataset.theme,font:parseInt(getComputedStyle(document.documentElement).getPropertyValue('--fs'))}))}catch(e){}}
+function themeLabel(){const dark=document.documentElement.dataset.theme==='dark';$('#theme-toggle').textContent=dark?'浅色':'深色';$('#theme-toggle').setAttribute('aria-label',dark?'切换为浅色主题':'切换为深色主题')}
+$('#theme-toggle').addEventListener('click',()=>{document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';prefs();themeLabel()});themeLabel();
+$$('[data-font]').forEach(btn=>btn.addEventListener('click',()=>{let n=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--fs'));n=Math.max(16,Math.min(22,n+Number(btn.dataset.font)));document.documentElement.style.setProperty('--fs',n+'px');prefs();notice('正文字号：'+n+'px')}));
+async function copy(text){try{if(!navigator.clipboard)throw Error();await navigator.clipboard.writeText(text);return true}catch(e){const el=document.createElement('textarea');el.value=text;el.style.position='fixed';el.style.top='-9999px';document.body.appendChild(el);el.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}el.remove();return ok}}
+$('#copy-all').addEventListener('click',async()=>notice(await copy(config.source)?'已复制原文':'浏览器限制复制，请选中文字后复制'));
+$$('.copy-code').forEach(btn=>btn.addEventListener('click',async()=>notice(await copy(btn.closest('.code-wrap').querySelector('code').textContent)?'代码已复制':'复制受限，请手动选择代码')));
+$('#print-page').addEventListener('click',()=>window.print());$('#back-top').addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+const reads=$$('.read-check'),tasks=$$('.task-box');
+function updateDone(){reads.forEach(box=>box.closest('.chapter').classList.toggle('done',box.checked));const n=reads.filter(b=>b.checked).length;const count=$('#done-count');if(count)count.textContent=n;const fill=$('#done-fill');if(fill)fill.style.width=(reads.length?n/reads.length*100:0)+'%';tasks.forEach(box=>box.closest('li').classList.toggle('task-done',box.checked))}
+reads.forEach(box=>{if(state[box.dataset.section]!==undefined)box.checked=!!state[box.dataset.section];box.addEventListener('change',()=>{state[box.dataset.section]=box.checked;store();updateDone()})});
+tasks.forEach(box=>{const k='task-'+box.dataset.task;if(state[k]!==undefined)box.checked=!!state[k];box.addEventListener('change',()=>{state[k]=box.checked;store();updateDone()})});
+const reset=$('#reset-state');if(reset)reset.addEventListener('click',()=>{if(!window.confirm('清除本页的已读和任务勾选记录？'))return;state={};reads.forEach(b=>b.checked=false);tasks.forEach(b=>b.checked=b.defaultChecked);updateDone();store();notice('已恢复默认勾选状态')});updateDone();storageTip();
+let pending=false;function progress(){const el=document.documentElement;const total=el.scrollHeight-window.innerHeight;const ratio=total<=0?100:Math.min(100,Math.max(0,window.scrollY/total*100));$('#read-progress').style.width=ratio+'%';$('#scroll-progress').setAttribute('aria-valuenow',Math.round(ratio));pending=false}window.addEventListener('scroll',()=>{if(!pending){requestAnimationFrame(progress);pending=true}},{passive:true});window.addEventListener('resize',progress);progress();
+const toc=$('#toc-box');if(toc&&window.innerWidth<=900)toc.open=false;
+const mobile=$('#toc-toggle');if(mobile)mobile.addEventListener('click',()=>{if(toc){toc.open=!toc.open;if(toc.open)toc.scrollIntoView({behavior:'smooth',block:'start'})}});
+const search=$('#toc-search');if(search)search.addEventListener('input',()=>{const q=search.value.trim().toLowerCase();$$('.toc-link').forEach(a=>a.hidden=!a.textContent.toLowerCase().includes(q))});
+$$('.toc-link').forEach(a=>a.addEventListener('click',()=>{if(toc&&window.innerWidth<=900)toc.open=false}));
+const headings=$$('.article h1[id],.article h2[id],.article h3[id],.article h4[id],.article h5[id],.article h6[id]');
+if('IntersectionObserver'in window){const obs=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){$$('.toc-link').forEach(a=>{const active=a.dataset.target===entry.target.id;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current')})}}},{rootMargin:'-80px 0px -60% 0px',threshold:0});headings.forEach(h=>obs.observe(h))}
+})();
+
+</script></body></html>

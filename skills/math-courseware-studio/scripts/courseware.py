@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
-from runtime import state, checks, prompts
+from runtime import state, checks, prompts, workflow
 
 
 def validate_editable_authority(project, plan):
@@ -50,7 +50,7 @@ def parser():
     top = argparse.ArgumentParser(description='小学数学AI赋能课件：本地记录、生成任务、可编辑处理和导出')
     sub = top.add_subparsers(dest='command', required=True)
     sub.add_parser('doctor', help='Read-only environment check')
-    commands = ['init', 'status', 'validate', 'record-approval', 'impact', 'record-change',
+    commands = ['init', 'status', 'validate', 'workflow-check', 'record-approval', 'impact', 'record-change',
                 'render-prompts', 'image-prepare', 'image-run', 'image-resume', 'image-register',
                 'export-slides', 'canva-handoff', 'canva-import', 'editable-build', 'export-documents', 'collect']
     for command in commands:
@@ -59,6 +59,11 @@ def parser():
         if command == 'init':
             p.add_argument('--title', required=True)
             p.add_argument('--route', choices=state.ROUTES)
+            p.add_argument('--mode', choices=('full_course', 'selected_modules'))
+            p.add_argument('--scope-evidence', default='')
+        if command == 'workflow-check':
+            p.add_argument('--step', required=True)
+            p.add_argument('--video-id')
         filearg = {'record-approval': 'record', 'impact': 'change', 'record-change': 'change',
                    'image-prepare': 'selection', 'image-run': 'batch', 'image-resume': 'batch',
                    'image-register': 'result', 'editable-build': 'plan', 'canva-handoff': 'selection'}.get(command)
@@ -80,7 +85,10 @@ def execute(args):
         return checks.doctor()
     project = args.project.resolve()
     if c == 'init':
-        return state.init_project(project, args.title, args.route)
+        return state.init_project(project, args.title, args.route,
+                                  getattr(args, 'mode', None), getattr(args, 'scope_evidence', ''))
+    if c == 'workflow-check':
+        return workflow.check(project, args.step, video_id=args.video_id)
     state.load_project(project)
     if c == 'status':
         return state.status(project)
@@ -105,6 +113,7 @@ def execute(args):
         return image_api.run_batch(project, batch, key, resume=c == 'image-resume')
     if c in ('canva-import', 'editable-build'):
         from runtime import pptx_editor
+        workflow.require(project, 'editable-import' if c == 'canva-import' else 'editable-build')
         if c == 'canva-import':
             mapping = state.read_json(args.mapping)
             page_ids = {p['page_id'] for p in state.read_json(state.resolve(project, '_state/pages.json'))['pages']}
@@ -114,8 +123,8 @@ def execute(args):
         plan = state.read_json(args.plan)
         validate_editable_authority(project, plan)
         result = pptx_editor.build_editable(project, plan)
-        versions = {f'_state/{name}.json': state.sha256(state.resolve(project, f'_state/{name}.json'))
-                    for name in ('pages', 'story', 'math', 'assets')}
+        versions = {path: state.sha256(state.resolve(project, path))
+                    for path in workflow.basis_paths(project)}
         versions[plan['source_deck']] = plan['source_sha256']
         authority = plan.get('authorization', plan.get('review'))
         versions[authority['evidence']] = authority['sha256']
@@ -139,7 +148,7 @@ def main(argv=None):
         result = execute(args)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         if isinstance(result, dict):
-            if result.get('ok') is False:
+            if result.get('ok') is False or result.get('allowed') is False:
                 return 1
             if 'results' in result and any(r.get('status') != 'downloaded' for r in result['results']):
                 return 1

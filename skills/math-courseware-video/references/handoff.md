@@ -2,7 +2,9 @@
 
 ## 一份当前清单
 
-先读项目AGENTS/HANDOFF并声明目录用途，再创建实际需要的文件。单独视频使用用户指定项目/普通素材目录即可，不要求先初始化整套课程；已有课件复用原story/math/assets及video_nodes，不新造第二套权威记录。
+先读项目AGENTS/HANDOFF及[共用流程](../../math-courseware-studio/references/workflow.md)，声明目录用途再创建实际需要的文件。课程项目用`_state/workflow.json`记录project_mode与current_task；单独视频可以在原manifest.workflow记录范围和依据，使用普通素材目录，不要求整套课程JSON。已有课件复用story/math/assets及video_nodes，不新造第二套权威记录。
+
+整课正式视频创作以具体教学蓝图、共同核心及全课视频清单的真实采用为前置；只选故事不等于蓝图采用。明确的局部维护按current_task范围核输入，项目整课目标与待办保留。每步开始前执行`courseware.py workflow-check --project <目录> --step <video步骤> --video-id <视频ID>`，结束登记真实产物/来源、内部检查与必要采用后，核下一动作的前置；步骤和依赖只维护在共用流程，不再复制第二套阶段状态。
 
 | 位置 | 职责 |
 |---|---|
@@ -18,6 +20,7 @@
 总入口维护当前视频manifest（普通工作记录，不是新的runtime API）。至少记录video_id、revision、route、source_versions、products、files、缺项和next_action。沿用已有manifest时追加必要描述，不强制迁移老字段。
 
 - source_versions：真正读取的源路径、版本及SHA256；无文件不能填假哈希。可含共同story/math/assets及本轮脚本、导演表、风格等。
+- 外部同版剧本、导演、板或资产先登记为核验输入，说明当前能用什么、还缺什么；没有执行的上游保持未执行，不补空文件或冒称全部六步完成。
 - products：script/preview/assets/director/storyboard/style/prompts各自当前路径、版本、依据与状态；讲话的非适用步骤明确不适用。计划目标路径可以在缺项中描述，不加入files充当已有成果。
 - files：实际文件path、role、sha256、状态；复用副本另存source_path/source_sha256并核对一致。清单不哈希自身。
 - 图片生成、内部查看、用户采用分别记录；采用依据绑定具体文件版本/哈希，不把“请制作”当作“效果通过”。
@@ -52,7 +55,7 @@
 
 ## 旧稿继续
 
-先核实际文件与内容，不根据文件名或最新修改时间猜版本。旧screenplay/materials/shots/board-prompt/generation-packet可映射到新职责，齐备同版直接使用。仅在继续导演设计、修改镜头或缺字段确实影响本次工作时，将旧shots在新版本补成双表，共享字段必须一致；只调整上传顺序/标签不触发格式迁移。已有合格正式板与采用镜头时不倒退强制重画25格预览；记录预览在历史制作中未使用即可。
+先核实际文件与内容，不根据文件名或最新修改时间猜版本。缺workflow索引时先按真实指令与历史来源核范围，不自动把整课改成独立视频。旧screenplay/materials/shots/board-prompt/generation-packet可映射到新职责，齐备同版直接使用。仅在继续导演设计、修改镜头或缺字段确实影响本次工作时，将旧shots在新版本补成双表，共享字段必须一致；只调整上传顺序/标签走`video-upload`，不触发格式迁移。已有合格正式板与采用镜头时不倒退强制重画25格预览；记录预览在历史制作中未使用即可。
 
 历史teacher_next等课程字段不删除、不写进视频音轨，由studio读取；现有classroom_playback交课程总入口维护，视频模块只提供实际成片、逐字稿、结束状态和媒体检查。不要因Skill升级重写真实课程或登记新的用户采用。
 
@@ -62,7 +65,7 @@
 
 在已有课程中，用现有state.register_artifact(project, id, path, dependencies, metadata)登记已存在文件；dependencies引用实际V/E/M/资产ID和源路径，metadata保存source_versions和真实状态。没有课程执行器的单独视频只维护清单，不声称已自动登记。
 
-status/validate能核登记哈希，不能证明导演语义、实图质量、声音、时长或播放正确；另读来源哈希及真实输出。共同事件/数学的修改由plan通过现有impact/record-change保存历史并同步课程；纯技术进度只更新视频记录，避免共同故事反复失效。
+status/validate能展示状态与核登记哈希；workflow-check补充本次范围的产物/来源依赖检查，均不能证明导演语义、实图质量、声音、时长或播放正确。另读来源与真实输出。共同事件/数学修改由plan通过impact/record-change保存历史并核蓝图影响；纯技术进度只更新视频记录，避免共同故事反复失效。
 
 collect当前不收视频。单独视频按明确清单复制到普通交付文件夹、核对来源与副本哈希；不因注册artifact就称已打进课件。课程回填、教师接话和课堂播放交[studio衔接](../../math-courseware-studio/references/video-integration.md)。
 

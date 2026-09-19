@@ -66,10 +66,14 @@ def load_project(project):
     return data
 
 
-def init_project(project, title, route=None):
+def init_project(project, title, route=None, mode=None, scope_evidence=''):
     root = Path(project).resolve()
     if route is not None and route not in ROUTES:
         raise ValueError('Unknown image route')
+    if mode not in (None, 'full_course', 'selected_modules'):
+        raise ValueError('Unknown workflow mode')
+    if mode is not None and not str(scope_evidence).strip():
+        raise ValueError('Explicit workflow mode requires scope evidence')
     existing = root / '_state/project.json'
     if existing.exists():
         return load_project(root)
@@ -104,6 +108,8 @@ def init_project(project, title, route=None):
                    {'schema_version': SCHEMA, 'project_id': root.name, 'revision': 'v001', array: []})
     for name in ['decisions', 'changes']:
         (root / '_state' / (name + '.jsonl')).touch()
+    from . import workflow
+    workflow.initialize(root, mode=mode, evidence=scope_evidence)
     return data
 
 
@@ -245,6 +251,8 @@ def register_artifact(project, artifact_id, path, dependencies=(), metadata=None
 
 def status(project):
     data = load_project(project)
+    from . import workflow
+    data['workflow'] = workflow.summary(project)
     data['approvals'] = {name: is_approved(project, '_state/' + name + '.json') for name in RECORDS}
     data['jobs'] = [{'path': str(path.relative_to(Path(project))),
                      'status': read_json(path).get('status')} for path in

@@ -31,4 +31,4 @@
 
 `video_nodes`每条保存`video_id/purpose/event/place/characters/math_ids/dialogue/narration/asset_refs/teacher_next/status`。教师接续动作应具体，如“暂停后让学生先估计，再摆学具验证”。未取得成片写“必做，待制作/待回传”，不能写已生成或默认可选；本记录只是内容简述，不代表完整视频方案与流程已完成。
 
-同时产出人可读的`story-bible.md`和`video-handoff.md`，列建议播放节点、所需视频页数及固定总页数预算。故事定稿后先交video补齐[全部方案和制作步骤](../../math-courseware-studio/references/video-integration.md#ppt开工前的视频方案检查)，通过后再推进pages；视频需要的正式资产在剧本/25格预览之后、导演之前由video-assets与本模块协同制作；不在本模块固定九宫格、故事板平台或视频模型。
+同时产出人可读的`story-bible.md`和`video-handoff.md`。整课将故事、目标/活动/评价、原内容去向、课时、总页数及全部视频清单合入[入口规定的whole-course-plan](../SKILL.md)，取得该具体蓝图与共同核心的真实采用后，再交video补齐[全部方案和制作步骤](../../math-courseware-studio/references/video-integration.md#ppt开工前的视频方案检查)；只选故事不能代替蓝图采用。全部视频准备通过后再推进pages。所需正式资产在剧本/25格预览之后、导演之前由video-assets与本模块协同制作；不固定九宫格、故事板平台或视频模型。

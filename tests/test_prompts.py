@@ -7,6 +7,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'skills/math-courseware-studio/scripts'))
 from runtime import state
+from workflow_fixture import enable_modules
 try:
     from runtime import prompts
 except ImportError:
@@ -38,14 +39,40 @@ class PromptTests(unittest.TestCase):
         paths = ['_state/' + x + '.json' for x in ['math', 'story', 'assets', 'pages']]
         state.record_approval(self.root, {'targets': [{'path': p, 'sha256': state.sha256(self.root / p)} for p in paths],
             'user_evidence': 'Synthetic fixture approval'})
+        enable_modules(self.root)
 
     def test_prompts_keep_exact_words_style_and_stable_page_order(self):
+        enable_modules(self.root)
         result = prompts.render_pages(self.root)
         body = (self.root / result['prompts']).read_text(encoding='utf-8')
         self.assertLess(body.index('【页面编号】P002'), body.index('【页面编号】P001'))
         self.assertIn('3×5＝15（个）', body)
         self.assertEqual(body.count('半3D卡通，浅蓝底色，楷体，大屏简洁留白'), 2)
         self.assertIn('红衣短发男孩', body)
+
+    def test_render_blocks_unclassified_scope_before_writes(self):
+        with self.assertRaisesRegex(ValueError, 'workflow|Workflow|scope|mode'):
+            prompts.render_pages(self.root)
+        self.assertFalse((self.root / 'slides/image-prompts.md').exists())
+
+    def test_render_rejects_unknown_story_reference_before_writes(self):
+        pages = state.read_json(self.root / '_state/pages.json')
+        pages['pages'][0]['story_ids'] = ['MISSING_EVENT']
+        state.write_json(self.root / '_state/pages.json', pages)
+        enable_modules(self.root)
+        with self.assertRaisesRegex(ValueError, 'story|MISSING_EVENT'):
+            prompts.render_pages(self.root)
+        self.assertFalse((self.root / 'slides/image-prompts.md').exists())
+        self.assertFalse((self.root / 'planning/visible-text.md').exists())
+
+    def test_prepare_blocks_unclassified_scope_even_with_approved_records(self):
+        paths = ['_state/' + name + '.json' for name in ['math', 'story', 'assets', 'pages']]
+        state.record_approval(self.root, {'targets': [
+            {'path': path, 'sha256': state.sha256(self.root / path)} for path in paths],
+            'user_evidence': 'Synthetic input approval without authorization to start a module'})
+        with self.assertRaisesRegex(ValueError, 'workflow|Workflow|scope|mode'):
+            prompts.prepare(self.root, {'tasks': [{'purpose': 'page', 'target_id': 'P002'}]})
+        self.assertEqual(list((self.root / '_state/jobs').iterdir()), [])
 
     def test_formal_generation_requires_confirmation_and_real_references(self):
         selection = {'tasks': [{'purpose': 'page', 'target_id': 'P002', 'version': 'v001'}]}

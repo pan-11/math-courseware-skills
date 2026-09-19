@@ -99,6 +99,45 @@ class ImageApiTests(unittest.TestCase):
             prompts.prepare(self.root, {'tasks': [{'purpose': 'test', 'target_id': 'TEST2'},
                                                 {'purpose': 'page', 'target_id': 'P001'}]})
 
+    def test_pending_formal_job_checks_current_scope_before_submission(self):
+        job = state.read_json(self.path)
+        job.update(purpose='page', target_id='P001')
+        state.write_json(self.path, job)
+        transport = Transport()
+        with self.assertRaisesRegex(ValueError, 'workflow|Workflow|scope|mode'):
+            self.run_job(transport)
+        self.assertEqual(transport.posts, [])
+        self.assertEqual(state.read_json(self.path)['status'], 'pending')
+
+    def test_pending_resume_never_submits_or_requires_new_scope(self):
+        job = state.read_json(self.path)
+        job.update(purpose='page', target_id='P001')
+        state.write_json(self.path, job)
+        transport = Transport()
+        self.assertEqual(self.run_job(transport, resume=True)['status'], 'pending')
+        self.assertEqual(transport.posts, [])
+
+    def test_builtin_old_result_is_retained_with_stale_inputs(self):
+        project = state.load_project(self.root)
+        project['image_route'] = 'builtin'
+        state.write_json(self.root / '_state/project.json', project)
+        batch = prompts.prepare(self.root, {'tasks': [
+            {'purpose': 'test', 'target_id': 'BUILTIN_OLD', 'prompt': 'Synthetic old result'}]})
+        relative = batch['jobs'][0]
+        job = state.read_json(self.root / relative)
+        basis = '_state/pages.json'
+        job['input_versions'] = {basis: state.sha256(self.root / basis)}
+        state.write_json(self.root / relative, job)
+        state.write_json(self.root / basis, {'pages': [{'page_id': 'P009'}]})
+        source = self.root / 'slides/builtin-old.png'
+        Image.new('RGB', (32, 18), 'white').save(source)
+        result = image_api.register_builtin(self.root, {
+            'job_path': relative, 'input_digest': job['input_digest'], 'image_path': str(source),
+            'tool_evidence': 'Synthetic retained old response, not a new generation approval'})
+        self.assertEqual(result['status'], 'downloaded')
+        self.assertIn(basis, result.get('stale_inputs', []))
+        self.assertEqual(result['review_status'], 'pending_visual_review')
+
     def test_submitted_task_can_download_old_version_after_upstream_change(self):
         job = state.read_json(self.path)
         basis = '_state/pages.json'
