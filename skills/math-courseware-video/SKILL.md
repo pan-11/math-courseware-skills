@@ -13,6 +13,8 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 专业步骤开始前执行相邻studio的`courseware.py workflow-check --project <目录> --step <当前步骤> --video-id <视频ID>`；步骤名见下表。结束后记录实际产物、来源、内部核查和必要采用依据，再检查下一适用步骤；整课全部视频准备交PPT时查`pages`，独立交付查本次范围的`complete`。只改上传顺序/标签使用`video-upload`，不倒退重做编剧、导演或正式板。
 
+运镜路线最终默认交付并上传本次片段对应的完整故事板，必要设定参考另列；逐格制作文件不能直接充当最终上传方案。已有单格时由AI完成必要合板并同步完整词/上传表，这属于当前材料缺口；清楚长板复用、限制分板及单镜情形按[整板上传规则](../math-courseware-video-prompts/references/prompt-assembly.md#整板上传默认必须执行)。固定讲话仍用实际彩色首帧。
+
 ## 先分两路
 
 | 内容 | 执行路线 | 实际交付 |
