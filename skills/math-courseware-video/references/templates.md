@@ -14,7 +14,7 @@
 
 ## 固定镜头讲话：talking-packet.md
 
-旧入口继续使用；完整模板在prompts。只有单画面彩色首帧、完整台词及实际数字人用法，不加载导演八节、25格或黑白板。首帧实际文件与三视图分开标记。
+旧talking-packet入口可保留；当前格式在[prompts的讲话规范](../../math-courseware-video-prompts/references/talking-packet.md)。默认直接交单张实际首帧＋talking-prompt.txt完整视频词（含全部台词），不拆步确认，不加载导演八节、25格或黑白板。首帧实际文件与三视图分开标记。
 
 ## 每片段操作包：generation-packet.md
 

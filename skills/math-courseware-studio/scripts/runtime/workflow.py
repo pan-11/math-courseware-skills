@@ -115,17 +115,18 @@ class Inspection:
         reviewed = review.get('source_versions', {})
         self.need(isinstance(reviewed, dict) and all(reviewed.get(p) == h for p, h in versions.items()),
                   label + ': review does not cover current files and sources')
+        # Direct material delivery needs no adoption gate, but cannot reuse a rejected version.
+        history = state.read_lines(state.resolve(self.project, '_state/decisions.jsonl'))
+        for item in files.values():
+            if not isinstance(item, dict):
+                continue
+            latest = next((entry for entry in reversed(history)
+                           if any(target.get('path') == item.get('path') and target.get('sha256') == item.get('sha256')
+                                  for target in entry.get('targets', []))), None)
+            self.need(latest is None or latest.get('decision') == 'approved',
+                      label + ': current version was rejected: ' + str(item.get('path')))
         if approved:
             # Reuse existing course decisions; standalone tasks may retain the same decision format in a file.
-            history = state.read_lines(state.resolve(self.project, '_state/decisions.jsonl'))
-            for item in files.values():
-                if not isinstance(item, dict):
-                    continue
-                latest = next((entry for entry in reversed(history)
-                               if any(target.get('path') == item.get('path') and target.get('sha256') == item.get('sha256')
-                                      for target in entry.get('targets', []))), None)
-                self.need(latest is None or latest.get('decision') == 'approved',
-                          label + ': current version was rejected: ' + str(item.get('path')))
             current = bool(files) and all(state.is_approved(self.project, item['path'])
                                          for item in files.values() if isinstance(item, dict) and item.get('path'))
             if not current:
@@ -394,8 +395,9 @@ class Inspection:
             checked.add(name)
             record = products.get(name, {})
             self.evidence(record, str(video_id) + '/' + name,
-                          approved=name in ('script', 'preview', 'assets', 'style', 'first-frame')
-                          or (name == 'storyboard' and step in ('video-style', 'video-prompts', 'video-upload')))
+                          approved=route != 'talking' and (
+                              name in ('script', 'preview', 'assets', 'style', 'first-frame')
+                              or (name == 'storyboard' and step in ('video-style', 'video-prompts', 'video-upload'))))
             if name in ('preview', 'assets', 'first-frame', 'storyboard'):
                 self.visual(record, str(video_id) + '/' + name)
             if name == 'storyboard' and step in ('video-style', 'video-prompts', 'video-upload') and 'director' in products:

@@ -1,0 +1,44 @@
+[
+  {
+    "file": "fonts/KNMaiyuan-Regular.ttf",
+    "sha256": "94ea78c51086b1ea58c1744784b2335dea2c5ef1c5193b80e02c7d46b8e0283f",
+    "upstream": "https://github.com/maoken-fonts/KNMaiyuan",
+    "version": "580b2bb873828122f7816f1c5c4caf2667cba62f",
+    "license": "SIL OFL 1.1"
+  },
+  {
+    "file": "fonts/KNMaiyuan-OFL.txt",
+    "sha256": "7a34612c0c84a6bfdea81dae79a844ab5ad08175a957e6453991e9235924207c",
+    "upstream": "",
+    "version": "",
+    "license": "SIL OFL 1.1"
+  },
+  {
+    "file": "fonts/LXGWZhenKaiGB-Regular.ttf",
+    "sha256": "40876902a7ce25268ab710ad8fe6e2b63bc002aa4b68d22fd45fc1243726ced5",
+    "upstream": "https://github.com/lxgw/LxgwZhenKai",
+    "version": "v0.825",
+    "license": "SIL OFL 1.1"
+  },
+  {
+    "file": "fonts/LXGWZhenKai-OFL.txt",
+    "sha256": "25a9438bcfd3403c9cfcedf83d665de17c439ef7c98d58b2263b1dd96a9976a4",
+    "upstream": "",
+    "version": "",
+    "license": "SIL OFL 1.1"
+  },
+  {
+    "file": "fonts/ZCOOLKuaiLe-Regular.ttf",
+    "sha256": "812a6fc1fe54b6d73a419245c32dfeba8aa33104d5be90d1cf6af082007cb71d",
+    "upstream": "https://github.com/google/fonts/tree/main/ofl/zcoolkuaile",
+    "version": "actual file sha256 pinned",
+    "license": "SIL OFL 1.1"
+  },
+  {
+    "file": "fonts/ZCOOLKuaiLe-OFL.txt",
+    "sha256": "91ef06981e715027e93a66e95fe827db07c4c959dbca164489509febc0dfe400",
+    "upstream": "",
+    "version": "",
+    "license": "SIL OFL 1.1"
+  }
+]

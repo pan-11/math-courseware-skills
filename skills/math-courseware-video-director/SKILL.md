@@ -5,6 +5,8 @@ description: Use when a children's scenario video needs cinematic shot design, p
 
 # 儿童情景视频导演
 
+**每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
+
 将已有事件设计为清楚、有看点、可生成的镜头。导演判断由AI完成，用户不必懂景别、焦段或运镜术语。保留原剧本、角色和设施的已定事实，不编写教师接话、课堂活动或PPT回填。
 
 ## 输入与分流

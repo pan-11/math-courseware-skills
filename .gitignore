@@ -19,6 +19,12 @@
 !/skills/math-courseware-studio/scripts/*.py
 !/skills/math-courseware-studio/scripts/runtime/
 !/skills/math-courseware-studio/scripts/runtime/*.py
+!/skills/math-courseware-studio/assets/
+!/skills/math-courseware-studio/assets/blackboard/
+!/skills/math-courseware-studio/assets/blackboard/font-sources.json
+!/skills/math-courseware-studio/assets/blackboard/fonts/
+!/skills/math-courseware-studio/assets/blackboard/fonts/*.ttf
+!/skills/math-courseware-studio/assets/blackboard/fonts/*-OFL.txt
 
 /tests/*
 !/tests/test_*.py
@@ -35,6 +41,7 @@
 !/docs/video-skill-checks.md
 !/docs/video-modules-checks.md
 !/docs/cover-design-release-checks.md
+!/docs/blackboard-stickers-checks.md
 !/docs/install-codex-prompt.md
 !/docs/install-workbuddy-prompt.md
 !/docs/install-prompt-notes.md

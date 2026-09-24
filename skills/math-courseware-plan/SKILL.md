@@ -5,6 +5,8 @@ description: Use after source analysis when primary-school math courseware needs
 
 # 整课教学蓝图、情境与共享资产
 
+**每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
+
 读取[故事与资产](references/story-and-assets.md)、[项目协议](../math-courseware-studio/references/project-contract.md)；实际生图时读[线路规则](../math-courseware-studio/references/image-routing.md)。控制器在相邻总入口`scripts/courseware.py`。
 
 先按[共用流程](../math-courseware-studio/references/workflow.md)核项目目标、本次范围及实际分析成果。制作蓝图、封面、共享资产前，分别执行`workflow-check --project <目录> --step blueprint`、`--step cover`或`--step asset`；结束后登记实际产物、来源、内部核查及必要采用依据，再检查下一实际动作的前置。整课蓝图交视频时检查`video-script`及具体视频ID。独立方案/资产任务只核当前必需输入，不补整课历史。
@@ -28,6 +30,6 @@ description: Use after source analysis when primary-school math courseware needs
 
 视频的图片资产放在剧本/25格预览之后、导演之前；本模块的风格选择/封面参考可在该资产阶段协同进行，已定图直接复用。不要求预览前做全套三视图，也不能等导演/正式板完成才给它们生成参考。视频所需实图由[video-assets](../math-courseware-video-assets/SKILL.md)制作并交回同一共享索引；其他PPT资产按需要继续制作，不重复生成两套版本。
 
-角色默认正侧背；地点默认主视角、侧向视角、整体布局/俯视关系，必须是同一个地点。进入视频素材制作时与video共用这些三视图，已有同版图直接复用，缺图由AI实际生成并交付副本。固定镜头讲话交video生成单首帧和完整台词用于即梦数字人，不添加运镜切镜；运镜切镜由video生成黑白故事板和对应分镜词，不预设每镜还需彩色单帧。每个视频节点保存教学用途、事件、台词简稿、资产和视频结束后的教师行动；不锁定视频模型、九宫格或故事板格数。
+角色默认正侧背；地点默认主视角、侧向视角、整体布局/俯视关系，必须是同一个地点。进入视频素材制作时与video共用这些三视图，已有同版图直接复用，缺图由AI实际生成并交付副本。固定镜头讲话交video连续完成单首帧和含全部台词的完整视频提示词，同轮展示图片并交完整词用于即梦数字人，不拆步确认，不添加运镜切镜；运镜切镜由video生成黑白故事板和对应分镜词，不预设每镜还需彩色单帧。每个视频节点保存教学用途、事件、台词简稿、资产和视频结束后的教师行动；不锁定视频模型、九宫格或故事板格数。
 
 按当前阶段产出`planning/whole-course-plan.md`、`scenario-options.md`、`story-bible.md`、`video-handoff.md`、`assets/asset-prompts.md`、实际图片及`_state/story.json/math.json/assets.json`，已有有效文件复用。蓝图采用后交视频模块；全部视频准备通过后交页面内容，本页实际采用资产齐备才可生图。视频若改变共同事件、数学或台词含义，回到本模块检查蓝图和共同记录的实际影响，不另建互相矛盾的故事。

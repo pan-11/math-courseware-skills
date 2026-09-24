@@ -5,6 +5,8 @@ description: Prepare manual Canva layer-splitting handoffs and edit returned lay
 
 # 可画拆层与可编辑PPT
 
+**每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
+
 读取[可画交接](references/canva-handoff.md)和[文字与几何](references/text-and-geometry.md)。控制器位于相邻`math-courseware-studio/scripts/courseware.py`；先运行`doctor`确认OfficeCLI。
 
 先读[共用流程](../math-courseware-studio/references/workflow.md)，分别保留项目目标与本次任务范围。交接、回传接收、文字加工开始前分别执行`workflow-check --project <目录> --step editable-handoff`、`--step editable-import`、`--step editable-build`；完成后登记真实产物、来源版本、检查和制作授权，再核下一动作：实际回传到位查`editable-import`，准备加工查`editable-build`，交付查`collect`或对应范围的`complete`。

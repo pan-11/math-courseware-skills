@@ -15,9 +15,10 @@
 | inputs | 原课件、教材及补充材料的原样副本 |
 | planning | 教学分析、数学核查、故事、页面方案、可见文字稿 |
 | assets/characters、scenes、props | 实际设定图、版本与提示词 |
+| assets/blackboard-plan-vNNN、blackboard-vNNN | 按[黑板贴规范](../../math-courseware-documents/references/blackboard-stickers.md)先存来源/设计/spec，再存全新版本的透明素材、整板、PPT/PDF及检查；内部版本不覆盖，对外交付用中文普通文件夹 |
 | slides | 页面提示词、图及版本化图片课件 |
 | editable/handoff、returned、output | 可画交接、原始回传副本、修改结果 |
-| documents | 三类文稿的版本化输出 |
+| documents | 三类教师文稿的版本化输出；worksheet-vNNN保存[学生学习单](../../math-courseware-documents/references/student-worksheet.md)来源/任务对应、源稿、实际DOCX、分页检查和manifest，旧版本不覆盖 |
 | _state | 权威记录、确认、变更、任务、坐标、文稿源和检查 |
 | deliveries | 当前有效交付物的副本与清单 |
 

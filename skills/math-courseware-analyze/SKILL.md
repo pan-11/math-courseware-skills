@@ -5,6 +5,8 @@ description: Use when a primary-school math courseware task starts from an uploa
 
 # 课件与教学材料分析
 
+**每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
+
 读取[分析规范](references/analysis.md)、[可见报告模板](references/source-report-template.md)、[共用流程](../math-courseware-studio/references/workflow.md)和[共用项目协议](../math-courseware-studio/references/project-contract.md)。共用控制器位于相邻`math-courseware-studio/scripts/courseware.py`。
 
 先核项目总目标与本次范围。上传别人课件用于整课重做时，原课分析是第一步，不能把已有PPT当作新版方案已采用。用户只说“先看一下”，本轮止于读取和分析，不开展故事、视频或页面制作；没有原课件才写教学需求分析，原页数、原流程和原视频标为不适用，不编造。

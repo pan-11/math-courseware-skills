@@ -221,6 +221,66 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue(workflow.check(root, 'video-script', video_id='V001')['allowed'])
         self.assertFalse((root / '_state/project.json').exists())
 
+    def test_talking_materials_continue_without_intermediate_adoption(self):
+        self.data = enable_modules(self.root, ['video'])
+        self.video(route='talking', products=['script', 'first-frame', 'prompts'])
+        path = self.root / self.data['videos']['V001']['path']
+        manifest = state.read_json(path)
+        for product in manifest['workflow']['products'].values():
+            product.pop('approval', None)
+        for route in ('talking', 'fixed_talking'):
+            manifest['route'] = route
+            state.write_json(path, manifest)
+            self.data['videos']['V001'] = ref(self.root, path.relative_to(self.root).as_posix())
+            for step in ('video-assets', 'video-prompts', 'video-upload'):
+                with self.subTest(route=route, step=step):
+                    self.assertTrue(self.allowed(step, video_id='V001'))
+            self.assertEqual(state.read_json(path), manifest)
+
+    def test_talking_direct_delivery_keeps_image_and_review_checks(self):
+        self.data = enable_modules(self.root, ['video'])
+        self.video(route='talking', products=['script', 'first-frame'])
+        path = self.root / self.data['videos']['V001']['path']
+        manifest = state.read_json(path)
+        products = manifest['workflow']['products']
+        for product in products.values():
+            product.pop('approval', None)
+        state.write_json(path, manifest)
+        self.data['videos']['V001'] = ref(self.root, path.relative_to(self.root).as_posix())
+        self.assertTrue(self.allowed('video-prompts', video_id='V001'))
+        products['first-frame'] = evidence(self.root, 'text-only-frame',
+            sources=versions(products['script']))
+        state.write_json(path, manifest)
+        self.data['videos']['V001'] = ref(self.root, path.relative_to(self.root).as_posix())
+        self.assertFalse(self.allowed('video-prompts', video_id='V001'))
+
+    def test_talking_direct_delivery_does_not_reuse_rejected_frame(self):
+        self.data = enable_modules(self.root, ['video'])
+        self.video(route='talking', products=['script', 'first-frame'])
+        path = self.root / self.data['videos']['V001']['path']
+        manifest = state.read_json(path)
+        products = manifest['workflow']['products']
+        for product in products.values():
+            product.pop('approval', None)
+        state.write_json(path, manifest)
+        self.data['videos']['V001'] = ref(self.root, path.relative_to(self.root).as_posix())
+        self.assertTrue(self.allowed('video-prompts', video_id='V001'))
+        state.record_approval(self.root, {
+            'targets': list(products['first-frame']['files'].values()),
+            'decision': 'rejected', 'user_evidence': 'Synthetic rejected robot identity'})
+        self.assertFalse(self.allowed('video-prompts', video_id='V001'))
+
+    def test_shot_assets_still_need_script_adoption(self):
+        self.data = enable_modules(self.root, ['video'])
+        self.video(products=['script', 'preview'])
+        self.assertTrue(self.allowed('video-assets', video_id='V001'))
+        path = self.root / self.data['videos']['V001']['path']
+        manifest = state.read_json(path)
+        manifest['workflow']['products']['script'].pop('approval')
+        state.write_json(path, manifest)
+        self.data['videos']['V001'] = ref(self.root, path.relative_to(self.root).as_posix())
+        self.assertFalse(self.allowed('video-assets', video_id='V001'))
+
     def test_talking_route_does_not_require_director_or_board(self):
         self.data = enable_modules(self.root, ['video'])
         self.video(route='talking', products=['script', 'first-frame'])

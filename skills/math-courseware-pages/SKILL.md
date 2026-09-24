@@ -5,6 +5,8 @@ description: Plan exact per-slide teaching content and generate complete text-be
 
 # 页面内容、提示词与图片课件
 
+**每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
+
 读取[页面规范](references/page-design.md)、[项目协议](../math-courseware-studio/references/project-contract.md)，生图时读[线路规则](../math-courseware-studio/references/image-routing.md)。控制器位于相邻总入口`scripts/courseware.py`。
 
 先读[共用流程](../math-courseware-studio/references/workflow.md)，保留项目目标并核本次任务范围。逐页内容、页面生图、图片课件导出开始前分别执行`workflow-check --project <目录> --step pages`、`--step page-image`、`--step image-export`；结束后登记实际产物/来源、检查及必要采用依据，再核下一动作：逐页稿交生图查`page-image`，整套图交导出查`image-export`，导出交可编辑或文稿查其对应步骤。

@@ -39,9 +39,19 @@
 | [视频提示词](skills/math-courseware-video-prompts/SKILL.md) | 每段完整五部分视频词、真实上传映射与数字人用法 |
 | [页面](skills/math-courseware-pages/SKILL.md) | 逐页内容、准确文字、完整成品页提示词和图片 |
 | [可编辑](skills/math-courseware-editable/SKILL.md) | 可画交接、已有PPTX文字校正/回填、图层检查 |
-| [文稿](skills/math-courseware-documents/SKILL.md) | 教师课堂逐字稿、公开课说课稿、教学设计 |
+| [配套资料](skills/math-courseware-documents/SKILL.md) | 教师课堂逐字稿、公开课说课稿、教学设计、学生课堂学习单及电子黑板贴 |
 
 视频先完整交付全部计划视频的剧本、逐字声音、素材方案、分镜、各片段提示词和生成/声音/必要剪辑步骤及课程侧回填安排，按[前置清单](skills/math-courseware-studio/references/video-integration.md#ppt开工前的视频方案检查)检查并确认后再继续PPT制作。只写视频简述或一个小样包不满足前置。实际成片可以随后与PPT并行制作；缺工具时先交具体人工操作包，必做待办保留。
+
+## 每次回复先看步骤和产物
+
+十二个Skill每次回复都会先说明“当前步骤”和“本步最终产物”，包括执行中进度、等待回传及最终交付。例如：
+
+> 当前步骤：整课C3视频准备 → V001运镜第3步：导演分镜（进行中）。
+>
+> 本步最终产物：完整导演方案、静态画面表和动态运镜表。
+
+这里的产物是本步交付目标，具体完成情况在正文说明。独立可编辑、独立视频等直接标自己的模块和子步骤；固定讲话直接标首帧与完整词，不套六步。规则见[共用回复说明](skills/math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)。新规则已写入当前源码，旧安装副本或发行包需更新后使用。
 
 ## 第一步会看到什么
 
@@ -83,7 +93,11 @@
 
 ## 本地工具
 
-Python 3.12+，Pillow、python-pptx、python-docx、pypdf、ReportLab及OfficeCLI。Windows中文PDF使用实际已安装字体，字体文件不随包分发。建议优先使用Codex已提供的文档运行时。
+整课配套默认制作[学生课堂学习单](skills/math-courseware-documents/references/student-worksheet.md)，与定稿课件/教案一致、默认无答案学生版、A4纵向、通常2—3页并留足作答空间。交实际可编辑的“课题_课堂学习单.docx”，中文文件名，与其他配套放同一交付文件夹。也可单独要求制作学习单；三份教师文稿导出器不自动包含学习单，需按专门规则实际制作并查看分页。
+
+整课配套默认增加[电子黑板贴](skills/math-courseware-documents/references/blackboard-stickers.md)：AI读定稿课件决定内容与布局，沿用短词/说明/读作的固定字体分工，程序绘制并检查真实字形安全区。交透明PNG、逐件可移动PPT、布局PDF、整板和离线总览，中文普通文件夹，不自动ZIP；独立也可直接说“按这份课件制作电子黑板贴”。已有成品不覆盖，素材数量按本课决定。
+
+Python 3.12+，Pillow、python-pptx、python-docx、pypdf、ReportLab及OfficeCLI；黑板贴渲染另用fontTools核缺字。Windows中文PDF使用实际已安装字体，系统字体不随包分发；黑板贴包内仅包含三款已核许可的开源字体。建议优先使用Codex已提供的文档运行时，渲染和文档导出可以用各自已有的环境。
 
 ```powershell
 # 先通过Codex运行时发现工具确定Python绝对路径，再设置$python。
@@ -97,6 +111,8 @@ $controller = (Resolve-Path 'skills/math-courseware-studio/scripts/courseware.py
 完整数据与命令说明见[项目协议](skills/math-courseware-studio/references/project-contract.md)。脚本处理记录、格式和文件，Codex负责教学内容、数学推理与视觉判断；不能仅以脚本退出0宣称图片数学正确。
 
 ## 验证与当前边界
+
+电子黑板贴的跨课应用、59件已认可像素复现、五页实际WPS检查和127项回归结果见[黑板贴接入检查](docs/blackboard-stickers-checks.md)。
 
 首版基线见[实施与验证](docs/implementation-checks.md)，视频能力见[视频扩展检查](docs/video-skill-checks.md)，0.2.1变更见[封面规则检查](docs/cover-design-release-checks.md)，当前拆分接入见[视频模块验证](docs/video-modules-checks.md)。开发目录的行为测试：
 

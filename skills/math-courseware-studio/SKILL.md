@@ -5,6 +5,8 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 # 小学数学AI赋能课件总入口
 
+**每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
+
 把原课件转为教学一致、视觉连续、能继续修改的一套课件。整套含十二个Skill：课程总入口、分析/方案/页面/可编辑/文稿、视频总入口及其五个专业Skill。本入口管理课程流程、版本和衔接，不代替专业创作。
 
 **从头使用整套Skill制作课件，情景视频为必做环节。** 用旧PPT作参考、从分析开始重新制作整课，也属于此范围。不另问“要不要视频”，也不默认改为可选、静态图或教师代读。数量按教学需要，至少一段；仅校正已有PPT、单独制作文稿等局部任务按实际范围执行，用户明确调整范围时记录其依据。
@@ -29,7 +31,7 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 | 全部情景视频准备 C3 | [video](../math-courseware-video/SKILL.md) | 整课蓝图及共同核心已真实采用，按全课视频清单逐个检查适用步骤 |
 | 逐页内容和图片 C4—C5 | [pages](../math-courseware-pages/SKILL.md) | 蓝图及全部视频准备有效；分别检查`pages`/`page-image`/`image-export` |
 | 可画与原生文字 C6 | [editable](../math-courseware-editable/SKILL.md) | 相应真实输入及明确A/B方向；检查`editable-handoff`/`editable-import`/`editable-build` |
-| 配套教学文稿 C7 | [documents](../math-courseware-documents/SKILL.md) | 已锁定图片课件，可与可编辑分支并行；检查`documents` |
+| 教师文稿、学习单与黑板贴 C7 | [documents](../math-courseware-documents/SKILL.md) | 已锁定图片课件，可与可编辑分支并行；教师文稿检查`documents`，学习单/黑板贴按专门规范核来源与成品 |
 
 表内整课阶段只适用于当前整课推进范围。独立模块或明确局部维护只核所需真实输入，登记来源、版本与接入范围；没有执行的上游保持未执行，不补造整课完成记录。
 
@@ -53,9 +55,13 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 视频先完成整课准备资料，再按当前所需素材、小样和实际成片推进，沿用相同内容的确认。plan负责共同故事与数学，video负责表演和制作；改变核心内容先回流共同记录，再同步页面与文稿。25格只用于剧情预览，正式镜头/板格/视频数和模型不写死。PPT动画由用户在WPS手动设置。等待可画回传时可以生成配套文稿。
 
-进入视频素材制作后按两路执行：单角色固定镜头讲话，AI生成实际彩色首帧和完整台词供即梦数字人使用，不增加运镜、切镜或故事板；需要运镜切镜，AI生成实际黑白故事板和对应分镜词。复用或沿已选线路补齐所需角色/场景三视图，图片、提示词、台词和说明集中到同一个普通素材文件夹，直接交付文件夹及文件链接，不自动压缩。视频平台未定不阻断已定图片制作，不能只交提示词让用户自己生图；用户明确只要方案或工具不可用时，记录真实范围和缺项。图片包与成片完成分开验收，详见[视频实际素材制作](../math-courseware-video/references/production.md#4-自动制作实际素材)。
+进入视频素材制作后按两路执行：单角色固定镜头讲话，AI连续生成并自检实际彩色首帧和完整视频提示词（含全部台词）供即梦数字人使用，同轮先展示图片再给完整词，不拆步确认，不增加运镜、切镜或故事板；需要运镜切镜，AI生成实际黑白故事板和对应分镜词。复用或沿已选线路补齐所需角色/场景三视图，图片、提示词、台词和说明集中到同一个普通素材文件夹，直接交付文件夹及文件链接，不自动压缩。视频平台未定不阻断已定图片制作，不能只交提示词让用户自己生图；用户明确只要方案或工具不可用时，记录真实范围和缺项。图片包与成片完成分开验收，详见[视频实际素材制作](../math-courseware-video/references/production.md#4-自动制作实际素材)。
 
 ## 交付
+
+整课C7默认制作[学生课堂学习单](../math-courseware-documents/references/student-worksheet.md)，依据定稿课件与教学设计选核心任务，默认学生版，提供足够作答空间和实际可编辑中文DOCX；与其他配套放同一交付文件夹。用户明确省略除外，独立任务不扩范围。C8核真实文件与来源、内容、分页及交付副本，不能用三文稿导出成功代替学习单完成。
+
+整课C7默认随三份文稿制作[电子黑板贴](../math-courseware-documents/references/blackboard-stickers.md)，除非用户明确省略；已有课件单独制作也可走此分支。AI从有效课件决定清单、内容与整板，固定字体分工/描边/字形安全区，交独立透明素材、可移动PPT、布局PDF与预览。C8按其manifest另行收集并核查实际交付；现有collect/complete不会自动检查黑板贴，不能因控制器通过就漏掉。普通检查问题直接修，不增加逐件审批。
 
 课堂观看任务、教师接话、预留页、成片回填和播放由本入口协调plan/pages/documents/editable，统一按[视频与整课衔接](references/video-integration.md)执行；不要求视频编剧或导演为此新增课堂活动段落。
 
