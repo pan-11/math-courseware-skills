@@ -53,6 +53,8 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 ## 完成与恢复
 
+视频制作材料的最后一步统一按[交付回复模板](../math-courseware-video-prompts/references/delivery-reply.md)输出：开头明确第几个视频及可制作状态，再给步骤/产物、编号实图表、逐次完整TXT/时长/上传图号表、各视频素材文件夹与必要操作说明。两条路线及重新交付都适用，多片按实际播放顺序标序号；缺项不宣称现在可开工。
+
 每轮将实际图片、完整台词、提示词、映射和简明使用说明平铺到同一普通素材文件夹，直接给文件夹和关键文件链接，不自动压缩。由总入口执行[目录、依赖和恢复约定](references/handoff.md)，专业模块不各建第二套权威记录。
 
 用户要素材到即梦等平台自行制作时，文件夹齐备是本轮交付终点，视频仍待制作。实际视频生成/声音/剪辑须有当次工具与授权，能力以核实入口为准；本套没有内置视频API。成片回传按[实际媒体检查](references/production.md#实际成片检查)核对。
