@@ -9,6 +9,15 @@
 !/dist/
 
 /skills/**
+!/skills/courseware-xhs-studio/
+!/skills/courseware-xhs-studio/AGENTS.md
+!/skills/courseware-xhs-studio/SKILL.md
+!/skills/courseware-xhs-studio/agents/
+!/skills/courseware-xhs-studio/agents/openai.yaml
+!/skills/courseware-xhs-studio/references/
+!/skills/courseware-xhs-studio/references/*.md
+!/skills/courseware-xhs-studio/scripts/
+!/skills/courseware-xhs-studio/scripts/*.py
 !/skills/math-courseware-*/
 !/skills/math-courseware-*/SKILL.md
 !/skills/math-courseware-*/agents/

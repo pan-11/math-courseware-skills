@@ -43,7 +43,7 @@ def main():
         for path in folder.rglob('*.py'):
             compile(path.read_text(encoding='utf-8'), str(path), 'exec')
         results.append({'skill': folder.name, 'official_validator': 'PASS', 'local_links': links})
-    assert {item['skill'] for item in results} == {
+    assert {item['skill'] for item in results} == {'courseware-xhs-studio'} | {
         'math-courseware-' + name for name in
         ('studio', 'analyze', 'plan', 'video', 'video-writer', 'video-assets',
          'video-director', 'video-storyboard', 'video-prompts',
