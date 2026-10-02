@@ -40,6 +40,10 @@
 !/tests/fixture_factory.py
 !/tests/workflow_fixture.py
 !/tests/validate_skills.py
+!/tests/fixtures/
+/tests/fixtures/*
+!/tests/fixtures/AGENTS.md
+!/tests/fixtures/manual-mode-baseline-v001.json
 
 /docs/*
 !/docs/implementation-checks.md

@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
-from runtime import state, checks, prompts, workflow
+from runtime import state, checks, prompts, workflow, errors
 
 
 def validate_editable_authority(project, plan):
@@ -154,9 +154,9 @@ def main(argv=None):
                 return 1
         return 0
     except Exception as exc:
-        # Network errors may contain request data; never emit arbitrary transport exceptions.
-        message = str(exc) if isinstance(exc, (ValueError, FileNotFoundError)) else type(exc).__name__
-        print(json.dumps({'ok': False, 'error': message}, ensure_ascii=False), file=sys.stderr)
+        print(json.dumps({'ok': False, 'command': args.command,
+                          'error_type': type(exc).__name__, 'error': errors.describe(exc)},
+                         ensure_ascii=False), file=sys.stderr)
         return 1
 
 

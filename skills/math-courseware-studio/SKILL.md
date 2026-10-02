@@ -18,6 +18,8 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 3. 读取[项目协议](references/project-contract.md)，只在需要生图时读[生图线路](references/image-routing.md)，发生修改、中断或等待回传时读[恢复规则](references/recovery.md)。
 4. 脚本依赖Python、Pillow、python-pptx、python-docx、pypdf、ReportLab；先用Codex的运行时发现工具定位现有环境，再运行`doctor`。缺依赖先报告，不自动安装全局依赖。
 
+命令失败时按[报错 JSON 说明](references/recovery.md#报错-json-说明)定位字段、文件或外部程序；API 的诊断信息不改变原任务状态与恢复方式。
+
 按真实指令分别记录项目`project_mode`与本次`current_task.mode`、范围和依据；课程使用`_state/workflow.json`，独立视频可用原`manifest.workflow`。整课中“现在做视频”只改变当前工作，不把项目改成独立视频；明确只修已有页面的局部任务可核对该输入后执行，同时保留整课待办。“先看一下”本轮只分析。旧项目没有索引时先核历史与实际产物，登记为输入接入或已有有效成果，不凭目录数量推断完成。
 
 每个专业步骤开始前运行`scripts/courseware.py workflow-check --project <目录> --step <步骤>`，视频步骤加`--video-id <视频ID>`；结束后登记实际产物、来源版本、内部核查与必要采用依据，再检查下一实际动作的前置并交接。步骤名及依赖统一见共用流程。该只读检查给出当前允许项与缺口，重复检查当前动作不证明它已完成；它不替代教学/视觉判断，也不把执行许可变成产物采用。“继续”从本次范围中最早可做的必要缺项恢复，并保留可并行分支。

@@ -15,7 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from PIL import Image
-from . import state, workflow
+from . import state, workflow, errors
 
 BASE_URL = 'https://grsai.dakka.com.cn'
 ENDPOINT = '/v1/draw/completions'
@@ -171,6 +171,12 @@ def run_job(project, relative, transport, resume=False, timeout=500, poll_interv
         return _run_job_locked(project, relative, transport, resume, timeout, poll_interval)
 
 
+def _record_error(job, exc, transport):
+    for field in errors.DIAGNOSTIC_FIELDS:
+        job.pop(field, None)
+    job.update(errors.details(exc, secrets=(getattr(transport, 'key', ''),)))
+
+
 def _run_job_locked(project, relative, transport, resume=False, timeout=500, poll_interval=5):
     path = state.resolve(project, relative)
     job = state.read_json(path)
@@ -229,6 +235,7 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
         except Exception as exc:
             # A timeout/connection/parse failure cannot establish whether billing occurred.
             job.update(status='submission_unknown', error_code=type(exc).__name__)
+            _record_error(job, exc, transport)
         save()
     while job['status'] == 'running' and time.monotonic() < deadline:
         try:
@@ -238,6 +245,7 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
             job.update({k: v for k, v in parsed.items() if v is not None})
         except Exception as exc:
             job['error_code'] = 'query_' + type(exc).__name__
+            _record_error(job, exc, transport)
             save()
             return job
         save()
@@ -266,6 +274,7 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
             state.write_json(state.resolve(project, job['api_evidence_path']), job)
         except Exception as exc:
             job.update(status='download_failed', error_code=type(exc).__name__)
+            _record_error(job, exc, transport)
             save()
     return job
 
@@ -290,7 +299,8 @@ def run_batch(project, batch, key, resume=False):
                 job = future.result()
                 results.append({'job': path, 'status': job['status']})
             except Exception as exc:
-                results.append({'job': path, 'status': 'blocked', 'error_code': type(exc).__name__})
+                results.append({'job': path, 'status': 'blocked', 'error_code': type(exc).__name__,
+                                **errors.details(exc, secrets=(key,))})
     result = {**batch, 'results': results, 'completed_at': state.now()}
     state.write_json(state.resolve(project, batch['path']), result)
     return result

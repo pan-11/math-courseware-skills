@@ -16,6 +16,10 @@ import uuid
 import zipfile
 
 from lxml import etree as ET
+if __package__:
+    from . import errors
+else:
+    import errors
 
 NS = {"p": "http://schemas.openxmlformats.org/presentationml/2006/main",
       "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
@@ -274,11 +278,12 @@ def _verify_format(node, operation):
 def _office(args):
     executable = shutil.which("officecli")
     if executable is None:
-        raise RuntimeError("OfficeCLI is required; do not install automatically")
+        raise RuntimeError("没有找到 OfficeCLI：请检查现有安装或 PATH；本工具不会自动安装")
     result = subprocess.run([executable, *map(str, args)], capture_output=True, text=True,
                             encoding="utf-8", errors="replace", timeout=120, shell=False)
     if result.returncode:
-        raise RuntimeError("OfficeCLI failed: " + result.stdout + result.stderr)
+        raise RuntimeError(f"OfficeCLI 执行失败（退出码 {result.returncode}）：" +
+                           errors.redact(result.stderr + "\n" + result.stdout))
     return result.stdout
 
 

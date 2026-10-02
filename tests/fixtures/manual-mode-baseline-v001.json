@@ -1,0 +1,264 @@
+{
+  "source_commit": "643701823368991d9dc78c2b65e8804721ab173e",
+  "source_text_sha256": {
+    "skills/math-courseware-studio/scripts/runtime/workflow.py": "f161f01a620085bd271a6b54ff2e50a1d946bed09dd7eb45b26ea2f4e05240bb",
+    "skills/math-courseware-studio/scripts/runtime/state.py": "4cf1344e836ab21cd9808b8d75481f86ebbe836868f7e2023327168dec6fdd9d"
+  },
+  "scenarios": {
+    "unclassified-pages": {
+      "allowed": false,
+      "step": "pages",
+      "mode": "unclassified",
+      "issues": [
+        "workflow: unclassified project scope; do not infer scope from the called Skill",
+        "workflow: actual current task scope required"
+      ]
+    },
+    "missing-analysis": {
+      "allowed": false,
+      "step": "blueprint",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [
+        "analysis: missing deliverables",
+        "analysis/source_review: real path and sha256 required",
+        "analysis: identify uploaded courseware or requirements",
+        "analysis: original total page_count required",
+        "analysis: page_map must cover every original page and function",
+        "analysis: visible report missing overall_quality",
+        "analysis: visible report missing strengths",
+        "analysis: visible report missing improvements",
+        "analysis: visible report missing teaching_flow",
+        "analysis: incomplete video inventory needs explicit limitations",
+        "analysis: video occurrence count differs from actual listed locations"
+      ],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "analysis-ready": {
+      "allowed": true,
+      "step": "blueprint",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "analysis-stale": {
+      "allowed": false,
+      "step": "blueprint",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [
+        "analysis/report: stale _state/qa/workflow-analysis.md"
+      ],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "blueprint-adopted": {
+      "allowed": true,
+      "step": "video-script",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "blueprint-unapproved": {
+      "allowed": false,
+      "step": "video-script",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [
+        "blueprint/approval: real path and sha256 required",
+        "blueprint: actual adoption of these files is required"
+      ],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "blueprint-rejected": {
+      "allowed": false,
+      "step": "video-script",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [
+        "blueprint: current version was rejected: _state/qa/workflow-blueprint.md"
+      ],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "videos-prepared-pages": {
+      "allowed": true,
+      "step": "pages",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "video-files-still-required": {
+      "allowed": false,
+      "step": "complete",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [
+        "pages: missing deliverables",
+        "pages: use the actual canonical _state/pages.json",
+        "pages/canonical: real path and sha256 required",
+        "pages: all pages including videos must fit the adopted budget",
+        "pages: unique IDs and complete display order required",
+        "pages: every planned video needs an actual page mapping",
+        "pages: current dependency not bound: _state/qa/workflow-blueprint.md",
+        "pages: current dependency not bound: _state/qa/workflow-video-preparation.md",
+        "images: missing deliverables",
+        "images: current full page count required",
+        "shared-assets: missing deliverables",
+        "shared-assets/selected-style: real path and sha256 required",
+        "shared-assets: record the existing adopted style or cover candidates",
+        "shared-assets: selected style must belong to adopted actual files",
+        "shared-assets: actual images required; a list or prompt is insufficient",
+        "editable: missing deliverables",
+        "editable/pptx: real path and sha256 required",
+        "documents: missing deliverables",
+        "documents/classroom-script: real path and sha256 required",
+        "documents/lesson-presentation: real path and sha256 required",
+        "documents/lesson-plan: real path and sha256 required",
+        "delivery: missing deliverables",
+        "delivery/manifest: real path and sha256 required",
+        "delivery/WPS: real path and sha256 required",
+        "delivery/WPS: actual playback/display inspection or explicit user report required",
+        "delivery/WPS: inspection must cover current media and deliverables",
+        "V001/actual-video: missing deliverables",
+        "V001/actual-video/media: real path and sha256 required",
+        "V001/actual-video/playback: real path and sha256 required",
+        "V001/actual-video/playback: actual playback/display inspection or explicit user report required",
+        "V001/actual-video/playback: inspection must cover current media and deliverables",
+        "V002/actual-video: missing deliverables",
+        "V002/actual-video/media: real path and sha256 required",
+        "V002/actual-video/playback: real path and sha256 required",
+        "V002/actual-video/playback: actual playback/display inspection or explicit user report required",
+        "V002/actual-video/playback: inspection must cover current media and deliverables"
+      ],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "one-preparation-missing": {
+      "allowed": false,
+      "step": "pages",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [
+        "video: current video_id and manifest required",
+        "video: declare shots or talking route from actual content",
+        "V002/preparation: missing deliverables",
+        "V002/preparation: current dependency not bound: _state/qa/workflow-blueprint.md"
+      ],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "page-image-ready": {
+      "allowed": true,
+      "step": "page-image",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "pages-unapproved": {
+      "allowed": false,
+      "step": "page-image",
+      "mode": "full_course",
+      "project_mode": "full_course",
+      "issues": [
+        "pages/approval: real path and sha256 required",
+        "pages: actual adoption of these files is required"
+      ],
+      "completion_scope": "whole_course",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "documents-only": {
+      "allowed": true,
+      "step": "documents",
+      "mode": "selected_modules",
+      "project_mode": "selected_modules",
+      "issues": [],
+      "completion_scope": "selected_modules",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "unrequested-pages": {
+      "allowed": false,
+      "step": "pages",
+      "mode": "selected_modules",
+      "project_mode": "selected_modules",
+      "issues": [
+        "workflow: pages is outside the requested modules",
+        "input/pages: missing deliverables"
+      ],
+      "completion_scope": "selected_modules",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "no-delivery-yet": {
+      "allowed": false,
+      "step": "complete",
+      "mode": "selected_modules",
+      "project_mode": "selected_modules",
+      "issues": [
+        "delivery: missing deliverables"
+      ],
+      "completion_scope": "selected_modules",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "external-refill": {
+      "allowed": true,
+      "step": "editable-build",
+      "mode": "selected_modules",
+      "project_mode": "selected_modules",
+      "issues": [],
+      "completion_scope": "selected_modules",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "wrong-route": {
+      "allowed": false,
+      "step": "editable-handoff",
+      "mode": "selected_modules",
+      "project_mode": "selected_modules",
+      "issues": [
+        "editable: requested route differs from actual A/B choice"
+      ],
+      "completion_scope": "selected_modules",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "route-without-evidence": {
+      "allowed": false,
+      "step": "editable-build",
+      "mode": "selected_modules",
+      "project_mode": "selected_modules",
+      "issues": [
+        "editable: actual explicit A/B choice required; a clear text-free refill request counts as B"
+      ],
+      "completion_scope": "selected_modules",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "talking-prompts": {
+      "allowed": true,
+      "step": "video-prompts",
+      "mode": "selected_modules",
+      "project_mode": "selected_modules",
+      "issues": [],
+      "completion_scope": "selected_modules",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    },
+    "talking-has-no-board": {
+      "allowed": false,
+      "step": "video-board",
+      "mode": "selected_modules",
+      "project_mode": "selected_modules",
+      "issues": [
+        "video-board: not applicable to fixed talking; continue first frame and talking packet"
+      ],
+      "completion_scope": "selected_modules",
+      "semantic_review": "Files and recorded reviews checked; teaching, visuals and playback need actual inspection."
+    }
+  }
+}
