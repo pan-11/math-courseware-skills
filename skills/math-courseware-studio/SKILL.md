@@ -20,6 +20,8 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 命令失败时按[报错 JSON 说明](references/recovery.md#报错-json-说明)定位字段、文件或外部程序；API 的诊断信息不改变原任务状态与恢复方式。
 
+自动队列首次启动集中收集H05生图线路及用途/范围/费用授权、H10视频平台/模型/声音、H16可编辑A/B及full/returned入口；本课已有真实设置直接沿用，仅补缺项。按[队列协议](../math-courseware-autopilot/references/queue-contract.md)保存具体值与依据；run-status查看，run-configure部分补充。未确定的设置只阻挡相关任务，CLI不弹问答；切回手动后仍共用本课已保存偏好，不重复提问或改写已有任务线路。
+
 **制作模式：默认保留本入口原有模式。** 用户明确选择“自动推进＋独立审核”时交给[autopilot](../math-courseware-autopilot/SKILL.md)，使用同一课程与原有采用记录。恢复已有课先查`run-status`：无队列保持原模式；已启用的同范围自动队列按其循环续作，manual/paused不派发。自动模式是当前Codex会话主持的持久队列，不是后台服务，也不赋予自动批准权。用户仅要求审核时可单独调用[review](../math-courseware-review/SKILL.md)，不切换模式、不执行制作。切换模式保留产物；来源改变或用户否决后按实际版本重新核查。
 
 按真实指令分别记录项目`project_mode`与本次`current_task.mode`、范围和依据；课程使用`_state/workflow.json`，独立视频可用原`manifest.workflow`。整课中“现在做视频”只改变当前工作，不把项目改成独立视频；明确只修已有页面的局部任务可核对该输入后执行，同时保留整课待办。“先看一下”本轮只分析。旧项目没有索引时先核历史与实际产物，登记为输入接入或已有有效成果，不凭目录数量推断完成。

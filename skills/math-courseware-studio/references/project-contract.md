@@ -141,3 +141,7 @@
 视频资料/成片可以登记为通用artifacts，但validate只查登记文件哈希，不会验证媒体内容或其全部来源版本；视频模块另外比较来源哈希并查看实际输出。控制器没有视频生成、配音、剪辑或视频打包命令，不能把image-run用于生成视频。
 
 提示词交付依据`_state/prompt-exports.json`中的`source_versions`与`files:[{path,sha256}]`。render-prompts自动登记逐页提示词和可见文字稿；Codex完成assets下的资产提示词时，核对其确由当前资产/故事/数学记录生成，再将真实文件及哈希补入同一manifest。资产prompt_path默认指向assets内实际md/txt；kind=style_reference时也允许slides/covers内、与其已登记封面图片同目录的实际提示词，仍须核对原文件和清单哈希。不指向任意外部资料或密钥。源内容变化先修提示词再更新依据，不仅重写哈希来掩盖过期内容。
+
+## 自动运行启动偏好
+
+可选run的preferences保存本课image/video/editable设置及真实依据，详见[队列协议](../../math-courseware-autopilot/references/queue-contract.md)。run-configure接受同形部分JSON；run-status只读返回有效值、缺项与冲突。不创建第二份课程或采用记录。共享读取先用有效run偏好，缺项回退project.image_route和有user_evidence的workflow.route_choice；后续规范记录改选与run相冲突时须显式协调。模式切换不清空偏好，未提交工作用新选择，已提交任务保持原线路。

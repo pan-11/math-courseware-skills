@@ -2,11 +2,34 @@
 from contextlib import contextmanager
 import os
 from pathlib import Path
+import re
 import uuid
 
 from . import state, workflow
 
 AREA = '_state/automation'
+
+
+def load_run(project):
+    pointer = state.resolve(project, AREA + '/active.json')
+    if not pointer.exists(): return None
+    ref = state.read_json(pointer)
+    if not re.fullmatch(r'run-[a-f0-9]{32}', str(ref.get('run_id', ''))):
+        raise ValueError('Invalid active run pointer')
+    data = state.read_json(state.resolve(project, AREA + '/runs/' + ref['run_id'] + '/run.json'))
+    if data.get('project') != str(Path(project).resolve()):
+        raise ValueError('Run belongs to a different project')
+    return data
+
+
+def save_run(project, data, event):
+    folder = directory(project, AREA + '/runs/' + data['run_id'])
+    data['revision'] += 1
+    while (folder / ('revision-%05d.json' % data['revision'])).exists():
+        data['revision'] += 1
+    data['last_event'] = {'kind': event, 'at': state.now()}
+    immutable(folder / ('revision-%05d.json' % data['revision']), data)
+    state.write_json(folder / 'run.json', data)
 
 
 def directory(project, relative):

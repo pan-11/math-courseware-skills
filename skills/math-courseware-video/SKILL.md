@@ -62,3 +62,5 @@ description: Use when starting, continuing, or revising a children's scenario vi
 用户要素材到即梦等平台自行制作时，文件夹齐备是本轮交付终点，视频仍待制作。实际视频生成/声音/剪辑须有当次工具与授权，能力以核实入口为准；本套没有内置视频API。成片回传按[实际媒体检查](references/production.md#实际成片检查)核对。
 
 从头整课按已采用蓝图的全部视频清单完成准备后才交PPT逐页制作，V001完成不代替其他计划视频；范围、观察问题、教师接话、预留页及播放验收由[课程总入口](../math-courseware-studio/references/video-integration.md)统筹。独立视频不扩展这些课程任务。更新HANDOFF并指出当前成果、检查证据、缺项和当前范围内最早可做的下一步。
+
+自动run已记录的视频platform/model/sound及证据须先读取并沿用，仅补当前课真实缺项。平台未定不阻断已授权图片/内容准备；不把平台偏好当付费视频提交授权。后续明确改选由宿主run-configure保留依据。

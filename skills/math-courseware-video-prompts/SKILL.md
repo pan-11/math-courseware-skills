@@ -38,3 +38,5 @@ description: 当已有导演双表、实际故事板和参考资产需要整理�
 分别报告材料齐备、图片采用、平台参数已核实、可提交与实际成片状态。没有真实视频不能称成片完成；没有当前平台证据不能称上传方案已验证。根据真实缺口返回[资产模块](../math-courseware-video-assets/SKILL.md)、[导演模块](../math-courseware-video-director/SKILL.md)或[故事板模块](../math-courseware-video-storyboard/SKILL.md)，完成后只重组受影响片段。
 
 结束后登记真实产物、来源哈希、内部检查与已有采用依据；后续修改上传方案查`video-upload`，整课交studio核`pages`，独立交付核本次范围的`complete`。映射小改只同步upload-map、相关提示词标签及受影响说明；合板另登记真实新板、格映射及检查，保留原单格、同版镜头、对白与固定风格。外部资料作为核验输入接入，不伪造上游完成。
+
+自动run先读取有效video偏好及真实依据并沿用；具体平台模型与声音仍按本步骤核实实际能力。准备稿不依赖未知平台；最终平台适配任务在队列声明requires_preferences:["video"]，实际上传也须具备平台/模型/声音，平台选择本身不授权付费生成。

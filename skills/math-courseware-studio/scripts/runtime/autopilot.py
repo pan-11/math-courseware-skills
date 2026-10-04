@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 import re
 
-from . import state, workflow, review, automation_store as store
+from . import state, workflow, review, preferences, automation_store as store
 
 RUBRIC = {step: ('source' if step == 'analysis' else
                  'video' if step.startswith('video-') else
@@ -20,25 +20,11 @@ def _external(task):
 
 
 def _load(project):
-    pointer = state.resolve(project, store.AREA + '/active.json')
-    if not pointer.exists(): return None
-    ref = state.read_json(pointer)
-    if not re.fullmatch(r'run-[a-f0-9]{32}', str(ref.get('run_id', ''))):
-        raise ValueError('Invalid active run pointer')
-    data = state.read_json(state.resolve(project, store.AREA + '/runs/' + ref['run_id'] + '/run.json'))
-    if data.get('project') != str(Path(project).resolve()):
-        raise ValueError('Run belongs to a different project')
-    return data
+    return store.load_run(project)
 
 
 def _save(project, data, event):
-    folder = store.directory(project, store.AREA + '/runs/' + data['run_id'])
-    data['revision'] += 1
-    while (folder / ('revision-%05d.json' % data['revision'])).exists():
-        data['revision'] += 1
-    data['last_event'] = {'kind': event, 'at': state.now()}
-    store.immutable(folder / ('revision-%05d.json' % data['revision']), data)
-    state.write_json(folder / 'run.json', data)
+    store.save_run(project, data, event)
 
 
 def _validate_tasks(project, tasks):
@@ -70,6 +56,12 @@ def _validate_tasks(project, tasks):
             raise ValueError('side_effects must be local or external')
         if type(task.get('max_attempts', 2)) is not int or not 1 <= task.get('max_attempts', 2) <= 3:
             raise ValueError('Use a bounded max_attempts between one and three')
+        if 'requires_preferences' in task:
+            groups = task['requires_preferences']
+            if (not isinstance(groups, list) or any(not isinstance(g, str) or g not in preferences.GROUPS for g in groups)
+                    or len(set(groups)) != len(groups)):
+                raise ValueError('requires_preferences must name unique image/video/editable groups')
+        if 'image_requests' in task: preferences._requests(task['image_requests'], 'image_requests')
     remaining = {t['id']: set(t.get('depends_on', [])) for t in tasks}
     while remaining:
         ready = {name for name, deps in remaining.items() if not deps}
@@ -97,9 +89,21 @@ def start(project, plan):
                 'project': str(Path(project).resolve()), 'mode': 'automatic', 'paused': False,
                 'activation_evidence': evidence, 'scope': store.scope(project),
                 'plan_digest': state.digest(plan), 'revision': 0,
+                'preferences': preferences.canonical(project),
+                'preference_basis': preferences.canonical(project),
                 'tasks': [_new_task(t) for t in tasks]}
+        if 'preferences' in plan: preferences.update(project, data, plan['preferences'])
         _save(project, data, 'start')
         state.write_json(state.resolve(project, store.AREA + '/active.json'), {'run_id': data['run_id']})
+        return status(project)
+
+
+def configure(project, settings):
+    if not _load(project): raise ValueError('No queue to configure; absent queues remain manual')
+    with store.locked(project):
+        data = _load(project)
+        preferences.update(project, data, settings)
+        _save(project, data, 'configure-preferences')
         return status(project)
 
 
@@ -122,9 +126,13 @@ def extend(project, tasks, evidence):
         return status(project)
 
 
-def _gate(project, task):
+def _gate(project, task, data=None):
     spec = task['spec']
-    return workflow.check(project, spec['step'], video_id=spec.get('video_id'))
+    gate = workflow.check(project, spec['step'], video_id=spec.get('video_id'))
+    if data is not None:
+        gate['issues'] += preferences.task_issues(project, spec, data)
+        gate['allowed'] = not gate['issues']
+    return gate
 
 
 def _sources(project, data, task):
@@ -176,7 +184,10 @@ def status(project):
     data = _load(project)
     if not data: return {'mode': 'manual', 'run_id': None, 'tasks': [], 'whole_course_complete': False}
     _refresh(project, data)
+    effective = preferences.effective(project, data, strict=False)
     return {**data, 'whole_course_complete': False,
+            'preferences': effective, 'missing_preferences': preferences.missing(effective),
+            'preference_issues': preferences.conflicts(project, data),
             'scope_matches': data['scope'] == store.scope(project),
             'queue_complete': all(t['status'] == 'done' for t in data['tasks'])}
 
@@ -187,6 +198,7 @@ def _claim(project, data, task, actor):
     task['attempt'] += 1
     task['claim'] = store.identifier('claim')
     task['producer_id'] = actor
+    task['preferences'] = preferences.effective(project, data, strict=False)
     task['review_attempt'] = 0
     task.pop('review_result_sha256', None)
     task['status'] = 'waiting_external' if task['spec'].get('kind', 'produce') == 'human' else 'running'
@@ -195,6 +207,7 @@ def _claim(project, data, task, actor):
 
 def _action(task):
     return {'task': task['spec'], 'claim': task.get('claim'), 'attempt': task['attempt'],
+            'preferences': task.get('preferences', {}),
             'owner': 'math-courseware-' + workflow.OWNERS.get(task['spec']['step'], 'studio'),
             'input_versions': task.get('input_versions', {}), 'findings': task.get('findings', []),
             'instruction': task['spec']['instruction'], 'external_submission_guard': _external(task)}
@@ -217,13 +230,16 @@ def next_task(project, actor):
             if task['status'] == 'needs_revision' and not _external(task) and task['attempt'] < task['spec'].get('max_attempts', 2):
                 task['status'] = 'pending'
             if task['status'] == 'pending' and set(task['spec'].get('depends_on', [])) <= done:
-                gate = _gate(project, task)
+                gate = _gate(project, task, data)
                 task['issues'] = gate['issues']
                 if gate['allowed'] and task['spec'].get('kind', 'produce') == 'human':
                     try: _claim(project, data, task, 'human')
                     except (OSError, ValueError) as exc: task['issues'] = [str(exc)]
         humans = [_action(t) for t in data['tasks'] if t['status'] == 'waiting_external']
-        common = {'run_id': data['run_id'], 'human_tasks': humans, 'whole_course_complete': False}
+        effective = preferences.effective(project, data, strict=False)
+        common = {'run_id': data['run_id'], 'human_tasks': humans, 'whole_course_complete': False,
+                  'preferences': effective, 'missing_preferences': preferences.missing(effective),
+                  'preference_issues': preferences.conflicts(project, data)}
         for task in data['tasks']:
             if task['status'] in ('running', 'reviewing'):
                 _save(project, data, 'recover-inflight')
@@ -236,7 +252,7 @@ def next_task(project, actor):
                 return {**common, **_action(task), 'action': 'review', 'packet': task['packet']}
         for task in data['tasks']:
             if task['status'] == 'pending' and task['spec'].get('kind', 'produce') == 'produce' and set(task['spec'].get('depends_on', [])) <= done:
-                gate = _gate(project, task)
+                gate = _gate(project, task, data)
                 task['issues'] = gate['issues']
                 if not gate['allowed']: continue
                 try: _claim(project, data, task, actor)

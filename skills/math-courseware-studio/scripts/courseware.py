@@ -50,7 +50,7 @@ def parser():
     top = argparse.ArgumentParser(description='小学数学AI赋能课件：本地记录、生成任务、可编辑处理和导出')
     sub = top.add_subparsers(dest='command', required=True)
     sub.add_parser('doctor', help='Read-only environment check')
-    automation_commands = ('run-start', 'run-extend', 'run-next', 'run-status', 'run-record',
+    automation_commands = ('run-start', 'run-configure', 'run-extend', 'run-next', 'run-status', 'run-record',
                            'run-mode', 'run-pause', 'run-resume', 'run-retry', 'run-reconcile', 'run-recheck',
                            'review-prepare', 'review-record', 'review-status')
     for command in automation_commands:
@@ -58,6 +58,8 @@ def parser():
         p.add_argument('--project', required=True, type=Path)
         if command in ('run-start', 'run-extend'):
             p.add_argument('--plan', required=True, type=Path)
+        if command == 'run-configure':
+            p.add_argument('--settings', required=True, type=Path)
         if command == 'run-next':
             p.add_argument('--actor', required=True)
         if command == 'run-record':
@@ -112,6 +114,7 @@ def execute(args):
     if c.startswith(('run-', 'review-')):
         from runtime import autopilot, review
         if c == 'run-start': return autopilot.start(project, state.read_json(args.plan))
+        if c == 'run-configure': return autopilot.configure(project, state.read_json(args.settings))
         if c == 'run-extend':
             plan = state.read_json(args.plan)
             return autopilot.extend(project, plan['tasks'], plan.get('activation_evidence', ''))
@@ -151,8 +154,7 @@ def execute(args):
         if c == 'image-register':
             return image_api.register_builtin(project, state.read_json(args.result))
         batch = state.read_json(args.batch)
-        if batch.get('route') != 'openai_image_api' or not batch.get('authorization_evidence', '').strip():
-            raise ValueError('Grsai route and actual batch authorization are required')
+        image_api.validate_batch(project, batch, resume=c == 'image-resume')
         key = image_api.read_key(project, args.key_file, args.key_stdin)
         return image_api.run_batch(project, batch, key, resume=c == 'image-resume')
     if c in ('canva-import', 'editable-build'):

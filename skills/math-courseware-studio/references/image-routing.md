@@ -55,3 +55,7 @@ CLI读取已有`GRSAI_API_KEY`环境变量，或显式`--key-file`指向项目�
 - `downloaded`仍需视觉检查，不能自动批准。保存检查结论后，由用户确认将正确版本写入资产/页面记录。
 
 如果用户提供了服务端查到的真实ID，先保存其依据，再把未知任务恢复为该ID的running状态并查询；禁止编造ID或创建同内容新任务掩盖未知状态。连续同类错误先核对协议或视觉方法，不靠反复生成碰运气。
+
+## 自动队列共用选择与授权
+
+有run时先读run-status的有效image设置，按[启动协议](../../math-courseware-autopilot/references/queue-contract.md)用run-configure记录本课实际改选；无run仍按原项目线路。image-prepare采用同一有效路线并绑定当前run；任务路线创建后不静默重写。API运行接受原有当批authorization_evidence，或适用于同run/真实课程模块范围/路线/用途的结构化授权；Grsai还需paid_generation:true，额外用途或未授权返工不能继承。仅选线路不等于授权费用。内置调用前由宿主按相同范围核对，登记不能追认工具调用。旧任务查询下载保持原线路及未知不重提规则。

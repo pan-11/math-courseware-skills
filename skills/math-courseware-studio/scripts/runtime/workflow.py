@@ -443,8 +443,13 @@ class Inspection:
         self.evidence(entry, 'input/' + owner, roles)
 
     def route(self, requested=None):
-        choice = self.data.get('route_choice', {})
-        self.need(choice.get('route') in ('A', 'B') and bool(str(choice.get('user_evidence', '')).strip()),
+        from . import preferences
+        try:
+            choice = preferences.effective(self.project, groups={'editable'})['editable']
+        except ValueError as exc:
+            self.need(False, str(exc))
+            return
+        self.need(choice.get('route') in ('A', 'B') and preferences._text(choice.get('evidence')),
                   'editable: actual explicit A/B choice required; a clear text-free refill request counts as B')
         if requested is not None:
             self.need(requested == choice.get('route'), 'editable: requested route differs from actual A/B choice')
@@ -539,7 +544,8 @@ def require_image(project, purpose):
         data = load(project)
         task = data.get('current_task', {})
         modules = {m.removeprefix('math-courseware-') for m in task.get('modules', []) if isinstance(m, str)}
-        if task.get('mode') == 'selected_modules' and 'editable' in modules and data.get('route_choice', {}).get('route') == 'B':
+        from . import preferences
+        if task.get('mode') == 'selected_modules' and 'editable' in modules and preferences.effective(project, groups={'editable'})['editable'].get('route') == 'B':
             return require(project, 'editable-handoff', route='B')
     return require(project, steps[purpose], route='B' if purpose == 'erase' else None)
 

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import re
 from PIL import Image
-from . import state, checks, workflow
+from . import state, checks, workflow, preferences, automation_store as store
 
 LESS = ('版式疏朗，视觉重心明确，标题与正文大而清晰，适合课堂投屏。'
         '按页面用途控制密度：封面突出课题形象与故事入口，可展开有层次的完整主场景，'
@@ -113,7 +113,8 @@ def image_ref(project, file):
 
 def prepare(project, selection):
     project_data = state.load_project(project)
-    route = project_data.get('image_route')
+    run = store.load_run(project)
+    route = preferences.effective(project, run, groups={'image'})['image'].get('route')
     if route not in state.ROUTES:
         raise ValueError('Select the project image route before preparing jobs')
     tasks = selection.get('tasks', [])
@@ -210,6 +211,7 @@ def prepare(project, selection):
         if purpose == 'page':
             job['semantic_fingerprint'] = page_fingerprint(data, target)
         job['input_digest'] = state.digest(job)
+        if run: job['run_id'] = run['run_id']
         path = state.resolve(project, directory + '/job.json')
         if path.exists():
             old = state.read_json(path)
@@ -229,6 +231,7 @@ def prepare(project, selection):
             state.resolve(project, job['prompt_path']).write_text(prompt, encoding='utf-8', newline='\n')
             state.write_json(path, job)
         jobs.append(directory + '/job.json')
+    if run: preferences.bind_pending_jobs(project, run['run_id'], jobs)
     batch_id = state.digest(jobs)[:16]
     batch = {'batch_id': batch_id, 'jobs': jobs, 'route': route,
              'authorization_evidence': selection.get('authorization_evidence', ''),

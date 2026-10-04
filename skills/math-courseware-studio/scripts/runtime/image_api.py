@@ -15,7 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from PIL import Image
-from . import state, workflow, errors
+from . import state, workflow, errors, preferences, automation_store as store
 
 BASE_URL = 'https://grsai.dakka.com.cn'
 ENDPOINT = '/v1/draw/completions'
@@ -166,9 +166,9 @@ def job_lock(path):
                 fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
 
 
-def run_job(project, relative, transport, resume=False, timeout=500, poll_interval=5):
+def run_job(project, relative, transport, resume=False, timeout=500, poll_interval=5, authorization_evidence=''):
     with job_lock(state.resolve(project, relative).with_suffix('.lock')):
-        return _run_job_locked(project, relative, transport, resume, timeout, poll_interval)
+        return _run_job_locked(project, relative, transport, resume, timeout, poll_interval, authorization_evidence)
 
 
 def _record_error(job, exc, transport):
@@ -177,7 +177,7 @@ def _record_error(job, exc, transport):
     job.update(errors.details(exc, secrets=(getattr(transport, 'key', ''),)))
 
 
-def _run_job_locked(project, relative, transport, resume=False, timeout=500, poll_interval=5):
+def _run_job_locked(project, relative, transport, resume=False, timeout=500, poll_interval=5, authorization_evidence=''):
     path = state.resolve(project, relative)
     job = state.read_json(path)
     if job['route'] != 'openai_image_api':
@@ -194,6 +194,7 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
     if job['status'] == 'pending' and resume:
         return job
     if job['status'] == 'pending':
+        preferences.require_image_job(project, job, authorization_evidence)
         workflow.require_image(project, job['purpose'])
     changed = []
     for target, expected in job.get('input_versions', {}).items():
@@ -279,20 +280,34 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
     return job
 
 
-def run_batch(project, batch, key, resume=False):
+def validate_batch(project, batch, resume=False):
+    """Before reading a key or submitting, use actual batch consent or applicable run consent."""
     if batch.get('route') != 'openai_image_api':
         raise ValueError('Only Grsai batches use the HTTP executor')
-    if not resume and batch.get('route') != state.load_project(project).get('image_route'):
-        raise ValueError('Batch route differs from project selection')
-    if not batch.get('authorization_evidence', '').strip():
-        raise ValueError('Record the actual generation authorization before running a batch')
+    data = store.load_run(project)
+    evidence = batch.get('authorization_evidence', '')
+    if not data:
+        if not resume and batch['route'] != state.load_project(project).get('image_route'):
+            raise ValueError('Batch route differs from project selection')
+        if not preferences._text(evidence):
+            raise ValueError('Record the actual generation authorization before running a batch')
     if not batch.get('jobs') or len(set(batch['jobs'])) != len(batch['jobs']):
         raise ValueError('Empty or duplicate batch jobs')
+    for relative in batch['jobs']:
+        job = state.read_json(state.resolve(project, relative))
+        if job.get('route') != batch['route']: raise ValueError('Job route differs from batch route')
+        if not resume and job.get('status') == 'pending':
+            preferences.require_image_job(project, job, evidence)
+
+
+def run_batch(project, batch, key, resume=False):
+    validate_batch(project, batch, resume)
     concurrency = min(6, max(1, int(batch.get('concurrency', 6))), len(batch['jobs']))
     transport = HttpTransport(key)
     with ThreadPoolExecutor(max_workers=concurrency) as pool:
         futures = [(path, pool.submit(run_job, project, path, transport, resume,
-                                     int(batch.get('timeout_seconds', 500)))) for path in batch['jobs']]
+                                     int(batch.get('timeout_seconds', 500)),
+                                     authorization_evidence=batch.get('authorization_evidence', ''))) for path in batch['jobs']]
         results = []
         for path, future in futures:
             try:

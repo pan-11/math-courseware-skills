@@ -79,3 +79,9 @@ AI会准备绑定版本的审核包，实际派发独立审阅者，再保存其
 本版新增可选队列与独立审核，保留原来的人工采用节点。最终交付仍需实际核对当前文稿、所有视频和黑板贴，不能只依赖旧collect/complete检查；尚未把已知最终文稿版本绑定/自动收集缺口宣称修复。文件哈希与身份信息用于版本和来源追溯，不是对同磁盘权限任意篡改的安全隔离。
 
 两个入口及执行协议：[自动推进](../skills/math-courseware-autopilot/SKILL.md)、[队列协议](../skills/math-courseware-autopilot/references/queue-contract.md)、[独立审核](../skills/math-courseware-review/SKILL.md)、[审核协议](../skills/math-courseware-review/references/review-contract.md)。
+
+## 8. 启动集中设置与补充
+
+首次启用时，AI先复用当前课已知选择，再一次集中补齐：生图线路和授权用途/范围/费用；视频平台/模型/声音；可编辑A/B及从整套交接或已有回传开始。未知项不会挡住分析、蓝图和无关工作；不沿用其他课程偏好。已明确的选择切换模式、恢复聊天后继续生效，不重复问。
+
+AI把实际值和原话存入run版本；CLI仍是非交互。后续明确改选或补充使用run-configure部分更新，run-status显示当前偏好、缺项和冲突。生图可按本run授权指定用途的首次制作，或收窄到具体目标版本；付费生成与返工须在真实授权中明确包含。已付费旧任务切换路线后仍能查询下载，未知提交不自动重试。设置不替代任何已有用户采用门槛。
