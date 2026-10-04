@@ -20,6 +20,8 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 命令失败时按[报错 JSON 说明](references/recovery.md#报错-json-说明)定位字段、文件或外部程序；API 的诊断信息不改变原任务状态与恢复方式。
 
+**制作模式：默认保留本入口原有模式。** 用户明确选择“自动推进＋独立审核”时交给[autopilot](../math-courseware-autopilot/SKILL.md)，使用同一课程与原有采用记录。恢复已有课先查`run-status`：无队列保持原模式；已启用的同范围自动队列按其循环续作，manual/paused不派发。自动模式是当前Codex会话主持的持久队列，不是后台服务，也不赋予自动批准权。用户仅要求审核时可单独调用[review](../math-courseware-review/SKILL.md)，不切换模式、不执行制作。切换模式保留产物；来源改变或用户否决后按实际版本重新核查。
+
 按真实指令分别记录项目`project_mode`与本次`current_task.mode`、范围和依据；课程使用`_state/workflow.json`，独立视频可用原`manifest.workflow`。整课中“现在做视频”只改变当前工作，不把项目改成独立视频；明确只修已有页面的局部任务可核对该输入后执行，同时保留整课待办。“先看一下”本轮只分析。旧项目没有索引时先核历史与实际产物，登记为输入接入或已有有效成果，不凭目录数量推断完成。
 
 每个专业步骤开始前运行`scripts/courseware.py workflow-check --project <目录> --step <步骤>`，视频步骤加`--video-id <视频ID>`；结束后登记实际产物、来源版本、内部核查与必要采用依据，再检查下一实际动作的前置并交接。步骤名及依赖统一见共用流程。该只读检查给出当前允许项与缺口，重复检查当前动作不证明它已完成；它不替代教学/视觉判断，也不把执行许可变成产物采用。“继续”从本次范围中最早可做的必要缺项恢复，并保留可并行分支。

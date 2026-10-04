@@ -1,0 +1,4 @@
+interface:
+  display_name: "课件自动推进（可选）"
+  short_description: "在当前会话按持久任务队列推进课件、接入独立审核并保留人工采用与外部回传"
+  default_prompt: "使用 $math-courseware-autopilot 为当前课程启用自动推进；保留现有采用节点，连续制作和独立审核，遇到人工操作列明回传要求。"

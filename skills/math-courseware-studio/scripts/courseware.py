@@ -50,6 +50,30 @@ def parser():
     top = argparse.ArgumentParser(description='小学数学AI赋能课件：本地记录、生成任务、可编辑处理和导出')
     sub = top.add_subparsers(dest='command', required=True)
     sub.add_parser('doctor', help='Read-only environment check')
+    automation_commands = ('run-start', 'run-extend', 'run-next', 'run-status', 'run-record',
+                           'run-mode', 'run-pause', 'run-resume', 'run-retry', 'run-reconcile', 'run-recheck',
+                           'review-prepare', 'review-record', 'review-status')
+    for command in automation_commands:
+        p = sub.add_parser(command)
+        p.add_argument('--project', required=True, type=Path)
+        if command in ('run-start', 'run-extend'):
+            p.add_argument('--plan', required=True, type=Path)
+        if command == 'run-next':
+            p.add_argument('--actor', required=True)
+        if command == 'run-record':
+            p.add_argument('--result', required=True, type=Path)
+        if command == 'run-mode':
+            p.add_argument('--mode', choices=('manual', 'automatic'), required=True)
+        if command in ('run-mode', 'run-pause', 'run-resume', 'run-retry', 'run-reconcile', 'run-recheck'):
+            p.add_argument('--evidence', required=True)
+        if command in ('run-retry', 'run-recheck'):
+            p.add_argument('--task-id', required=True)
+        if command == 'review-prepare':
+            p.add_argument('--request', required=True, type=Path)
+        if command in ('review-record', 'review-status'):
+            p.add_argument('--packet', required=True)
+        if command == 'review-record':
+            p.add_argument('--report', required=True, type=Path)
     commands = ['init', 'status', 'validate', 'workflow-check', 'record-approval', 'impact', 'record-change',
                 'render-prompts', 'image-prepare', 'image-run', 'image-resume', 'image-register',
                 'export-slides', 'canva-handoff', 'canva-import', 'editable-build', 'export-documents', 'collect']
@@ -84,6 +108,24 @@ def execute(args):
     if c == 'doctor':
         return checks.doctor()
     project = args.project.resolve()
+    if c.startswith(('run-', 'review-')):
+        from runtime import autopilot, review
+        if c == 'run-start': return autopilot.start(project, state.read_json(args.plan))
+        if c == 'run-extend':
+            plan = state.read_json(args.plan)
+            return autopilot.extend(project, plan['tasks'], plan.get('activation_evidence', ''))
+        if c == 'run-next': return autopilot.next_task(project, args.actor)
+        if c == 'run-status': return autopilot.status(project)
+        if c == 'run-record': return autopilot.record(project, state.read_json(args.result))
+        if c == 'run-mode': return autopilot.control(project, mode=args.mode, evidence=args.evidence)
+        if c == 'run-pause': return autopilot.control(project, paused=True, evidence=args.evidence)
+        if c == 'run-resume': return autopilot.control(project, paused=False, evidence=args.evidence)
+        if c == 'run-retry': return autopilot.retry(project, args.task_id, args.evidence)
+        if c == 'run-reconcile': return autopilot.reconcile(project, args.evidence)
+        if c == 'run-recheck': return autopilot.recheck(project, args.task_id, args.evidence)
+        if c == 'review-prepare': return review.prepare(project, state.read_json(args.request))
+        if c == 'review-record': return review.record(project, args.packet, state.read_json(args.report))
+        if c == 'review-status': return review.status(project, args.packet)
     if c == 'init':
         return state.init_project(project, args.title, args.route,
                                   getattr(args, 'mode', None), getattr(args, 'scope_evidence', ''))

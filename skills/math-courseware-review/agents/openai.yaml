@@ -1,0 +1,4 @@
+interface:
+  display_name: "课件独立审核"
+  short_description: "独立核查课件数学、教学、图像、视频与交付版本，记录具体问题和未验证项"
+  default_prompt: "使用 $math-courseware-review 独立审核指定课件产物和真实依据，只读报告问题及未验证项，不代替我的采用。"

@@ -1,0 +1,378 @@
+"""Opt-in persistent host-session queue. Dispatches instructions, never shell commands."""
+from copy import deepcopy
+from pathlib import Path
+import re
+
+from . import state, workflow, review, automation_store as store
+
+RUBRIC = {step: ('source' if step == 'analysis' else
+                 'video' if step.startswith('video-') else
+                 'visual' if step in ('cover', 'asset', 'page-image') else
+                 'delivery' if step in ('image-export', 'editable-handoff', 'editable-import',
+                                       'editable-build', 'collect', 'complete') else 'teaching')
+          for step in workflow.STEPS}
+MEDIA_STEPS = {'cover', 'asset', 'page-image', 'video-script', 'video-assets',
+               'video-board', 'video-upload', 'editable-handoff'}
+
+
+def _external(task):
+    return task['spec']['step'] in MEDIA_STEPS or task['spec'].get('side_effects') == 'external'
+
+
+def _load(project):
+    pointer = state.resolve(project, store.AREA + '/active.json')
+    if not pointer.exists(): return None
+    ref = state.read_json(pointer)
+    if not re.fullmatch(r'run-[a-f0-9]{32}', str(ref.get('run_id', ''))):
+        raise ValueError('Invalid active run pointer')
+    data = state.read_json(state.resolve(project, store.AREA + '/runs/' + ref['run_id'] + '/run.json'))
+    if data.get('project') != str(Path(project).resolve()):
+        raise ValueError('Run belongs to a different project')
+    return data
+
+
+def _save(project, data, event):
+    folder = store.directory(project, store.AREA + '/runs/' + data['run_id'])
+    data['revision'] += 1
+    while (folder / ('revision-%05d.json' % data['revision'])).exists():
+        data['revision'] += 1
+    data['last_event'] = {'kind': event, 'at': state.now()}
+    store.immutable(folder / ('revision-%05d.json' % data['revision']), data)
+    state.write_json(folder / 'run.json', data)
+
+
+def _validate_tasks(project, tasks):
+    if not isinstance(tasks, list) or not tasks or len(tasks) > 200:
+        raise ValueError('Provide a nonempty concrete queue of at most 200 tasks')
+    ids = [t.get('id') for t in tasks if isinstance(t, dict)]
+    if len(ids) != len(tasks) or any(not isinstance(i, str) or not re.fullmatch(r'[a-zA-Z0-9_-]{1,64}', i) for i in ids) or len(set(ids)) != len(ids):
+        raise ValueError('Task IDs must be unique simple identifiers')
+    for task in tasks:
+        step = task.get('step')
+        if step not in workflow.STEPS or task.get('kind', 'produce') not in ('produce', 'human'):
+            raise ValueError('Task needs a supported workflow step and produce/human kind')
+        if step == 'complete' and task.get('kind') != 'human':
+            raise ValueError('Whole-course final acceptance remains a human task in P1/P2')
+        if step in workflow.VIDEO_STEPS and not str(task.get('video_id', '')).strip():
+            raise ValueError('Video tasks require an actual video_id')
+        if not isinstance(task.get('instruction'), str) or not task['instruction'].strip():
+            raise ValueError('Each task needs a concrete instruction/return requirement')
+        deps = task.get('depends_on', [])
+        if not isinstance(deps, list) or len(set(deps)) != len(deps) or set(deps) - set(ids):
+            raise ValueError('Task dependencies must reference existing unique IDs')
+        inputs, outputs = task.get('inputs'), task.get('outputs')
+        if not isinstance(inputs, list) or not inputs or not isinstance(outputs, list) or not outputs:
+            raise ValueError('Each task needs real input paths and required output role names')
+        for path in inputs: store.relative(project, path)
+        if any(not isinstance(role, str) or not re.fullmatch(r'[a-zA-Z0-9_-]+', role) for role in outputs) or len(set(outputs)) != len(outputs):
+            raise ValueError('Output roles must be unique names')
+        if task.get('side_effects', 'local') not in ('local', 'external'):
+            raise ValueError('side_effects must be local or external')
+        if type(task.get('max_attempts', 2)) is not int or not 1 <= task.get('max_attempts', 2) <= 3:
+            raise ValueError('Use a bounded max_attempts between one and three')
+    remaining = {t['id']: set(t.get('depends_on', [])) for t in tasks}
+    while remaining:
+        ready = {name for name, deps in remaining.items() if not deps}
+        if not ready: raise ValueError('Task dependency cycle')
+        remaining = {name: deps - ready for name, deps in remaining.items() if name not in ready}
+
+
+def _new_task(task):
+    return {'spec': deepcopy(task), 'status': 'pending', 'attempt': 0, 'history': []}
+
+
+def start(project, plan):
+    evidence = plan.get('activation_evidence', '')
+    if not isinstance(evidence, str) or not evidence.strip():
+        raise ValueError('Actual explicit automatic-mode activation evidence required')
+    tasks = plan.get('tasks')
+    _validate_tasks(project, tasks)
+    with store.locked(project):
+        existing = _load(project)
+        if existing:
+            if existing['plan_digest'] == state.digest(plan): return status(project)
+            raise ValueError('A queue already exists; switch/resume or extend it without replacing progress')
+        store.directory(project, store.AREA + '/runs')
+        data = {'schema_version': '1.0', 'run_id': store.identifier('run'),
+                'project': str(Path(project).resolve()), 'mode': 'automatic', 'paused': False,
+                'activation_evidence': evidence, 'scope': store.scope(project),
+                'plan_digest': state.digest(plan), 'revision': 0,
+                'tasks': [_new_task(t) for t in tasks]}
+        _save(project, data, 'start')
+        state.write_json(state.resolve(project, store.AREA + '/active.json'), {'run_id': data['run_id']})
+        return status(project)
+
+
+def extend(project, tasks, evidence):
+    if not isinstance(evidence, str) or not evidence.strip(): raise ValueError('Scope evidence for the concrete extension required')
+    with store.locked(project):
+        data = _load(project)
+        if not data: raise ValueError('Start a queue first')
+        old = {t['spec']['id']: t['spec'] for t in data['tasks']}
+        additions = []
+        for task in tasks:
+            if task.get('id') in old:
+                if task != old[task['id']]: raise ValueError('Cannot rewrite an existing task; use a new versioned ID')
+            else: additions.append(task)
+        _validate_tasks(project, list(old.values()) + additions)
+        if additions:
+            data['tasks'].extend(_new_task(t) for t in additions)
+            data['extension_evidence'] = evidence
+            _save(project, data, 'extend')
+        return status(project)
+
+
+def _gate(project, task):
+    spec = task['spec']
+    return workflow.check(project, spec['step'], video_id=spec.get('video_id'))
+
+
+def _sources(project, data, task):
+    expected = store.versions(project, task['spec']['inputs'])
+    dependencies = set(task['spec'].get('depends_on', []))
+    for item in data['tasks']:
+        if item['spec']['id'] in dependencies:
+            expected.update(item.get('output_versions', {}))
+    problems = store.issues(project, expected)
+    if problems: raise ValueError('; '.join(problems))
+    return expected
+
+
+def _refresh(project, data):
+    for task in data['tasks']:
+        if task['status'] in ('done', 'review_ready', 'reviewing', 'needs_revision', 'unverified'):
+            problems = store.issues(project, task.get('input_versions', {}))
+            problems += store.issues(project, task.get('output_versions', {}))
+            problems += store.binding_issues(project, task.get('bindings', []))
+            if problems:
+                task.update(status='stale', issues=problems)
+                continue
+        if task['status'] in ('review_ready', 'reviewing', 'done') and task.get('packet'):
+            result = review.status(project, task['packet'])
+            if result['issues']: task.update(status='stale', issues=result['issues'])
+            elif result['pending'] and task['status'] == 'done':
+                task.update(status='stale', issues=['Completed task no longer has its independent review'])
+            elif result['valid']:
+                digest = state.sha256(state.resolve(project, task['packet']).with_name('result.json'))
+                if task.get('review_result_sha256') and task['review_result_sha256'] != digest:
+                    task.update(status='stale', issues=['Recorded independent review changed'])
+                    continue
+                task['review_result_sha256'] = digest
+                task['findings'] = result['report']['checks']
+                task['status'] = {'pass': 'done', 'changes_required': 'needs_revision',
+                                  'unverified': 'unverified'}[result['verdict']]
+    # Propagate downstream even when a producer's old physical files still exist.
+    changed = True
+    while changed:
+        changed = False
+        invalid = {t['spec']['id'] for t in data['tasks'] if t['status'] == 'stale'}
+        for task in data['tasks']:
+            if task['status'] != 'stale' and set(task['spec'].get('depends_on', [])) & invalid:
+                task.update(status='stale', issues=['An upstream task is stale'])
+                changed = True
+
+
+def status(project):
+    data = _load(project)
+    if not data: return {'mode': 'manual', 'run_id': None, 'tasks': [], 'whole_course_complete': False}
+    _refresh(project, data)
+    return {**data, 'whole_course_complete': False,
+            'scope_matches': data['scope'] == store.scope(project),
+            'queue_complete': all(t['status'] == 'done' for t in data['tasks'])}
+
+
+def _claim(project, data, task, actor):
+    task['input_versions'] = _sources(project, data, task)
+    task['bindings'] = store.bindings(project, task['input_versions'])
+    task['attempt'] += 1
+    task['claim'] = store.identifier('claim')
+    task['producer_id'] = actor
+    task['review_attempt'] = 0
+    task.pop('review_result_sha256', None)
+    task['status'] = 'waiting_external' if task['spec'].get('kind', 'produce') == 'human' else 'running'
+    task['history'].append({'claim': task['claim'], 'attempt': task['attempt'], 'at': state.now()})
+
+
+def _action(task):
+    return {'task': task['spec'], 'claim': task.get('claim'), 'attempt': task['attempt'],
+            'owner': 'math-courseware-' + workflow.OWNERS.get(task['spec']['step'], 'studio'),
+            'input_versions': task.get('input_versions', {}), 'findings': task.get('findings', []),
+            'instruction': task['spec']['instruction'], 'external_submission_guard': _external(task)}
+
+
+def next_task(project, actor):
+    if not isinstance(actor, str) or not actor.strip(): raise ValueError('Host/producer identity required')
+    data = _load(project)
+    if not data or data['mode'] == 'manual': return {'action': 'manual', 'whole_course_complete': False}
+    with store.locked(project):
+        data = _load(project)
+        if data['mode'] == 'manual': return {'action': 'manual', 'whole_course_complete': False}
+        if data['paused']: return {'action': 'paused', 'whole_course_complete': False}
+        if data['scope'] != store.scope(project):
+            return {'action': 'waiting', 'issues': ['Current task scope changed; explicitly reconcile the queue scope'],
+                    'whole_course_complete': False}
+        _refresh(project, data)
+        done = {t['spec']['id'] for t in data['tasks'] if t['status'] == 'done'}
+        for task in data['tasks']:
+            if task['status'] == 'needs_revision' and not _external(task) and task['attempt'] < task['spec'].get('max_attempts', 2):
+                task['status'] = 'pending'
+            if task['status'] == 'pending' and set(task['spec'].get('depends_on', [])) <= done:
+                gate = _gate(project, task)
+                task['issues'] = gate['issues']
+                if gate['allowed'] and task['spec'].get('kind', 'produce') == 'human':
+                    try: _claim(project, data, task, 'human')
+                    except (OSError, ValueError) as exc: task['issues'] = [str(exc)]
+        humans = [_action(t) for t in data['tasks'] if t['status'] == 'waiting_external']
+        common = {'run_id': data['run_id'], 'human_tasks': humans, 'whole_course_complete': False}
+        for task in data['tasks']:
+            if task['status'] in ('running', 'reviewing'):
+                _save(project, data, 'recover-inflight')
+                return {**common, **_action(task), 'action': 'recover',
+                        'packet': task.get('packet'), 'issues': ['Inspect this claim; do not redispatch blindly']}
+        for task in data['tasks']:
+            if task['status'] == 'review_ready':
+                task['status'] = 'reviewing'
+                _save(project, data, 'dispatch-review')
+                return {**common, **_action(task), 'action': 'review', 'packet': task['packet']}
+        for task in data['tasks']:
+            if task['status'] == 'pending' and task['spec'].get('kind', 'produce') == 'produce' and set(task['spec'].get('depends_on', [])) <= done:
+                gate = _gate(project, task)
+                task['issues'] = gate['issues']
+                if not gate['allowed']: continue
+                try: _claim(project, data, task, actor)
+                except (OSError, ValueError) as exc:
+                    task['issues'] = [str(exc)]; continue
+                _save(project, data, 'dispatch-produce')
+                return {**common, **_action(task), 'action': 'produce'}
+        _save(project, data, 'inspect-waits')
+        complete = all(t['status'] == 'done' for t in data['tasks'])
+        return {**common, 'action': 'queue_complete' if complete else 'waiting',
+                'blocked': [{'id': t['spec']['id'], 'status': t['status'], 'issues': t.get('issues', []),
+                             'instruction': t['spec']['instruction'], 'findings': t.get('findings', [])}
+                            for t in data['tasks'] if t['status'] != 'done']}
+
+
+def record(project, result):
+    with store.locked(project):
+        data = _load(project)
+        if not data: raise ValueError('No active queue')
+        _refresh(project, data)
+        task = next((t for t in data['tasks'] if t['spec']['id'] == result.get('task_id')), None)
+        if not task or result.get('claim') != task.get('claim'):
+            raise ValueError('Current task and claim token required')
+        digest = state.digest(result)
+        if task.get('last_result_digest') == digest: return _action(task) | {'status': task['status']}
+        if data['scope'] != store.scope(project): raise ValueError('Current task scope changed')
+        if task['status'] not in ('running', 'waiting_external', 'unknown'):
+            raise ValueError('Task is not awaiting this result')
+        requested = result.get('status')
+        if task['status'] == 'unknown' and requested not in ('produced', 'completed'):
+            raise ValueError('Unknown submissions need recovered actual outputs; no blind retry')
+        if requested in ('failed', 'unknown'):
+            if not str(result.get('message', '')).strip(): raise ValueError('Actual failure/unknown evidence required')
+            task.update(status=requested, issues=[result['message']])
+        elif requested in ('produced', 'completed'):
+            dependencies = set(task['spec'].get('depends_on', []))
+            if any(t['spec']['id'] in dependencies and t['status'] != 'done' for t in data['tasks']):
+                raise ValueError('Upstream work no longer passes current review')
+            problems = store.issues(project, task['input_versions']) + store.binding_issues(project, task['bindings'])
+            gate = _gate(project, task)
+            if problems or not gate['allowed']: raise ValueError('; '.join(problems + gate['issues']))
+            artifacts = result.get('artifacts', {})
+            if not isinstance(artifacts, dict) or set(artifacts) != set(task['spec']['outputs']):
+                raise ValueError('Actual output files must cover every declared output role exactly')
+            expected = store.versions(project, list(artifacts.values()))
+            problems = store.issues(project, expected)
+            if problems: raise ValueError('; '.join(problems))
+            human = task['spec'].get('kind', 'produce') == 'human'
+            if human:
+                if requested != 'completed' or not isinstance(result.get('user_evidence'), str) or not result['user_evidence'].strip():
+                    raise ValueError('Human operation needs actual returned files and user completion evidence')
+                task.update(status='done', user_evidence=result['user_evidence'])
+            else:
+                if requested != 'produced': raise ValueError('Production requires an independent review before completion')
+                previous = {p for entry in task['history'] for p in entry.get('outputs', {})}
+                if previous & set(expected):
+                    raise ValueError('Revision must use new versioned output files; preserve prior attempts')
+                packet = review._prepare(project, {
+                    'rubric': RUBRIC[task['spec']['step']], 'producer_id': task['producer_id'],
+                    'artifacts': list(expected), 'sources': list(task['input_versions']),
+                    'instruction': task['spec']['instruction']})
+                task.update(status='review_ready', packet=packet['packet'])
+                task['review_attempt'] = task.get('review_attempt', 0) + 1
+            task['output_versions'] = expected
+            task['bindings'] = store.bindings(project, {**task['input_versions'], **expected})
+            task['history'][-1]['outputs'] = expected
+        else: raise ValueError('Use produced, completed, failed or unknown')
+        task['last_result_digest'] = digest
+        _save(project, data, 'record-' + requested)
+        return _action(task) | {'status': task['status'], 'packet': task.get('packet')}
+
+
+def control(project, mode=None, paused=None, evidence=''):
+    if not isinstance(evidence, str) or not evidence.strip(): raise ValueError('Actual mode/pause/resume evidence required')
+    if mode not in (None, 'manual', 'automatic') or paused not in (None, True, False):
+        raise ValueError('Unsupported control value')
+    with store.locked(project):
+        data = _load(project)
+        if not data: raise ValueError('No queue to control; absent queues remain manual')
+        if mode is not None: data['mode'] = mode
+        if paused is not None: data['paused'] = paused
+        data['control_evidence'] = evidence
+        _save(project, data, 'control')
+        return status(project)
+
+
+def retry(project, task_id, evidence):
+    if not isinstance(evidence, str) or not evidence.strip(): raise ValueError('Concrete recovery evidence required')
+    with store.locked(project):
+        data = _load(project)
+        if not data: raise ValueError('No queue')
+        _refresh(project, data)
+        task = next((t for t in data['tasks'] if t['spec']['id'] == task_id), None)
+        if not task or task['status'] not in ('failed', 'stale', 'needs_revision', 'unverified'):
+            raise ValueError('Only a resolved failure, changed version or review issue may be retried')
+        if task['attempt'] >= task['spec'].get('max_attempts', 2): raise ValueError('Attempt limit reached; revise the plan explicitly')
+        if _external(task):
+            raise ValueError('External work is not automatically retried; reconcile actual platform work first')
+        task.update(status='pending', retry_evidence=evidence, issues=[])
+        _save(project, data, 'retry')
+        return status(project)
+
+
+def reconcile(project, evidence):
+    if not isinstance(evidence, str) or not evidence.strip():
+        raise ValueError('Actual instruction to reconcile the current scope required')
+    with store.locked(project):
+        data = _load(project)
+        if not data: raise ValueError('No queue')
+        data['scope'] = store.scope(project)
+        data['scope_reconciliation_evidence'] = evidence
+        _refresh(project, data)
+        _save(project, data, 'reconcile-scope')
+        return status(project)
+
+
+def recheck(project, task_id, evidence):
+    """Reinspect unchanged outputs when missing observation becomes available; no regeneration."""
+    if not isinstance(evidence, str) or not evidence.strip():
+        raise ValueError('Actual reason/evidence for renewed independent inspection required')
+    with store.locked(project):
+        data = _load(project)
+        if not data: raise ValueError('No queue')
+        _refresh(project, data)
+        task = next((t for t in data['tasks'] if t['spec']['id'] == task_id), None)
+        if not task or task['status'] != 'unverified':
+            raise ValueError('Recheck is only for unchanged outputs with an unverified report')
+        if data['scope'] != store.scope(project): raise ValueError('Current task scope changed')
+        if task.get('review_attempt', 1) >= 2:
+            raise ValueError('Review attempt limit reached; inspect the remaining evidence gap')
+        packet = review._prepare(project, {
+            'rubric': RUBRIC[task['spec']['step']], 'producer_id': task['producer_id'],
+            'artifacts': list(task['output_versions']), 'sources': list(task['input_versions']),
+            'instruction': task['spec']['instruction']})
+        task.update(status='review_ready', packet=packet['packet'], recheck_evidence=evidence,
+                    review_attempt=task.get('review_attempt', 1) + 1)
+        task.pop('review_result_sha256', None)
+        _save(project, data, 'recheck-unchanged-output')
+        return status(project)

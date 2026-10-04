@@ -60,6 +60,8 @@
 !/docs/install-prompt-notes.md
 !/docs/friend-install-and-use.md
 !/docs/friend-install-and-use.html
+!/docs/autopilot-review-implementation.md
+!/docs/autopilot-review-usage.md
 
 /dist/*
 !/dist/math-courseware-skills-0.1.0.zip

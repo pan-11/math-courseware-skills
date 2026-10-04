@@ -47,7 +47,7 @@ def main():
         'math-courseware-' + name for name in
         ('studio', 'analyze', 'plan', 'video', 'video-writer', 'video-assets',
          'video-director', 'video-storyboard', 'video-prompts',
-         'pages', 'editable', 'documents')}
+         'pages', 'editable', 'documents', 'autopilot', 'review')}
     print(json.dumps({'status': 'PASS', 'skills': results, 'yaml_version': yaml.__version__}, indent=2))
 
 
