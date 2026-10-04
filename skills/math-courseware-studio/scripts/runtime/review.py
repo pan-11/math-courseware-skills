@@ -121,3 +121,24 @@ def status(project, packet_path):
             'valid': result is not None and not problems, 'issues': problems,
             'verdict': result['verdict'] if result else None,
             'report': result.get('report') if result else None, 'adoption_granted': False}
+
+
+def snapshot(project, packet_path):
+    """Freeze an explicitly selected valid report before a human decision is written.
+
+    The caller holds the automation write lock. Existing immutable result formats
+    remain unchanged; existence under that lock proves this report predates the decision.
+    """
+    path, packet = _packet(project, packet_path)
+    result = status(project, packet_path)
+    if not result['valid']:
+        raise ValueError('Selected review is pending or invalid: ' + '; '.join(result['issues']))
+    result_path = path.with_name('result.json')
+    return {'review_id': packet['review_id'], 'reviewer_id': result['report']['reviewer_id'],
+            'review_packet': state.relative_path(project, path), 'review_packet_hash': state.sha256(path),
+            'review_result': state.relative_path(project, result_path),
+            'review_result_hash': state.sha256(result_path), 'reviewer_verdict': result['verdict'],
+            'captured_at': state.now(), 'packet_created_at': packet['created_at'],
+            'artifacts': sorted([{'path': p, 'sha256': packet['versions'][p]} for p in packet['artifacts']],
+                                key=lambda item: item['path']),
+            'source_versions': packet['versions'], 'adoption_granted': False}

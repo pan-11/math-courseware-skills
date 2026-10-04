@@ -149,3 +149,17 @@
 run.json的limits.max_images默认60；image_budget保存记账起点、旧用量是否未知及按实际job/input累计的API尝试/内置成功登记。run-configure接受limits:{max_images,evidence}并保留历史账；run-status只读显示image_budget_status。旧run未配置不能开始新生成，不推算基线；API预占在共享锁内，内置为登记后软计数。回收旧任务不受新增额度拦截，无run不创建预算或自动队列。
 
 旧待办缺未来生图数量时，run-configure接受image_declarations:[{task_id,image_count,evidence}]。仅从未派发/尝试且无既有声明的pending任务可补；声明另存task.image_declaration，原spec、依赖及计划身份不改。有效派发任务带补充后的image_count，授权、额度和外部重试门槛共用它；不修改旧图片账或接受任务内容重写。
+
+## 人工决定与独立审核校准
+
+有active run时，record-approval仍按真实targets/SHA256和user_evidence写采用或否决；可附stage/human_node/task_id/video_id、实际human_reason或null，以及本次实际展示的review_packet或review_packets。只核指定报告，必须同版本、同来源且完整覆盖决定的产物整组；无审核、未验证、范围或版本不符均未配对，不新增等待。先在共享锁内冻结审核快照，再写人工决定，避免否决使当时有效报告丢失。
+
+`decisions.jsonl`条目的calibration_event或run的保留revision先保存原快照，再追加本run的`calibration.jsonl`。新课物理位置为`02_work/_state/automation/runs/<run-id>/calibration.jsonl`，旧课沿原布局；哈希清单保持逻辑路径。恢复只补缺失event_id，run-status只读显示缺口与分阶段统计，不按新文件或晚到报告改写历史。
+
+事件ID表示一次实际发生；旧decision_id可能在approve→reject→approve时复用，不能当唯一发生次数。event_seq在共享锁内按全部持久快照最大序号递增（包括run指针中断前已落盘的revision），恢复沿用原序号；时间戳只展示，不用时钟先后判断旧链接是否失效。人工回执用decision_id及必要的decision_event_id关联同一次同版决定；反向顺序可显式human_event_id关联首次实际回执。后续改口保留新事件；同版、同实际意见/原话仅补审核引用、阶段节点或理由注释时，保留原事件及原配对状态。显式来源链接先验证，不能借补注吞掉旧/错链接。详见[队列协议](../../math-courseware-autopilot/references/queue-contract.md#human-calibration-records)。
+
+有run时，期间处理无关文件或同意见的组内子项不使原批准重放变成新票；任一同版组员被否决、或真实人工回执要求修改后重新采用，保留新发生记录。上游因否决失效时，已等待的人工任务保留原claim接收returned，并明确显示上游阻塞；不能据此完成任务、重派生产或接受换版回执。
+
+calibration日志半行/UTF-8断字只在原字节确为下一缺失事件的序列化前缀时追加缺失后缀，完整JSON缺换行只补行终止；不删除、截断或覆盖旧字节。未知尾部/中间损坏明确阻塞写恢复。只读status通过log_complete、incomplete_tail和log_issues说明不完整统计，不因日志尾部中断而崩溃，也不自动修复。
+
+一致率只算可比二元样本，零分母为null/暂无可比样本；pass被打回（误放）及changes_required仍采用分别统计。配置/操作/部分采用保留原话但不强算一致率；真实配置的version_hash等于settings_hash，默认60与主持人补张数不伪造人工选择。无run走原手动路径，同run切手动仍记真实事件。reviewer没有采用、扩额或阈值放行权。

@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 import re
 
-from . import state, workflow, review, preferences, image_budget, automation_store as store
+from . import state, workflow, review, preferences, image_budget, calibration, automation_store as store
 
 RUBRIC = {step: ('source' if step == 'analysis' else
                  'video' if step.startswith('video-') else
@@ -85,7 +85,9 @@ def start(project, plan):
     with store.locked(project):
         existing = _load(project)
         if existing:
-            if existing['plan_digest'] == state.digest(plan): return status(project)
+            if existing['plan_digest'] == state.digest(plan):
+                calibration.recover(project, existing)
+                return status(project)
             raise ValueError('A queue already exists; switch/resume or extend it without replacing progress')
         store.directory(project, store.AREA + '/runs')
         data = {'schema_version': '1.0', 'run_id': store.identifier('run'),
@@ -97,6 +99,9 @@ def start(project, plan):
                 'tasks': [_new_task(t) for t in tasks]}
         if 'preferences' in plan: preferences.update(project, data, plan['preferences'])
         image_budget.initialize(data, plan.get('limits'))
+        choices = {**plan.get('preferences', {})}
+        if 'limits' in plan: choices['limits'] = plan['limits']
+        calibration.settings(project, data, choices)
         _save(project, data, 'start')
         state.write_json(state.resolve(project, store.AREA + '/active.json'), {'run_id': data['run_id']})
         return status(project)
@@ -104,7 +109,9 @@ def start(project, plan):
 
 def configure(project, settings):
     if not _load(project): raise ValueError('No queue to configure; absent queues remain manual')
-    if not isinstance(settings, dict) or not settings or set(settings) - (preferences.GROUPS | {'limits', 'image_declarations'}):
+    if (not isinstance(settings, dict) or not settings
+            or set(settings) - (preferences.GROUPS | {'limits', 'image_declarations', 'human_reason'})
+            or not set(settings) & (preferences.GROUPS | {'limits', 'image_declarations'})):
         raise ValueError('Provide known preference groups, limits or missing image declarations with actual evidence')
     with store.locked(project):
         data = _load(project)
@@ -112,6 +119,8 @@ def configure(project, settings):
         if choices: preferences.update(project, data, choices)
         if 'limits' in settings: image_budget.configure(data, settings['limits'])
         if 'image_declarations' in settings: image_budget.amend_declarations(data, settings['image_declarations'])
+        calibration.validate_metadata(settings)
+        calibration.settings(project, data, settings)
         _save(project, data, 'configure-settings')
         return status(project)
 
@@ -158,6 +167,8 @@ def _sources(project, data, task):
 
 def _refresh(project, data):
     for task in data['tasks']:
+        if task.pop('blocked_by_upstream', False):
+            task['issues'] = [issue for issue in task.get('issues', []) if issue != 'An upstream task is stale']
         if task['status'] in ('done', 'review_ready', 'reviewing', 'needs_revision', 'unverified'):
             problems = store.issues(project, task.get('input_versions', {}))
             problems += store.issues(project, task.get('output_versions', {}))
@@ -183,10 +194,15 @@ def _refresh(project, data):
     changed = True
     while changed:
         changed = False
-        invalid = {t['spec']['id'] for t in data['tasks'] if t['status'] == 'stale'}
+        invalid = {t['spec']['id'] for t in data['tasks']
+                   if t['status'] == 'stale' or t.get('blocked_by_upstream')}
         for task in data['tasks']:
-            if task['status'] != 'stale' and set(task['spec'].get('depends_on', [])) & invalid:
-                task.update(status='stale', issues=['An upstream task is stale'])
+            if task['spec']['id'] not in invalid and set(task['spec'].get('depends_on', [])) & invalid:
+                if task['status'] == 'waiting_external' and task['spec'].get('kind') == 'human':
+                    # Retain the original reply channel after the human rejects its producer.
+                    task.update(blocked_by_upstream=True, issues=['An upstream task is stale'])
+                else:
+                    task.update(status='stale', issues=['An upstream task is stale'])
                 changed = True
 
 
@@ -196,6 +212,7 @@ def status(project):
     _refresh(project, data)
     effective = preferences.effective(project, data, strict=False)
     return {**data, 'whole_course_complete': False,
+            'calibration': calibration.summary(project, data),
             'image_budget_status': image_budget.summary(data),
             'preferences': effective, 'missing_preferences': preferences.missing(effective),
             'preference_issues': preferences.conflicts(project, data),
@@ -221,6 +238,7 @@ def _action(task):
             'preferences': task.get('preferences', {}),
             'owner': 'math-courseware-' + workflow.OWNERS.get(task['spec']['step'], 'studio'),
             'input_versions': task.get('input_versions', {}), 'findings': task.get('findings', []),
+            'issues': task.get('issues', []), 'blocked_by_upstream': task.get('blocked_by_upstream', False),
             'instruction': task['spec']['instruction'], 'external_submission_guard': _external(task)}
     if 'image_declaration' in task: result['image_declaration'] = task['image_declaration']
     return result
@@ -229,9 +247,10 @@ def _action(task):
 def next_task(project, actor):
     if not isinstance(actor, str) or not actor.strip(): raise ValueError('Host/producer identity required')
     data = _load(project)
-    if not data or data['mode'] == 'manual': return {'action': 'manual', 'whole_course_complete': False}
+    if not data: return {'action': 'manual', 'whole_course_complete': False}
     with store.locked(project):
         data = _load(project)
+        calibration.recover(project, data)
         if data['mode'] == 'manual': return {'action': 'manual', 'whole_course_complete': False}
         if data['paused']: return {'action': 'paused', 'whole_course_complete': False}
         if data['scope'] != store.scope(project):
@@ -283,6 +302,7 @@ def next_task(project, actor):
 
 
 def record(project, result):
+    calibration.validate_metadata(result)
     with store.locked(project):
         data = _load(project)
         if not data: raise ValueError('No active queue')
@@ -291,7 +311,13 @@ def record(project, result):
         if not task or result.get('claim') != task.get('claim'):
             raise ValueError('Current task and claim token required')
         digest = state.digest(result)
-        if task.get('last_result_digest') == digest: return _action(task) | {'status': task['status']}
+        replayed, replay_signature = calibration.receipt_replay(project, data, task, result)
+        human_receipt = task['spec'].get('kind') == 'human' and result.get('status') in ('completed', 'returned')
+        if (((not human_receipt or not task.get('last_human_receipt')) and task.get('last_result_digest') == digest) or
+                (replayed and task.get('last_human_receipt') == {
+                    'signature': replay_signature, 'event_id': replayed['event_id']})):
+            calibration.recover(project, data)
+            return _action(task) | {'status': task['status']}
         if data['scope'] != store.scope(project): raise ValueError('Current task scope changed')
         if task['status'] not in ('running', 'waiting_external', 'unknown'):
             raise ValueError('Task is not awaiting this result')
@@ -301,24 +327,38 @@ def record(project, result):
         if requested in ('failed', 'unknown'):
             if not str(result.get('message', '')).strip(): raise ValueError('Actual failure/unknown evidence required')
             task.update(status=requested, issues=[result['message']])
-        elif requested in ('produced', 'completed'):
+        elif requested in ('produced', 'completed', 'returned'):
+            human = task['spec'].get('kind', 'produce') == 'human'
+            returned = requested == 'returned'
+            if returned and (not human or task['status'] != 'waiting_external'
+                    or not isinstance(result.get('human_decision'), str) or not result['human_decision'].strip()):
+                raise ValueError('Only a waiting human task may record an actual returned decision')
+            if human and requested == 'completed' and (result.get('human_decision') in ('rejected', 'changes_required')
+                    or str(result.get('human_decision', '')).startswith('partial')):
+                raise ValueError('Rejected/partial human decisions must use returned and cannot complete a task')
             dependencies = set(task['spec'].get('depends_on', []))
-            if any(t['spec']['id'] in dependencies and t['status'] != 'done' for t in data['tasks']):
+            if not returned and any(t['spec']['id'] in dependencies and t['status'] != 'done' for t in data['tasks']):
                 raise ValueError('Upstream work no longer passes current review')
             problems = store.issues(project, task['input_versions']) + store.binding_issues(project, task['bindings'])
             gate = _gate(project, task)
-            if problems or not gate['allowed']: raise ValueError('; '.join(problems + gate['issues']))
+            if returned: problems = [p for p in problems if not p.startswith('Latest user decision rejects: ')]
+            if problems or (not returned and not gate['allowed']): raise ValueError('; '.join(problems + gate['issues']))
             artifacts = result.get('artifacts', {})
             if not isinstance(artifacts, dict) or set(artifacts) != set(task['spec']['outputs']):
                 raise ValueError('Actual output files must cover every declared output role exactly')
             expected = store.versions(project, list(artifacts.values()))
             problems = store.issues(project, expected)
+            if returned: problems = [p for p in problems if not p.startswith('Latest user decision rejects: ')]
             if problems: raise ValueError('; '.join(problems))
-            human = task['spec'].get('kind', 'produce') == 'human'
             if human:
-                if requested != 'completed' or not isinstance(result.get('user_evidence'), str) or not result['user_evidence'].strip():
+                if requested not in ('completed', 'returned') or not isinstance(result.get('user_evidence'), str) or not result['user_evidence'].strip():
                     raise ValueError('Human operation needs actual returned files and user completion evidence')
-                task.update(status='done', user_evidence=result['user_evidence'])
+                event = replayed or calibration.receipt(project, data, task, result, expected)
+                calibration.remember(data, event)
+                task['last_human_receipt'] = {'signature': calibration.receipt_identity(project, result, expected),
+                                            'event_id': event['event_id']}
+                task['history'][-1]['human_event_id'] = event['event_id']
+                task.update(status='waiting_external' if returned else 'done', user_evidence=result['user_evidence'])
             else:
                 if requested != 'produced': raise ValueError('Production requires an independent review before completion')
                 previous = {p for entry in task['history'] for p in entry.get('outputs', {})}
@@ -333,7 +373,7 @@ def record(project, result):
             task['output_versions'] = expected
             task['bindings'] = store.bindings(project, {**task['input_versions'], **expected})
             task['history'][-1]['outputs'] = expected
-        else: raise ValueError('Use produced, completed, failed or unknown')
+        else: raise ValueError('Use produced, completed, returned, failed or unknown')
         task['last_result_digest'] = digest
         _save(project, data, 'record-' + requested)
         return _action(task) | {'status': task['status'], 'packet': task.get('packet')}

@@ -218,6 +218,16 @@ def require_approved(project, *paths):
 
 
 def record_approval(project, record):
+    from . import automation_store as store, calibration
+    if not store.load_run(project):
+        return _record_approval(project, record)
+    with store.locked(project):
+        data = store.load_run(project)
+        calibration.validate_metadata(record)
+        return _record_approval(project, record, data)
+
+
+def _record_approval(project, record, calibration_run=None):
     load_project(project)
     if not str(record.get('user_evidence', '')).strip() or not record.get('targets'):
         raise ValueError('Approval needs nonempty targets and actual user evidence')
@@ -235,9 +245,30 @@ def record_approval(project, record):
     log = resolve(project, '_state/decisions.jsonl')
     history = read_lines(log)
     previous = history[-1] if history else None
-    if previous and previous.get('decision_id') == entry['decision_id']:
+    linked = None
+    if calibration_run:
+        from . import calibration
+        if record.get('human_event_id'):
+            linked = calibration.approval_link(project, calibration_run, record,
+                {t['path']: t['sha256'] for t in entry['targets']}, decision)
+        previous = calibration.approval_replay(project, calibration_run, entry, history)
+        if linked and previous and previous.get('calibration_event', {}).get('event_id') != linked['event_id']:
+            previous = None
+    if previous and (calibration_run or previous.get('decision_id') == entry['decision_id']):
+        if calibration_run:
+            from . import calibration
+            calibration.recover(project, calibration_run)
         return previous
     entry['recorded_at'] = now()
+    if calibration_run:
+        from . import calibration
+        task = next((t for t in calibration_run['tasks'] if t['spec']['id'] == record.get('task_id')), None)
+        versions = {t['path']: t['sha256'] for t in entry['targets']}
+        entry['calibration_event'] = (linked if linked else calibration.freeze(project, calibration_run, 'approval',
+                [len(history), entry['decision_id']], versions, decision, entry['user_evidence'], record,
+                task, entry['decision_id']))
+        if not record.get('human_event_id'):
+            entry['recorded_at'] = entry['calibration_event']['recorded_at']
     append_line(log, entry)
     if decision == 'approved':
         data = load_project(project)
@@ -247,6 +278,8 @@ def record_approval(project, record):
                 refreshed.update(entry_ids(read_json(resolve(project, target['path']))))
         data['stale_targets'] = [x for x in data.get('stale_targets', []) if x not in refreshed]
         write_json(resolve(project, '_state/project.json'), data)
+    if calibration_run:
+        calibration.recover(project, calibration_run)
     return entry
 
 

@@ -31,6 +31,8 @@ def save_run(project, data, event):
     data['last_event'] = {'kind': event, 'at': state.now()}
     immutable(folder / ('revision-%05d.json' % data['revision']), data)
     state.write_json(folder / 'run.json', data)
+    from . import calibration
+    calibration.recover(project, data)
 
 
 def directory(project, relative):
@@ -43,6 +45,11 @@ def directory(project, relative):
         rules.write_text('# Queue and independent review records\n\n'
                          'runs/: versioned run directories, mutable run.json and retained revisions.\n'
                          'reviews/: immutable packet.json and result.json per review.\n'
+                         'Each run calibration.jsonl appends frozen human/reviewer observations; never rewrites history.\n'
+                         'Decisions and retained run revisions hold snapshots for idempotent append recovery.\n'
+                         'event_seq orders actual occurrences; recovery preserves it and only appends verified tail suffixes.\n'
+                         'All writers share this automation lock; nested helpers do not acquire another lock.\n'
+                         'Status reads only; no reviewer observation grants adoption or image budget.\n'
                          'active.json selects the current queue. write.lock is retained.\n'
                          'Keep all evidence; never put secrets here or edit course adoption records.\n',
                          encoding='utf-8')
