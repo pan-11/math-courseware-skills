@@ -1,7 +1,7 @@
 """Grsai old API transport and resumable jobs; credentials never enter job records."""
 import base64
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import io
 import json
 import mimetypes
@@ -15,7 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from PIL import Image
-from . import state, workflow, errors, preferences, automation_store as store
+from . import state, workflow, errors, preferences, image_budget, automation_store as store
 
 BASE_URL = 'https://grsai.dakka.com.cn'
 ENDPOINT = '/v1/draw/completions'
@@ -177,22 +177,7 @@ def _record_error(job, exc, transport):
     job.update(errors.details(exc, secrets=(getattr(transport, 'key', ''),)))
 
 
-def _run_job_locked(project, relative, transport, resume=False, timeout=500, poll_interval=5, authorization_evidence=''):
-    path = state.resolve(project, relative)
-    job = state.read_json(path)
-    if job['route'] != 'openai_image_api':
-        raise ValueError('Built-in image tasks must be executed with the Codex image tool')
-    if job['status'] == 'downloaded':
-        if state.sha256(state.resolve(project, job['output_path'])) != job['sha256']:
-            raise ValueError('Downloaded image changed; preserve it and prepare a new version')
-        return job
-    if job['status'] in ('submitting', 'submission_unknown', 'failed'):
-        if job['status'] == 'submitting':
-            job['status'] = 'submission_unknown'
-            state.write_json(path, job)
-        return job
-    if job['status'] == 'pending' and resume:
-        return job
+def _checked_inputs(project, job, authorization_evidence=''):
     if job['status'] == 'pending':
         preferences.require_image_job(project, job, authorization_evidence)
         workflow.require_image(project, job['purpose'])
@@ -215,8 +200,28 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
             job['execution_input_versions'] = {target: state.sha256(state.resolve(project, target))
                                                 for target in job['input_versions']}
             changed = []
+    return changed
+
+
+def _run_job_locked(project, relative, transport, resume=False, timeout=500, poll_interval=5,
+                    authorization_evidence='', reserved=None):
+    path = state.resolve(project, relative)
+    job = state.read_json(path)
+    if job['route'] != 'openai_image_api':
+        raise ValueError('Built-in image tasks must be executed with the Codex image tool')
+    if job['status'] == 'downloaded':
+        if state.sha256(state.resolve(project, job['output_path'])) != job['sha256']:
+            raise ValueError('Downloaded image changed; preserve it and prepare a new version')
+        return job
+    if job['status'] in ('submitting', 'submission_unknown', 'failed'):
+        if job['status'] == 'submitting':
+            job['status'] = 'submission_unknown'
+            state.write_json(path, job)
+        return job
+    if job['status'] == 'pending' and resume:
+        return job
     # Already-paid work must remain downloadable even if later project versions change.
-    job['stale_inputs'] = changed
+    job['stale_inputs'] = _checked_inputs(project, job, authorization_evidence)
     started = time.monotonic()
     deadline = started + timeout
     def remaining():
@@ -227,6 +232,10 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
     job['prior_elapsed_seconds'] = job.get('elapsed_seconds', 0)
     if job['status'] == 'pending':
         body = build_payload(project, job)
+        if reserved is None:
+            image_budget.reserve_api(project, [relative], authorization_evidence)
+        elif image_budget._key(job) not in reserved:
+            raise ValueError('Pending image has no bound batch reservation')
         job.update(status='submitting', api_base_url=BASE_URL, api_endpoint=ENDPOINT,
                    model=body['model'], aspectRatio=body['aspectRatio'], size=body['aspectRatio'])
         save()
@@ -298,16 +307,35 @@ def validate_batch(project, batch, resume=False):
         if job.get('route') != batch['route']: raise ValueError('Job route differs from batch route')
         if not resume and job.get('status') == 'pending':
             preferences.require_image_job(project, job, evidence)
+            if data:
+                _checked_inputs(project, job, evidence)
+                build_payload(project, job)
+    image_budget.preflight(project, batch['jobs'], resume)
 
 
 def run_batch(project, batch, key, resume=False):
     validate_batch(project, batch, resume)
     concurrency = min(6, max(1, int(batch.get('concurrency', 6))), len(batch['jobs']))
     transport = HttpTransport(key)
-    with ThreadPoolExecutor(max_workers=concurrency) as pool:
-        futures = [(path, pool.submit(run_job, project, path, transport, resume,
+    with ExitStack() as locks:
+        execute = run_job
+        extra = {}
+        if store.load_run(project) and not resume:
+            # Lock the entire actual set before reserving anything; workers must not
+            # reacquire these nonblocking locks or reserve per job under a nested run lock.
+            for path in sorted(batch['jobs']):
+                locks.enter_context(job_lock(state.resolve(project, path).with_suffix('.lock')))
+            for path in batch['jobs']:
+                job = state.read_json(state.resolve(project, path))
+                if job.get('status') == 'pending':
+                    _checked_inputs(project, job, batch.get('authorization_evidence', ''))
+                    build_payload(project, job)
+            extra['reserved'] = image_budget.reserve_api(project, batch['jobs'], batch.get('authorization_evidence', ''))
+            execute = _run_job_locked
+        pool = locks.enter_context(ThreadPoolExecutor(max_workers=concurrency))
+        futures = [(path, pool.submit(execute, project, path, transport, resume,
                                      int(batch.get('timeout_seconds', 500)),
-                                     authorization_evidence=batch.get('authorization_evidence', ''))) for path in batch['jobs']]
+                                     authorization_evidence=batch.get('authorization_evidence', ''), **extra)) for path in batch['jobs']]
         results = []
         for path, future in futures:
             try:
@@ -322,9 +350,15 @@ def run_batch(project, batch, key, resume=False):
 
 
 def register_builtin(project, result):
+    with job_lock(state.resolve(project, result['job_path']).with_suffix('.lock')):
+        return _register_builtin_locked(project, result)
+
+
+def _register_builtin_locked(project, result):
     relative = result['job_path']
     path = state.resolve(project, relative)
     job = state.read_json(path)
+    already_downloaded = job['status'] == 'downloaded'
     if job['route'] != 'builtin' or not result.get('tool_evidence', '').strip():
         raise ValueError('Actual built-in tool evidence and matching route required')
     if result.get('input_digest') != job['input_digest']:
@@ -337,6 +371,8 @@ def register_builtin(project, result):
         img.verify()
     with Image.open(source) as img:
         width, height = img.size
+    if already_downloaded and state.sha256(source) != job.get('sha256'):
+        raise ValueError('Successful builtin job has a different result; preserve it and prepare a new version')
     output = state.resolve(project, job['output_path']).with_suffix(source.suffix.lower())
     if output.exists() and state.sha256(output) != state.sha256(source):
         raise ValueError('Output already exists with different bytes')
@@ -350,5 +386,6 @@ def register_builtin(project, result):
                tool_evidence=result['tool_evidence'], review_status='pending_visual_review',
                response_id=result.get('response_id'), task_id=result.get('task_id'),
                registered_at=state.now(), stale_inputs=changed)
+    image_budget.registered_builtin(project, relative, job, already_downloaded)
     state.write_json(path, job)
     return job

@@ -145,3 +145,7 @@
 ## 自动运行启动偏好
 
 可选run的preferences保存本课image/video/editable设置及真实依据，详见[队列协议](../../math-courseware-autopilot/references/queue-contract.md)。run-configure接受同形部分JSON；run-status只读返回有效值、缺项与冲突。不创建第二份课程或采用记录。共享读取先用有效run偏好，缺项回退project.image_route和有user_evidence的workflow.route_choice；后续规范记录改选与run相冲突时须显式协调。模式切换不清空偏好，未提交工作用新选择，已提交任务保持原线路。
+
+run.json的limits.max_images默认60；image_budget保存记账起点、旧用量是否未知及按实际job/input累计的API尝试/内置成功登记。run-configure接受limits:{max_images,evidence}并保留历史账；run-status只读显示image_budget_status。旧run未配置不能开始新生成，不推算基线；API预占在共享锁内，内置为登记后软计数。回收旧任务不受新增额度拦截，无run不创建预算或自动队列。
+
+旧待办缺未来生图数量时，run-configure接受image_declarations:[{task_id,image_count,evidence}]。仅从未派发/尝试且无既有声明的pending任务可补；声明另存task.image_declaration，原spec、依赖及计划身份不改。有效派发任务带补充后的image_count，授权、额度和外部重试门槛共用它；不修改旧图片账或接受任务内容重写。

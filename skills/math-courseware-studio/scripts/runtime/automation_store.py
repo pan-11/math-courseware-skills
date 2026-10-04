@@ -10,13 +10,14 @@ from . import state, workflow
 AREA = '_state/automation'
 
 
-def load_run(project):
-    pointer = state.resolve(project, AREA + '/active.json')
-    if not pointer.exists(): return None
-    ref = state.read_json(pointer)
-    if not re.fullmatch(r'run-[a-f0-9]{32}', str(ref.get('run_id', ''))):
+def load_run(project, run_id=None):
+    if run_id is None:
+        pointer = state.resolve(project, AREA + '/active.json')
+        if not pointer.exists(): return None
+        run_id = state.read_json(pointer).get('run_id')
+    if not re.fullmatch(r'run-[a-f0-9]{32}', str(run_id)):
         raise ValueError('Invalid active run pointer')
-    data = state.read_json(state.resolve(project, AREA + '/runs/' + ref['run_id'] + '/run.json'))
+    data = state.read_json(state.resolve(project, AREA + '/runs/' + run_id + '/run.json'))
     if data.get('project') != str(Path(project).resolve()):
         raise ValueError('Run belongs to a different project')
     return data

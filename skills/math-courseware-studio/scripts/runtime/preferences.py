@@ -176,7 +176,7 @@ def task_issues(project, spec, data):
                else ['image'] if step in IMAGE_STEPS
                else ['editable'] if step.startswith('editable-') else [])
     groups = set(spec.get('requires_preferences', default))
-    if 'image_requests' in spec or (not human and step == 'editable-handoff'
+    if 'image_requests' in spec or 'image_count' in spec or (not human and step == 'editable-handoff'
             and values['editable'].get('route') == 'B' and values['editable'].get('entry') == 'full'):
         groups.add('image')
     issues = [item for item in conflicts(project, data) if item.split('.')[0] in groups]

@@ -59,3 +59,9 @@ CLI读取已有`GRSAI_API_KEY`环境变量，或显式`--key-file`指向项目�
 ## 自动队列共用选择与授权
 
 有run时先读run-status的有效image设置，按[启动协议](../../math-courseware-autopilot/references/queue-contract.md)用run-configure记录本课实际改选；无run仍按原项目线路。image-prepare采用同一有效路线并绑定当前run；任务路线创建后不静默重写。API运行接受原有当批authorization_evidence，或适用于同run/真实课程模块范围/路线/用途的结构化授权；Grsai还需paid_generation:true，额外用途或未授权返工不能继承。仅选线路不等于授权费用。内置调用前由宿主按相同范围核对，登记不能追认工具调用。旧任务查询下载保持原线路及未知不重提规则。
+
+同run累计图片上限默认60张，包含测试、封面、视频预览/正式板、资产、页面、去字、修图及返工；25格拼图算1张，4张独立封面算4张。API整批在请求前核量并在共享锁内预占，剩2张请求4张整批不执行；直接job入口同样检查。失败/未知/中断预占不退还、不自动重提，查询下载不重复计数。预占记录存在而job仍pending时先查实际服务端证据，不把pending当成从未发出。
+
+内置为软上限：run-next按任务明确image_count或image_requests张数检查，宿主调用工具前核剩余；image-register只登记真实成功结果并按job/input去重。已生成超额图仍保存，记录超额并阻止后续新生成。没有image-reserve或内置预占凭据；未登记的直接工具调用及失败/未知内置尝试，Python无法硬拦截或完整计数。不得以此冒称请求前硬限额。
+
+旧run没有预算时先run-configure记录limits.max_images和真实evidence，不扫描推算历史基线；run-status只读显示记账起点及旧用量未知。扩额保留原账，run-resume不解除额度阻塞。同run手动模式继续计数，无run手动保持原行为；已提交API仍可查询下载，真实内置结果仍可登记。

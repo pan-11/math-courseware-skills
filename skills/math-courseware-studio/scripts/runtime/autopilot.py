@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 import re
 
-from . import state, workflow, review, preferences, automation_store as store
+from . import state, workflow, review, preferences, image_budget, automation_store as store
 
 RUBRIC = {step: ('source' if step == 'analysis' else
                  'video' if step.startswith('video-') else
@@ -16,7 +16,9 @@ MEDIA_STEPS = {'cover', 'asset', 'page-image', 'video-script', 'video-assets',
 
 
 def _external(task):
-    return task['spec']['step'] in MEDIA_STEPS or task['spec'].get('side_effects') == 'external'
+    spec = image_budget.task_spec(task)
+    return (spec['step'] in MEDIA_STEPS or spec.get('side_effects') == 'external'
+            or 'image_count' in spec or 'image_requests' in spec)
 
 
 def _load(project):
@@ -62,6 +64,7 @@ def _validate_tasks(project, tasks):
                     or len(set(groups)) != len(groups)):
                 raise ValueError('requires_preferences must name unique image/video/editable groups')
         if 'image_requests' in task: preferences._requests(task['image_requests'], 'image_requests')
+        image_budget.validate_declaration(task)
     remaining = {t['id']: set(t.get('depends_on', [])) for t in tasks}
     while remaining:
         ready = {name for name, deps in remaining.items() if not deps}
@@ -93,6 +96,7 @@ def start(project, plan):
                 'preference_basis': preferences.canonical(project),
                 'tasks': [_new_task(t) for t in tasks]}
         if 'preferences' in plan: preferences.update(project, data, plan['preferences'])
+        image_budget.initialize(data, plan.get('limits'))
         _save(project, data, 'start')
         state.write_json(state.resolve(project, store.AREA + '/active.json'), {'run_id': data['run_id']})
         return status(project)
@@ -100,10 +104,15 @@ def start(project, plan):
 
 def configure(project, settings):
     if not _load(project): raise ValueError('No queue to configure; absent queues remain manual')
+    if not isinstance(settings, dict) or not settings or set(settings) - (preferences.GROUPS | {'limits', 'image_declarations'}):
+        raise ValueError('Provide known preference groups, limits or missing image declarations with actual evidence')
     with store.locked(project):
         data = _load(project)
-        preferences.update(project, data, settings)
-        _save(project, data, 'configure-preferences')
+        choices = {key: value for key, value in settings.items() if key in preferences.GROUPS}
+        if choices: preferences.update(project, data, choices)
+        if 'limits' in settings: image_budget.configure(data, settings['limits'])
+        if 'image_declarations' in settings: image_budget.amend_declarations(data, settings['image_declarations'])
+        _save(project, data, 'configure-settings')
         return status(project)
 
 
@@ -127,10 +136,11 @@ def extend(project, tasks, evidence):
 
 
 def _gate(project, task, data=None):
-    spec = task['spec']
+    spec = image_budget.task_spec(task)
     gate = workflow.check(project, spec['step'], video_id=spec.get('video_id'))
     if data is not None:
         gate['issues'] += preferences.task_issues(project, spec, data)
+        gate['issues'] += image_budget.task_issues(project, spec, data)
         gate['allowed'] = not gate['issues']
     return gate
 
@@ -186,6 +196,7 @@ def status(project):
     _refresh(project, data)
     effective = preferences.effective(project, data, strict=False)
     return {**data, 'whole_course_complete': False,
+            'image_budget_status': image_budget.summary(data),
             'preferences': effective, 'missing_preferences': preferences.missing(effective),
             'preference_issues': preferences.conflicts(project, data),
             'scope_matches': data['scope'] == store.scope(project),
@@ -206,11 +217,13 @@ def _claim(project, data, task, actor):
 
 
 def _action(task):
-    return {'task': task['spec'], 'claim': task.get('claim'), 'attempt': task['attempt'],
+    result = {'task': image_budget.task_spec(task), 'claim': task.get('claim'), 'attempt': task['attempt'],
             'preferences': task.get('preferences', {}),
             'owner': 'math-courseware-' + workflow.OWNERS.get(task['spec']['step'], 'studio'),
             'input_versions': task.get('input_versions', {}), 'findings': task.get('findings', []),
             'instruction': task['spec']['instruction'], 'external_submission_guard': _external(task)}
+    if 'image_declaration' in task: result['image_declaration'] = task['image_declaration']
+    return result
 
 
 def next_task(project, actor):
@@ -238,6 +251,7 @@ def next_task(project, actor):
         humans = [_action(t) for t in data['tasks'] if t['status'] == 'waiting_external']
         effective = preferences.effective(project, data, strict=False)
         common = {'run_id': data['run_id'], 'human_tasks': humans, 'whole_course_complete': False,
+                  'image_budget_status': image_budget.summary(data),
                   'preferences': effective, 'missing_preferences': preferences.missing(effective),
                   'preference_issues': preferences.conflicts(project, data)}
         for task in data['tasks']:
