@@ -13,8 +13,8 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 ## 启动与恢复
 
-1. 先读工作目录AGENTS.md、HANDOFF.md及[共用流程](references/workflow.md)；已存在项目执行`status`和`validate`，不因换对话另建项目。两条命令通过不代表阶段依赖已满足。
-2. 新课项目使用`scripts/courseware.py init --project <绝对路径> --title <课题>`，目录规则由初始化器先写入。可同时指定`--route builtin`或`--route openai_image_api`；已明确选择的线路直接记录，无需重问。
+1. 按[每课四目录规范](references/workspace-layout.md)绑定用户每次给定的课程文件夹地址，先读根AGENTS.md、HANDOFF.md及[共用流程](references/workflow.md)；只有原文件/链接且课根不明时才补问保存地址。已存在项目执行`status`和`validate`，不因换对话另建项目或迁移旧目录。两条命令通过不代表阶段依赖已满足。
+2. 新课项目使用`scripts/courseware.py init --project <课程根目录绝对路径> --title <课题> --layout four-folders`，目录规则由初始化器先写入。`--project`始终为用户给定课根，不指02_work；原资料/过程/教学成品/笔记分别进入01_source/02_work/03_final/04_notes。可同时指定`--route builtin`或`--route openai_image_api`；已明确选择的线路直接记录，无需重问。
 3. 读取[项目协议](references/project-contract.md)，只在需要生图时读[生图线路](references/image-routing.md)，发生修改、中断或等待回传时读[恢复规则](references/recovery.md)。
 4. 脚本依赖Python、Pillow、python-pptx、python-docx、pypdf、ReportLab；先用Codex的运行时发现工具定位现有环境，再运行`doctor`。缺依赖先报告，不自动安装全局依赖。
 
@@ -62,6 +62,8 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 进入视频素材制作后按两路执行：单角色固定镜头讲话，AI连续生成并自检实际彩色首帧和完整视频提示词（含全部台词）供即梦数字人使用，同轮先展示图片再给完整词，不拆步确认，不增加运镜、切镜或故事板；需要运镜切镜，AI生成实际黑白故事板和对应分镜词。复用或沿已选线路补齐所需角色/场景三视图，图片、提示词、台词和说明集中到同一个普通素材文件夹，直接交付文件夹及文件链接，不自动压缩。视频平台未定不阻断已定图片制作，不能只交提示词让用户自己生图；用户明确只要方案或工具不可用时，记录真实范围和缺项。图片包与成片完成分开验收，详见[视频实际素材制作](../math-courseware-video/references/production.md#4-自动制作实际素材)。
 
 ## 交付
+
+按[目录与版本规则](references/workspace-layout.md#交付与版本)归位：控制器collect含制作资料，留02_work/deliveries暂存；另将实际教学产品与使用依赖按清单核验复制到03_final/vNNN，笔记按篇放04_notes/vNNN。各区README标当前版本和真实状态；待审候选/过程阅读版/审核记录留02_work，不增加采用节点。JSON继续用逻辑路径，用户点击链接必须展开为实际文件位置。
 
 整课C7四类文档先按[已验证的结构与篇幅基准](../math-courseware-documents/references/teaching-pack-profile.md)区分教案、说课、师生逐字稿与学习单；逐字稿按环节展开，逐页核对而不强制每页单设标题。默认制作[学生课堂学习单](../math-courseware-documents/references/student-worksheet.md)，依据定稿课件与教学设计选核心任务，默认学生版，提供足够作答空间和实际可编辑中文DOCX；与其他配套放同一交付文件夹。用户明确省略除外，独立任务不扩范围。C8核真实文件与来源、内容、分页及交付副本，不能用三文稿导出成功代替学习单完成。
 

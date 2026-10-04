@@ -1,5 +1,7 @@
 # 视频文件、版本与恢复
 
+按[每课四目录规范](../../math-courseware-studio/references/workspace-layout.md)展开本文件的逻辑路径：新课videos/asset-kit/returned/output及视频准备包均在02_work，真实课堂成片经原有检查后才按交付清单复制到03_final。给用户的素材文件夹和文件链接使用实际路径；旧课或已明确的独立输出目录不因新规范自动搬动。
+
 ## 一份当前清单
 
 先读项目AGENTS/HANDOFF及[共用流程](../../math-courseware-studio/references/workflow.md)，声明目录用途再创建实际需要的文件。课程项目用`_state/workflow.json`记录project_mode与current_task；单独视频可以在原manifest.workflow记录范围和依据，使用普通素材目录，不要求整套课程JSON。已有课件复用story/math/assets及video_nodes，不新造第二套权威记录。

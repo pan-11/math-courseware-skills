@@ -2,6 +2,8 @@
 
 ## 执行与目录
 
+先读[每课四目录规范](workspace-layout.md)。新课根目录由用户开工提供，Skill初始化显式使用`--layout four-folders`；根保留AGENTS/HANDOFF，原始资料、过程文件、教学产品、笔记分别归01_source/02_work/03_final/04_notes。旧课保留旧结构。以下表格、JSON和专业参考中的inputs/planning/_state等均为逻辑路径，实际文件操作与点击链接按四目录映射展开；所有命令的--project仍是课程根。
+
 整个十二Skill源码集合放在同一父目录，专业Skill通过相邻`math-courseware-studio/scripts/courseware.py`定位执行器。路径相对于当前课件项目，调用时传项目绝对路径；包内不写某台机器的Python、字体或用户名路径。
 
 先用运行时发现工具找到已有Python及文档库，执行`courseware.py doctor`。普通用户以自然语言工作，JSON与命令由Codex维护。
@@ -10,7 +12,7 @@
 
 项目初始化先写AGENTS.md和HANDOFF.md，再创建：
 
-| 目录 | 内容 |
+| 目录（逻辑路径） | 内容 |
 |---|---|
 | inputs | 原课件、教材及补充材料的原样副本 |
 | planning | 教学分析、数学核查、故事、页面方案、可见文字稿 |
@@ -20,7 +22,7 @@
 | editable/handoff、returned、output | 可画交接、原始回传副本、修改结果 |
 | documents | 三类教师文稿的版本化输出；worksheet-vNNN保存[学生学习单](../../math-courseware-documents/references/student-worksheet.md)来源/任务对应、源稿、实际DOCX、分页检查和manifest，旧版本不覆盖 |
 | _state | 权威记录、确认、变更、任务、坐标、文稿源和检查 |
-| deliveries | 当前有效交付物的副本与清单 |
+| deliveries | 控制器收集的副本与清单；新课实际为02_work/deliveries暂存，教学最终产品与笔记另按清单分别交03_final、04_notes |
 
 不自动清理旧版。原稿不覆盖，发布与全局安装另按实际授权处理。
 
@@ -118,7 +120,7 @@
 
 | 命令 | 参数 | 用途 |
 |---|---|---|
-| init | --title TEXT [--route builtin/openai_image_api] | 不覆盖已有项目 |
+| init | --title TEXT --layout four-folders [--route builtin/openai_image_api] | 新课四目录；不覆盖/迁移已有项目，省略layout仅保留旧脚本兼容 |
 | status / validate | 无额外参数 | 读取进度/检查引用和哈希 |
 | workflow-check | --step STEP [--video-id ID] | 只读检查本次范围的实际依赖，返回允许项、缺失/过期产物及可继续步骤；步骤名见共用流程 |
 | record-approval | --record FILE | 记录实际用户批准 |

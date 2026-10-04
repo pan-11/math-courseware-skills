@@ -60,7 +60,7 @@ def relative(project, value):
     if not isinstance(value, str) or not value.strip() or Path(value).is_absolute():
         raise ValueError('Use a nonempty project-relative path')
     path = state.resolve(project, value)
-    result = path.relative_to(Path(project).resolve()).as_posix()
+    result = state.relative_path(project, path)
     if result.startswith(AREA + '/') or result == AREA:
         raise ValueError('Course inputs/outputs cannot refer to automation management files')
     return result

@@ -5,6 +5,8 @@ description: Create teaching documents, student worksheets and electronic blackb
 
 # 配套教学文稿、学习单与电子黑板贴
 
+按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)沿用户给定课程根制作；源稿、分页检查与制作版本进入02_work，已核文稿/学习单/黑板贴及使用依赖交03_final/vNNN。记录路径与点击链接按规范区分，旧课不自动迁移。
+
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
 先按真实任务选择分支：整课C7默认制作三份教师文稿、学生课堂学习单和电子黑板贴；独立任务只做用户指定部分。用户明确省略某配套时记录依据，不另问要不要做。

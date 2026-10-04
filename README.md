@@ -10,6 +10,8 @@
 
 ## 开始使用
 
+每课开始时同时提供该课的保存文件夹地址。新课遵循[每课四目录规范](skills/math-courseware-studio/references/workspace-layout.md)：01_source原始资料、02_work中间文件、03_final教学产品、04_notes笔记素材；根目录保留规则和交接。Skill会为新课显式使用`init --layout four-folders`，既有课程继续原布局，不自动搬迁；各制作模式共用同一课程地址。
+
 在Codex中打开此项目，提供原课件PPT/PDF或逐页图片，并发送：
 
 > 读取当前项目 skills/math-courseware-studio/SKILL.md，按这套Skill制作我上传的小学数学AI赋能课件。先分析资料，沿用项目已确认的规范和偏好。

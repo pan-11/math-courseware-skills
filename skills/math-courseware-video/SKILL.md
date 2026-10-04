@@ -5,6 +5,8 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 # 情景视频总入口
 
+先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
+
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
 把大致情境推进为有具体事件、吸引儿童观看的剧本、实际图片和可复制的视频提示词。总入口安排专业模块、版本和交付，用户不必逐个调用Skill或先写故事。课堂接话、教学活动和PPT插入由课程总入口安排，不作为本视频流程的写作要求。

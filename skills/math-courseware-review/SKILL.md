@@ -5,6 +5,8 @@ description: Independently review courseware analysis, teaching and math, images
 
 # 独立审核
 
+先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)识别课程根并展开packet里的逻辑路径，再只读检查实际文件；新课审核证据由主会话保存在02_work/_state，审核者不初始化、迁移或修改课程。
+
 可以单独审一份产物，也可接收[自动推进](../math-courseware-autopilot/SKILL.md)已建立的packet。独立审核不启用自动模式，不写用户采用，不改变课程文件。先读课程AGENTS/HANDOFF与[审核协议](references/review-contract.md)，确认当前范围及实际源文件。
 
 以下派发与入库步骤由主持审核的主会话执行。**如果你已经是被派发的独立审核者，直接读取packet及原始材料，按第3步返回报告；不再次派发子代理，不写入库记录。**

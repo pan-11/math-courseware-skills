@@ -265,7 +265,7 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
             if output.exists() and output.read_bytes() != raw:
                 raise ValueError('Existing output differs; do not overwrite')
             output.write_bytes(raw)
-            job.update(output_path=output.relative_to(Path(project).resolve()).as_posix(),
+            job.update(output_path=state.relative_path(project, output),
                        status='downloaded', width_px=width, height_px=height, sha256=state.sha256(output),
                        size_matches_request=job['image_api_input']['size'] == f'{width}x{height}',
                        review_status='pending_visual_review')
@@ -330,7 +330,7 @@ def register_builtin(project, result):
     changed = [relative for relative, expected in job.get('input_versions', {}).items()
                if not state.resolve(project, relative).is_file()
                or state.sha256(state.resolve(project, relative)) != expected]
-    job.update(status='downloaded', output_path=output.relative_to(Path(project).resolve()).as_posix(),
+    job.update(status='downloaded', output_path=state.relative_path(project, output),
                width_px=width, height_px=height, sha256=state.sha256(output),
                tool_evidence=result['tool_evidence'], review_status='pending_visual_review',
                response_id=result.get('response_id'), task_id=result.get('task_id'),

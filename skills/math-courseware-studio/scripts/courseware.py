@@ -82,6 +82,7 @@ def parser():
         p.add_argument('--project', required=True, type=Path)
         if command == 'init':
             p.add_argument('--title', required=True)
+            p.add_argument('--layout', choices=state.LAYOUTS, default='legacy')
             p.add_argument('--route', choices=state.ROUTES)
             p.add_argument('--mode', choices=('full_course', 'selected_modules'))
             p.add_argument('--scope-evidence', default='')
@@ -128,7 +129,8 @@ def execute(args):
         if c == 'review-status': return review.status(project, args.packet)
     if c == 'init':
         return state.init_project(project, args.title, args.route,
-                                  getattr(args, 'mode', None), getattr(args, 'scope_evidence', ''))
+                                  getattr(args, 'mode', None), getattr(args, 'scope_evidence', ''),
+                                  getattr(args, 'layout', 'legacy'))
     if c == 'workflow-check':
         return workflow.check(project, args.step, video_id=args.video_id)
     state.load_project(project)

@@ -5,6 +5,8 @@ description: Run an explicitly selected automatic courseware mode in the current
 
 # 可选自动推进
 
+先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)使用同一用户给定课程根；--project不指02_work。新课队列/审核实际记录在02_work/_state，派发文件的逻辑路径按映射展开；切换模式不另建目录或迁移旧课。
+
 从[Studio](../math-courseware-studio/SKILL.md)进入，沿用该入口的课程范围、教学与视频要求、回复格式和真实采用。只在用户明确选择自动推进或继续已经启用的同一队列时派发；普通“继续课件”先查模式，无队列默认原模式。这里是当前Codex会话主持的循环，关闭会话不继续后台制作。
 
 ## 启动

@@ -5,6 +5,8 @@ description: Use when an approved children's video shot list needs a black-and-w
 
 # 黑白故事板制作
 
+先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
+
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
 依据已定文字分镜和真实参考图，制作镜号、构图、人物及空间对应的黑白板。默认交付可上传的完整故事板图片；逐格生图可以作为制作方法，不能把最终交付停在一串单格文件。把导演设计落实成图片，不在生图时重新创作剧情。

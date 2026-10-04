@@ -24,7 +24,7 @@ def _version_dir(project, parent, prefix='export-v'):
 
 
 def _relative(project, path):
-    return Path(path).relative_to(Path(project).resolve()).as_posix()
+    return state.relative_path(project, path)
 
 
 def _check_versions(project, versions):

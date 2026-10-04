@@ -16,6 +16,8 @@ description: Create Xiaohongshu post materials from a finished courseware deck a
 
 ## 生产顺序
 
+文件位置遵循[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)：沿用户已给定课程根读取03_final当前有效产品；笔记策划、排版与核查过程放02_work/notes，实际按篇交付包放04_notes/vNNN/note-NN，README注明当前版本与待剪辑状态。旧课复用其真实交付位置，不自动搬动；独立笔记任务不要求重跑或补造整课状态。
+
 1. 先读工作目录 `AGENTS.md`、`HANDOFF.md` 及课程交接；检查现存文件和未提交改动。按[选题与来源](references/note-planning.md)核定当前 PPT、视频、教学设计、逐字稿、说课稿、学习单、黑板贴及已有宣传图。只使用已存在且能核对的文件；历史截图和修改时间不能单独决定采用版本。发现教材版本、页码、数学或视频画面冲突时先处理证据，不把冲突带入宣传图。
 2. 为每篇写一句老师关心的问题，列独有证据、形式、图序或剪辑路径、交付文件。对照整组检查主题是否重复。用户已给具体设计方案时沿用，必要调整写明来源原因，不机械套固定的五主题。
 3. 依据[图文制作](references/visual-production.md)完成可用封面与内容图；依据[视频剪辑资料](references/video-production.md)完成每篇视频包。真实课件页、尺图、数字和文稿局部用实际来源等比排版，不用生图重画事实内容。艺术封面按用户指定图像路线制作并目视核对；已有合适成品直接复用。

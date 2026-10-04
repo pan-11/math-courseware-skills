@@ -17,9 +17,10 @@ import zipfile
 
 from lxml import etree as ET
 if __package__:
-    from . import errors
+    from . import errors, state
 else:
     import errors
+    import state
 
 NS = {"p": "http://schemas.openxmlformats.org/presentationml/2006/main",
       "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
@@ -144,11 +145,9 @@ def inspect_deck(path):
 
 def _inside(project, value):
     relative = Path(value)
-    root = Path(project).resolve()
-    target = (root / relative).resolve()
-    if relative.is_absolute() or not target.is_relative_to(root) or target == root:
+    if relative.is_absolute():
         raise ValueError("Path must stay inside project: " + str(value))
-    return target
+    return state.resolve(project, relative)
 
 
 def _mapping(mapping, count):
@@ -171,7 +170,7 @@ def import_deck(project, deck, mapping):
         raise ValueError("Imported copy has manual changes")
     if not target.exists():
         shutil.copy2(source, target)
-    inventory.update(source_deck=target.relative_to(Path(project).resolve()).as_posix(), mapping=mapping)
+    inventory.update(source_deck=state.relative_path(project, target), mapping=mapping)
     report = target.with_suffix(".inventory.json")
     report.write_text(json.dumps(inventory, ensure_ascii=False, indent=2), encoding="utf-8")
     return inventory
@@ -510,7 +509,7 @@ def build_editable(project, plan):
               "output_sha256": sha256(output), "units": operations, "native_objects": native,
               "non_target_parts_preserved": True, "media_preserved": before["media"] == after["media"],
               "source_unchanged": True, "wps_render": "unverified", "idempotent": False,
-              "officecli_validation": validation, "work_directory": work_dir.relative_to(Path(project).resolve()).as_posix()}
+              "officecli_validation": validation, "work_directory": state.relative_path(project, work_dir)}
     report.update(build_scope=scope, remaining_native_objects=remaining,
                   full_editability_verified=scope == "complete" and not remaining)
     (work_dir / "officecli-log.json").write_text(json.dumps(command_log, ensure_ascii=False, indent=2), encoding="utf-8")

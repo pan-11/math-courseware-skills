@@ -5,6 +5,8 @@ description: Prepare manual Canva layer-splitting handoffs and edit returned lay
 
 # 可画拆层与可编辑PPT
 
+先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
+
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
 读取[可画交接](references/canva-handoff.md)和[文字与几何](references/text-and-geometry.md)。控制器位于相邻`math-courseware-studio/scripts/courseware.py`；先运行`doctor`确认OfficeCLI。
