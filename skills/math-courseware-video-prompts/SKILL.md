@@ -5,6 +5,8 @@ description: 当已有导演双表、实际故事板和参考资产需要整理�
 
 # 完整视频提示词与操作包
 
+仅显式 `grouped_creative_v1` 的full_course自动run，按[D1分组协议](../math-courseware-autopilot/references/grouped-creative-review.md)先沿本入口制作完整本地待审词和真实逐片准备：讲话实包随第一组，运镜完整词/风格/导演板/逐片准备及全课汇总随第二组。video-upload仍须相应完整组实际采用，不能先批准再生成未来文件或多出第三轮准备采用。其他模式沿下文原门槛，实际成片/播放不变。
+
 先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。

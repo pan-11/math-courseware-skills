@@ -88,6 +88,7 @@ def freeze(project, data, kind, identity, versions, decision, evidence, metadata
                  human_decision=decision, human_outcome=outcome(decision), human_evidence=evidence,
                  human_reason=metadata.get('human_reason', metadata.get('reason')),
                  agreement=None, pair_status='unpaired', unpaired_reason=None)
+    if 'review_group' in metadata: event['review_group'] = deepcopy(metadata['review_group'])
     problems = []
     for relative in refs:
         try:
@@ -202,9 +203,11 @@ def settings(project, data, choices):
 
 
 def receipt_identity(project, result, versions):
-    return state.digest([result['claim'], result['status'], artifacts(project, versions),
-                         outcome(result.get('human_decision')) or result.get('human_decision', 'operation_completed'),
-                         result.get('user_evidence')])
+    identity = [result['claim'], result['status'], artifacts(project, versions),
+                outcome(result.get('human_decision')) or result.get('human_decision', 'operation_completed'),
+                result.get('user_evidence')]
+    if 'review_group' in result: identity.append(result['review_group'])
+    return state.digest(identity)
 
 
 def receipt_replay(project, data, task, result):
@@ -249,6 +252,8 @@ def _receipt_link(project, data, result, versions):
             event = matches[0]
             if outcome(result.get('human_decision', event['human_decision'])) != outcome(event['human_decision']):
                 raise ValueError('Human receipt conflicts with the linked actual decision')
+            if result.get('review_group') != event.get('review_group'):
+                raise ValueError('Human receipt group scope differs from the actual decision')
             _require_current_occurrence(project, data, event)
             return deepcopy(event), False
         return None, True
@@ -272,6 +277,7 @@ def approval_link(project, data, record, versions, decision):
     """An explicit reverse link keeps the first receipt snapshot, including unpaired status."""
     event = snapshots(project, data).get(record['human_event_id'])
     if (not event or event['source'] != 'human-receipt' or outcome(event['human_decision']) != decision
+            or event.get('review_group') != record.get('review_group')
             or event['artifacts'] != artifacts(project, versions)):
         raise ValueError('human_event_id must identify the same actual human decision and artifact versions')
     _require_current_occurrence(project, data, event)
@@ -303,6 +309,7 @@ def approval_replay(project, data, entry, history):
     for index in range(len(history) - 1, -1, -1):
         previous = history[index]
         if (previous['decision'] != entry['decision'] or previous['user_evidence'] != entry['user_evidence']
+                or previous.get('review_group') != entry.get('review_group')
                 or {(item['path'], item['sha256']) for item in previous['targets']} != targets): continue
         for later in history[index + 1:]:
             if later['decision'] != entry['decision'] and targets & {

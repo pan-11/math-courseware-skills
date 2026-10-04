@@ -5,6 +5,8 @@ description: Use when an approved children's video shot list needs a black-and-w
 
 # 黑白故事板制作
 
+仅显式 `grouped_creative_v1` 的full_course自动run，按[D1分组协议](../math-courseware-autopilot/references/grouped-creative-review.md)从第一组已采用的真实资产和本轮导演候选制作正式黑白板，与全课全部运镜导演/完整词/实际准备在H08整组采用，不逐片再问。板仍是真实已检图片，不能用25格剧情预览替代；讲话不加导演板，其他模式保留下文原门槛。
+
 先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。

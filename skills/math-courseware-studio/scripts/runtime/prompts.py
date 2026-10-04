@@ -142,7 +142,10 @@ def prepare(project, selection):
                 required.append('_state/story.json')
         else:
             required = [path for path in workflow.basis_paths(project) if path != '_state/pages.json']
-        state.require_approved(project, *required)
+        from . import grouped_gates
+        candidate = (grouped_gates.image_candidate(project, purpose) if purpose in ('cover', 'asset')
+                     and not state.is_approved(project, '_state/assets.json') else None)
+        state.require_approved(project, *(p for p in required if not candidate or p != '_state/assets.json'))
         snapshots = {p: state.sha256(state.resolve(project, p)) for p in required}
         page = pages.get(target)
         if purpose in ('page', 'erase', 'repair') and not page:
@@ -155,7 +158,7 @@ def prepare(project, selection):
             target_asset = assets.get(target)
             if not target_asset or target_asset.get('version') != version:
                 raise ValueError('Asset task requires its matching canonical definition/version')
-            state.require_approved(project, '_state/assets.json')
+            if not candidate: state.require_approved(project, '_state/assets.json')
             snapshots['_state/assets.json'] = state.sha256(state.resolve(project, '_state/assets.json'))
             refs.extend(target_asset.get('reference_assets', []))
         for ref in task.get('reference_assets', []):
@@ -166,7 +169,7 @@ def prepare(project, selection):
             asset = assets.get(ref['asset_id'])
             if not asset or asset.get('version') != ref.get('version') or not asset.get('files'):
                 raise ValueError('Missing generated reference asset: ' + ref['asset_id'])
-            state.require_approved(project, '_state/assets.json')
+            if not candidate: state.require_approved(project, '_state/assets.json')
             snapshots['_state/assets.json'] = state.sha256(state.resolve(project, '_state/assets.json'))
             files.extend(image_ref(project, f) for f in asset['files'])
         high = bool(selection.get('high_resolution', False))
@@ -210,7 +213,12 @@ def prepare(project, selection):
                'status': 'pending', 'output_path': f'{directory}/image.png'}
         if purpose == 'page':
             job['semantic_fingerprint'] = page_fingerprint(data, target)
+        # Candidate permission is an execution constraint, not a provider input.
         job['input_digest'] = state.digest(job)
+        if candidate:
+            problems = store.issues(project, {r['path']: r['sha256'] for r in files})
+            if problems: raise ValueError('; '.join(problems))
+            job['creative_candidate'] = candidate
         if run: job['run_id'] = run['run_id']
         path = state.resolve(project, directory + '/job.json')
         if path.exists():
@@ -219,6 +227,8 @@ def prepare(project, selection):
                 ('semantic_fingerprint', 'prompt_sha256', 'references', 'route', 'image_api_input'))
             if old.get('input_digest') != job['input_digest'] and not equivalent:
                 raise ValueError('Task ID already has different inputs; create a new version')
+            if old.get('creative_candidate') and old.get('status') == 'pending':
+                grouped_gates.check_image_candidate(project, old)
         pending.append((job, prompt, directory))
     # Validate whole selection before creating any jobs.
     if len({j['job_id'] for j, _, _ in pending}) != len(pending):

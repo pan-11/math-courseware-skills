@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 import re
 
-from . import state, workflow, review, preferences, image_budget, calibration, automation_store as store
+from . import state, workflow, review, preferences, image_budget, calibration, grouped_gates, automation_store as store
 
 RUBRIC = {step: ('source' if step == 'analysis' else
                  'video' if step.startswith('video-') else
@@ -41,7 +41,7 @@ def _validate_tasks(project, tasks):
             raise ValueError('Task needs a supported workflow step and produce/human kind')
         if step == 'complete' and task.get('kind') != 'human':
             raise ValueError('Whole-course final acceptance remains a human task in P1/P2')
-        if step in workflow.VIDEO_STEPS and not str(task.get('video_id', '')).strip():
+        if step in workflow.VIDEO_STEPS and not task.get('review_group') and not str(task.get('video_id', '')).strip():
             raise ValueError('Video tasks require an actual video_id')
         if not isinstance(task.get('instruction'), str) or not task['instruction'].strip():
             raise ValueError('Each task needs a concrete instruction/return requirement')
@@ -82,6 +82,8 @@ def start(project, plan):
         raise ValueError('Actual explicit automatic-mode activation evidence required')
     tasks = plan.get('tasks')
     _validate_tasks(project, tasks)
+    grouped_gates.validate_policy(project, plan)
+    grouped_gates.validate_tasks(tasks, plan.get('review_policy'))
     with store.locked(project):
         existing = _load(project)
         if existing:
@@ -97,6 +99,8 @@ def start(project, plan):
                 'preferences': preferences.canonical(project),
                 'preference_basis': preferences.canonical(project),
                 'tasks': [_new_task(t) for t in tasks]}
+        if 'review_policy' in plan:
+            data.update(review_policy=plan['review_policy'], review_policy_evidence=plan['review_policy_evidence'])
         if 'preferences' in plan: preferences.update(project, data, plan['preferences'])
         image_budget.initialize(data, plan.get('limits'))
         choices = {**plan.get('preferences', {})}
@@ -137,6 +141,7 @@ def extend(project, tasks, evidence):
                 if task != old[task['id']]: raise ValueError('Cannot rewrite an existing task; use a new versioned ID')
             else: additions.append(task)
         _validate_tasks(project, list(old.values()) + additions)
+        grouped_gates.validate_tasks(list(old.values()) + additions, data.get('review_policy'))
         if additions:
             data['tasks'].extend(_new_task(t) for t in additions)
             data['extension_evidence'] = evidence
@@ -144,9 +149,15 @@ def extend(project, tasks, evidence):
         return status(project)
 
 
-def _gate(project, task, data=None):
+def _gate(project, task, data=None, completing=False):
     spec = image_budget.task_spec(task)
-    gate = workflow.check(project, spec['step'], video_id=spec.get('video_id'))
+    if spec.get('review_group'):
+        gate = grouped_gates.human_gate(project, task, data or _load(project))
+    elif (not completing and spec.get('kind') == 'human' and spec['step'] == 'complete'
+            and grouped_gates.active(project, data)):
+        gate = grouped_gates.final_dispatch(project)
+    else:
+        gate = workflow.check(project, spec['step'], video_id=spec.get('video_id'))
     if data is not None:
         gate['issues'] += preferences.task_issues(project, spec, data)
         gate['issues'] += image_budget.task_issues(project, spec, data)
@@ -167,6 +178,11 @@ def _sources(project, data, task):
 
 def _refresh(project, data):
     for task in data['tasks']:
+        if grouped_gates.active(project, data) and task.get('review_group') and task['status'] in ('done', 'waiting_external'):
+            current = grouped_gates.snapshot(project, task['spec']['review_group'], data)
+            if current['identity'] != task['review_group']['identity'] or (task['status'] == 'done' and
+                    not grouped_gates.adopted(project, task['spec']['review_group'], data)['approved']):
+                task.update(status='stale', issues=['Displayed review_group is no longer current or adopted'])
         if task.pop('blocked_by_upstream', False):
             task['issues'] = [issue for issue in task.get('issues', []) if issue != 'An upstream task is stale']
         if task['status'] in ('done', 'review_ready', 'reviewing', 'needs_revision', 'unverified'):
@@ -222,11 +238,18 @@ def status(project):
 
 def _claim(project, data, task, actor):
     task['input_versions'] = _sources(project, data, task)
+    if (task['spec'].get('kind') == 'human' and task['spec']['step'] == 'complete'
+            and grouped_gates.active(project, data)):
+        final = grouped_gates.final_dispatch(project)
+        task['input_versions'].update(final['inspection_versions'])
+        task['final_checklist'] = final['final_checklist']
     task['bindings'] = store.bindings(project, task['input_versions'])
     task['attempt'] += 1
     task['claim'] = store.identifier('claim')
     task['producer_id'] = actor
     task['preferences'] = preferences.effective(project, data, strict=False)
+    if task['spec'].get('review_group'):
+        task['review_group'] = grouped_gates.snapshot(project, task['spec']['review_group'], data)
     task['review_attempt'] = 0
     task.pop('review_result_sha256', None)
     task['status'] = 'waiting_external' if task['spec'].get('kind', 'produce') == 'human' else 'running'
@@ -241,6 +264,8 @@ def _action(task):
             'issues': task.get('issues', []), 'blocked_by_upstream': task.get('blocked_by_upstream', False),
             'instruction': task['spec']['instruction'], 'external_submission_guard': _external(task)}
     if 'image_declaration' in task: result['image_declaration'] = task['image_declaration']
+    if 'review_group' in task: result['review_group'] = task['review_group']
+    if 'final_checklist' in task: result['final_checklist'] = task['final_checklist']
     return result
 
 
@@ -311,6 +336,9 @@ def record(project, result):
         if not task or result.get('claim') != task.get('claim'):
             raise ValueError('Current task and claim token required')
         digest = state.digest(result)
+        if (task['spec'].get('review_group') or 'review_group' in result) and result.get('status') in ('completed', 'returned'):
+            grouped_gates.validate_receipt(project, data, task, result,
+                store.versions(project, list(result.get('artifacts', {}).values())))
         replayed, replay_signature = calibration.receipt_replay(project, data, task, result)
         human_receipt = task['spec'].get('kind') == 'human' and result.get('status') in ('completed', 'returned')
         if (((not human_receipt or not task.get('last_human_receipt')) and task.get('last_result_digest') == digest) or
@@ -340,7 +368,7 @@ def record(project, result):
             if not returned and any(t['spec']['id'] in dependencies and t['status'] != 'done' for t in data['tasks']):
                 raise ValueError('Upstream work no longer passes current review')
             problems = store.issues(project, task['input_versions']) + store.binding_issues(project, task['bindings'])
-            gate = _gate(project, task)
+            gate = _gate(project, task, completing=True)
             if returned: problems = [p for p in problems if not p.startswith('Latest user decision rejects: ')]
             if problems or (not returned and not gate['allowed']): raise ValueError('; '.join(problems + gate['issues']))
             artifacts = result.get('artifacts', {})

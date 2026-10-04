@@ -1,5 +1,7 @@
 # 项目协议
 
+仅显式 `grouped_creative_v1` 的full_course自动run，另按[D1记录协议](../../math-courseware-autopilot/references/grouped-creative-review.md)保存两组实际文件、来源与同一次采用identity/decision事件链接；权威assets必须包含在真实采用范围。原preparation/pages/shared-assets批准与依赖绑定保留；C6登记实际editable.files.pptx/limitations，H23报告按同版完整清单实核。没有该策略的原项目记录不迁移。
+
 ## 执行与目录
 
 先读[每课四目录规范](workspace-layout.md)。新课根目录由用户开工提供，Skill初始化显式使用`--layout four-folders`；根保留AGENTS/HANDOFF，原始资料、过程文件、教学产品、笔记分别归01_source/02_work/03_final/04_notes。旧课保留旧结构。以下表格、JSON和专业参考中的inputs/planning/_state等均为逻辑路径，实际文件操作与点击链接按四目录映射展开；所有命令的--project仍是课程根。

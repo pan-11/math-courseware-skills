@@ -5,6 +5,8 @@ description: Prepare manual Canva layer-splitting handoffs and edit returned lay
 
 # 可画拆层与可编辑PPT
 
+仅显式 `grouped_creative_v1` 的full_course自动run，按[D1最终清单](../math-courseware-autopilot/references/grouped-creative-review.md)在C6展示整套真实可编辑结果与具体限制，不另排H19；H23再以同版实机报告检查独立文字/教学图形、视频区/分层、字体换行遮挡及全课使用效果。保留全部A/B选择、去字、可画往返、实际成片与播放门槛；其他模式不变。
+
 先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。

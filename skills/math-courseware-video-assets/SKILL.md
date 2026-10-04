@@ -5,6 +5,8 @@ description: 当视频需要准备或补齐角色三视图、场景多角度、�
 
 # 情景视频图片资产与固定风格
 
+仅显式 `grouped_creative_v1` 的full_course自动run，沿[D1分组协议](../math-courseware-autopilot/references/grouped-creative-review.md)先在现有video-assets/cover/asset入口制作待审实图，与全部剧本预览和讲话完整包合并H06/H07/H09；四封面只采用明确选中的实际图，已有有效母版复用。第5步风格与完整词/实际准备纳入全运镜第二组后才能正式提交，不因候选已生成冒称采用。其他模式保留下文原门槛。
+
 先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。

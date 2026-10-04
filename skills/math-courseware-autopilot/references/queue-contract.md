@@ -35,6 +35,8 @@ Potentially media-generating steps (cover, asset, page-image, video-script/asset
 
 ## Step mapping
 
+An explicitly selected `review_policy:"grouped_creative_v1"` plus actual `review_policy_evidence` is available only for a new full_course automatic run. Follow the [D1 group contract](grouped-creative-review.md) for concrete `review_group` human tasks, exact group targets/identities, linked decision receipts, candidate image jobs, real preparation files and H23 dispatch/completion. Missing policy preserves the original mapping below. No migration command, creative-draft step or page-image exception is added.
+
 Use workflow action names, not stage-record labels. Do not hardcode lesson page/video counts.
 
 | Work | Step / owner | Stored result and review |

@@ -240,6 +240,9 @@ def _record_approval(project, record, calibration_run=None):
     for item in record['targets']:
         if sha256(resolve(project, item['path'])) != item['sha256']:
             raise ValueError('Approval target has changed: ' + item['path'])
+    if 'review_group' in record:
+        from . import grouped_gates
+        grouped_gates.validate_approval(project, record, calibration_run)
     entry = {**record, 'decision': decision}
     entry['decision_id'] = digest(entry)
     log = resolve(project, '_state/decisions.jsonl')

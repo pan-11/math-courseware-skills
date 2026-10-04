@@ -10,6 +10,8 @@
 
 ## 开始使用
 
+新整课自动run可明确选择[D1分组创作采用](skills/math-courseware-autopilot/references/grouped-creative-review.md)（grouped_creative_v1）：视频创作定调一次、全部运镜导演/正式板一次，C6可编辑检查并入最终H23实机清单。真实准备文件随对应组采用，审核不代替人工；旧run/手动/局部模式保持，逐页内容和page-image门槛不放宽。
+
 每课开始时同时提供该课的保存文件夹地址。新课遵循[每课四目录规范](skills/math-courseware-studio/references/workspace-layout.md)：01_source原始资料、02_work中间文件、03_final教学产品、04_notes笔记素材；根目录保留规则和交接。Skill会为新课显式使用`init --layout four-folders`，既有课程继续原布局，不自动搬迁；各制作模式共用同一课程地址。
 
 在Codex中打开此项目，提供原课件PPT/PDF或逐页图片，并发送：

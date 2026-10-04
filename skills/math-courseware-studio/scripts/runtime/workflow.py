@@ -269,6 +269,8 @@ class Inspection:
         elif kind == 'delivery':
             self.file(files.get('manifest'), 'delivery/manifest')
             self.playback(files.get('wps'), 'delivery/WPS', record.get('source_versions', {}))
+            from . import grouped_gates
+            if grouped_gates.active(self.project): grouped_gates.final_inspection(self, files.get('wps'))
 
     def playback(self, reference, label, required):
         report = self.json_file(reference, label)
@@ -283,7 +285,13 @@ class Inspection:
         record = record or {}
         self.evidence(record, label, roles=('media', 'playback'), approved=True)
         files = record.get('files', {})
-        path = self.file(files.get('media'), label + '/media')
+        self.video_container(files.get('media'), label)
+        deck = self.data.get('stages', {}).get('editable', {}).get('files', {}).get('pptx', {})
+        required = {x['path']: x['sha256'] for x in (files.get('media', {}), deck) if x.get('path') and x.get('sha256')}
+        self.playback(files.get('playback'), label + '/playback', required)
+
+    def video_container(self, reference, label):
+        path = self.file(reference, label + '/media')
         if path:
             with path.open('rb') as stream:
                 header = stream.read(64)
@@ -293,9 +301,6 @@ class Inspection:
                      or suffix in ('.webm', '.mkv') and header.startswith(b'\x1a\x45\xdf\xa3')
                      or suffix == '.avi' and header[:4] == b'RIFF' and header[8:12] == b'AVI ')
             self.need(valid, label + ': actual supported video container required, not a text plan')
-        deck = self.data.get('stages', {}).get('editable', {}).get('files', {}).get('pptx', {})
-        required = {x['path']: x['sha256'] for x in (files.get('media', {}), deck) if x.get('path') and x.get('sha256')}
-        self.playback(files.get('playback'), label + '/playback', required)
 
     def analysis(self, record):
         source = self.json_file(record.get('source_review'), 'analysis/source_review')
@@ -368,6 +373,8 @@ class Inspection:
         if step == 'video-script':
             return
         route, video = self.video(video_id)
+        from . import grouped_gates
+        grouped = grouped_gates.active(self.project)
         if route not in ('shots', 'talking'):
             return
         if route == 'talking' and step in ('video-director', 'video-board', 'video-style'):
@@ -382,6 +389,10 @@ class Inspection:
         if route == 'talking' and step == 'video-prompts':
             dependencies[step] = ['script', 'first-frame']
         products = video.get('products', {})
+        if grouped and step in ('video-director', 'video-board', 'video-style', 'video-prompts') and route == 'shots':
+            grouped_gates.require_adopted(self, 'video-creative')
+        if grouped and step == 'video-upload':
+            grouped_gates.require_adopted(self, 'video-direction' if route == 'shots' else 'video-creative')
         chains = {'preview': ('script',), 'voice': ('script',),
                   'director': ('script', 'voice', 'assets'), 'storyboard': ('director', 'assets'),
                   'style': ('assets', 'storyboard'), 'first-frame': ('script',),
@@ -395,12 +406,12 @@ class Inspection:
             checked.add(name)
             record = products.get(name, {})
             self.evidence(record, str(video_id) + '/' + name,
-                          approved=route != 'talking' and (
+                          approved=not grouped and route != 'talking' and (
                               name in ('script', 'preview', 'assets', 'style', 'first-frame')
                               or (name == 'storyboard' and step in ('video-style', 'video-prompts', 'video-upload'))))
             if name in ('preview', 'assets', 'first-frame', 'storyboard'):
                 self.visual(record, str(video_id) + '/' + name)
-            if name == 'storyboard' and step in ('video-style', 'video-prompts', 'video-upload') and 'director' in products:
+            if not grouped and name == 'storyboard' and step in ('video-style', 'video-prompts', 'video-upload') and 'director' in products:
                 director = dict(products['director'])
                 # One grouped decision can cover both actual files; no separate approval round.
                 director['approval'] = director.get('approval') or record.get('approval')
@@ -419,6 +430,11 @@ class Inspection:
 
     def preparation(self):
         plan = self.blueprint()
+        from . import grouped_gates
+        if grouped_gates.active(self.project):
+            grouped_gates.require_adopted(self, 'video-creative')
+            if any(self.video(vid)[0] == 'shots' for vid in plan.get('video_ids', [])):
+                grouped_gates.require_adopted(self, 'video-direction')
         ready = self.stage('video-preparation', approved=True)
         planned = plan.get('video_ids', [])
         self.need(set(ready.get('video_ids', [])) == set(planned), 'video-preparation: must cover all planned videos')

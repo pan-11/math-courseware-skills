@@ -5,6 +5,8 @@ description: 当用户需要把粗情境、既有故事或视频节点写成儿�
 
 # 情景视频剧本与剧情预览
 
+仅显式 `grouped_creative_v1` 的full_course自动run，按[D1分组协议](../math-courseware-autopilot/references/grouped-creative-review.md)把全部运镜完整剧本/逐字声音/真实25格预览与实际共享资产、讲话首帧完整词一并展示采用，不逐片再问H06。缺片/缺图不能交完整组；其他模式保留下文原采用顺序。
+
 先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。

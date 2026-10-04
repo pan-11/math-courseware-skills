@@ -4,6 +4,8 @@
 
 ## 1. 怎么开始
 
+需要本次D1合并时，在新整课run明确说“选择grouped_creative_v1”：把全课剧本/预览/共享实图和讲话完整包合为一次创作定调，把全部运镜导演/正式板及实际完整准备合为第二次；C6展示可编辑结果与限制，H19并入H23实机验收。AI按[D1完整协议](../skills/math-courseware-autopilot/references/grouped-creative-review.md)保存真实选择，不把旧run自动改成新策略。全讲话首组包含全课准备；混合/全运镜第二组包含全课准备，不额外问第三轮。H14仍在正式逐页内容采用后，其他人工操作和实际成片/播放不变。
+
 在本项目的Codex聊天中，给出实际课程目录并发送：
 
 > 读取 skills/math-courseware-studio/SKILL.md 和 skills/math-courseware-autopilot/SKILL.md。为 projects/实际课程目录 启用自动推进＋独立审核。先核对已有文件、当前进度和已采用版本，在我授权的范围内连续执行；保留现有人工采用节点，遇到外部操作及时给出完整操作包和回传要求。

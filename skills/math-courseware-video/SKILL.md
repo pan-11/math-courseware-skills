@@ -5,6 +5,8 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 # 情景视频总入口
 
+仅当本课自动run显式选择 `grouped_creative_v1` 且当前范围仍为full_course时，按[D1分组协议](../math-courseware-autopilot/references/grouped-creative-review.md)组织两次整组采用：全部剧本/实图/共享资产与讲话实包一组，全部运镜导演/正式板及实际完整准备一组。下文原小节点仅在此条件下合并；手动、旧run和独立模块不变。不把局部或review pass当整组采用，不给未生成文件预先授权。
+
 先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
