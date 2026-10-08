@@ -57,6 +57,8 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 ## 完成与恢复
 
+每次完成视频提示词、参考图等素材准备后，按[主动聊天交付要求](../math-courseware-video-prompts/references/delivery-reply.md#每次完成后主动发到当前聊天)在当轮主动展示实图并发出全部素材/完整TXT及使用顺序，不等待用户追问。首次、修订和恢复补交都适用；自动推进先交付再续作，文件夹、日志或总览链接不能代替聊天正文交付，也不因此增加确认轮次。
+
 视频制作材料的最后一步统一按[交付回复模板](../math-courseware-video-prompts/references/delivery-reply.md)输出：开头明确第几个视频及可制作状态，再给步骤/产物、编号实图表、逐次完整TXT/时长/上传图号表、各视频素材文件夹与必要操作说明。两条路线及重新交付都适用，多片按实际播放顺序标序号；缺项不宣称现在可开工。
 
 每轮将实际图片、完整台词、提示词、映射和简明使用说明平铺到同一普通素材文件夹，直接给文件夹和关键文件链接，不自动压缩。由总入口执行[目录、依赖和恢复约定](references/handoff.md)，专业模块不各建第二套权威记录。
