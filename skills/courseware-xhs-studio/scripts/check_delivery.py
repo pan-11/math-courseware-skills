@@ -26,20 +26,60 @@ def check_file(base: Path, value: str, label: str, errors: list[str]) -> Path | 
     return path
 
 
-def check_image(base: Path, value: str, label: str, errors: list[str]) -> None:
+def check_image(base: Path, value: str, label: str, errors: list[str], layout: dict | None = None) -> None:
     path = check_file(base, value, label, errors)
     if path is None:
         return
-    if path.suffix.lower() != ".png":
+    if layout is None and path.suffix.lower() != ".png":
         errors.append(f"{label}: deliver a PNG image")
     try:
         with Image.open(path) as image:
             width, height = image.size
-            if width < 720 or abs(width / height - 0.75) > 0.005:
+            if layout is not None:
+                if (image.format != "JPEG" or path.suffix.lower() not in {".jpg", ".jpeg"}
+                        or width < 720 or [width, height] != [layout.get("width"), layout.get("height")]
+                        or layout.get("format") != "JPEG"):
+                    errors.append(f"{label}: layout dimensions/encoding do not match the render record")
+                with path.open("rb") as handle:
+                    actual_hash = hashlib.file_digest(handle, "sha256").hexdigest()
+                if actual_hash != layout.get("sha256"):
+                    errors.append(f"{label}: layout output SHA256 mismatch")
+            elif image.format != "PNG":
+                errors.append(f"{label}: actual encoding must be PNG")
+            if layout is None and (width < 720 or abs(width / height - 0.75) > 0.005):
                 errors.append(f"{label}: expected readable 3:4 image, got {width}x{height}")
             image.verify()
     except Exception as exc:
         errors.append(f"{label}: image cannot be opened: {exc}")
+
+
+def check_card(base: Path, card, label: str, errors: list[str]) -> None:
+    if isinstance(card, str):
+        check_image(base, card, label, errors)
+        return
+    if not isinstance(card, dict) or card.get("kind") != "courseware-layout":
+        errors.append(f"{label}: unsupported content card type")
+        return
+    manifest_path = check_file(base, card.get("render_manifest"), label + ".render_manifest", errors)
+    if manifest_path is None:
+        return
+    try:
+        record = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+        if (not isinstance(record, dict) or record.get("status") != "PASS"
+                or record.get("kind") != "courseware-layout"
+                or record.get("template") != "direct-1222-3-3"
+                or not isinstance(record.get("config"), dict)
+                or record["config"].get("fitMode") != "contain"):
+            raise ValueError("expected a successful layout4 contain render record")
+        outputs = record.get("outputs")
+        if not isinstance(outputs, list) or not isinstance(card.get("render_output"), str):
+            raise ValueError("missing render output mapping")
+        matches = [item for item in outputs if isinstance(item, dict) and item.get("file") == card["render_output"]]
+        if len(matches) != 1:
+            raise ValueError("render_output must match exactly one recorded output")
+        check_image(base, card.get("file"), label, errors, layout=matches[0])
+    except (OSError, ValueError) as exc:
+        errors.append(f"{label}: invalid render manifest: {exc}")
 
 
 def check_text(base: Path, value: str, label: str, errors: list[str], copy: bool = False) -> None:
@@ -111,7 +151,7 @@ def check(manifest: dict, base: Path, expected_count: int | None) -> dict:
                 errors.append(f"{label}: image post needs ordered content cards")
             else:
                 for card_index, card in enumerate(cards, 1):
-                    check_image(base, card, f"{label}.card {card_index}", errors)
+                    check_card(base, card, f"{label}.card {card_index}", errors)
         elif fmt == "video-edit-kit":
             check_text(base, note.get("edit_list"), label + ".edit_list", errors)
             check_text(base, note.get("asset_list"), label + ".asset_list", errors)

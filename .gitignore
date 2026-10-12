@@ -18,6 +18,7 @@
 !/skills/courseware-xhs-studio/references/*.md
 !/skills/courseware-xhs-studio/scripts/
 !/skills/courseware-xhs-studio/scripts/*.py
+!/skills/courseware-xhs-studio/scripts/*.cjs
 !/skills/math-courseware-*/
 !/skills/math-courseware-*/SKILL.md
 !/skills/math-courseware-*/agents/
