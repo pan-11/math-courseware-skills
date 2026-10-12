@@ -44,7 +44,7 @@ app.whenReady().then(async () => {
       callback({ cancel: /^https?:/i.test(request.url) });
     });
     await win.loadFile(job.template_file);
-    const payload = JSON.stringify({ images: job.images, config: job.config });
+    const payload = JSON.stringify({ images: job.images, config: job.render_config || job.config });
     const outputs = await win.webContents.executeJavaScript(
       `(async () => {
         if (!window.xhsLayoutAutomation?.render) throw new Error('Local template has no automation renderer');

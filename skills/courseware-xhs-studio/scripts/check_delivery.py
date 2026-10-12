@@ -6,8 +6,12 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import sys
 
 from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from layout_profiles import TEMPLATES
 
 
 def resolve(base: Path, value: str) -> Path:
@@ -53,10 +57,29 @@ def check_image(base: Path, value: str, label: str, errors: list[str], layout: d
         errors.append(f"{label}: image cannot be opened: {exc}")
 
 
-def check_card(base: Path, card, label: str, errors: list[str]) -> None:
+def check_card(base: Path, card, label: str, errors: list[str]) -> str | None:
     if isinstance(card, str):
         check_image(base, card, label, errors)
-        return
+        return "legacy"
+    if isinstance(card, dict) and card.get("kind") == "teaching-companion":
+        check_image(base, card.get("file"), label, errors)
+        material = card.get("material_type")
+        if (not isinstance(material, str)
+                or material not in {"teaching-design", "verbatim-script", "blackboard-stickers"}):
+            errors.append(f"{label}: unsupported companion material_type")
+        sources = card.get("sources")
+        if not isinstance(sources, list) or not sources:
+            errors.append(f"{label}: companion needs actual source files and references")
+        else:
+            for index, source in enumerate(sources, 1):
+                source_label = f"{label}.source {index}"
+                if not isinstance(source, dict):
+                    errors.append(f"{source_label}: expected an object")
+                    continue
+                check_file(base, source.get("file"), source_label, errors)
+                if not isinstance(source.get("ref"), str) or not source["ref"].strip():
+                    errors.append(f"{source_label}: missing excerpt/sticker reference and related courseware page")
+        return "teaching-companion"
     if not isinstance(card, dict) or card.get("kind") != "courseware-layout":
         errors.append(f"{label}: unsupported content card type")
         return
@@ -67,10 +90,10 @@ def check_card(base: Path, card, label: str, errors: list[str]) -> None:
         record = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
         if (not isinstance(record, dict) or record.get("status") != "PASS"
                 or record.get("kind") != "courseware-layout"
-                or record.get("template") != "direct-1222-3-3"
+                or not isinstance(record.get("template"), str) or record["template"] not in TEMPLATES
                 or not isinstance(record.get("config"), dict)
                 or record["config"].get("fitMode") != "contain"):
-            raise ValueError("expected a successful layout4 contain render record")
+            raise ValueError("expected a successful supported-layout contain render record")
         outputs = record.get("outputs")
         if not isinstance(outputs, list) or not isinstance(card.get("render_output"), str):
             raise ValueError("missing render output mapping")
@@ -78,6 +101,7 @@ def check_card(base: Path, card, label: str, errors: list[str]) -> None:
         if len(matches) != 1:
             raise ValueError("render_output must match exactly one recorded output")
         check_image(base, card.get("file"), label, errors, layout=matches[0])
+        return record["template"]
     except (OSError, ValueError) as exc:
         errors.append(f"{label}: invalid render manifest: {exc}")
 
@@ -130,6 +154,7 @@ def check(manifest: dict, base: Path, expected_count: int | None) -> dict:
     if expected_count is not None and len(notes) != expected_count:
         errors.append(f"expected {expected_count} notes, got {len(notes)}")
     ids, topics = set(), set()
+    image_styles = []
     for index, note in enumerate(notes, 1):
         label = f"note {index}"
         if not isinstance(note, dict):
@@ -150,8 +175,13 @@ def check(manifest: dict, base: Path, expected_count: int | None) -> dict:
             if not isinstance(cards, list) or not cards:
                 errors.append(f"{label}: image post needs ordered content cards")
             else:
+                styles = []
                 for card_index, card in enumerate(cards, 1):
-                    check_card(base, card, f"{label}.card {card_index}", errors)
+                    styles.append(check_card(base, card, f"{label}.card {card_index}", errors))
+                if (manifest.get("series_profile") == "three-image-two-video"
+                        and styles.count("teaching-companion") > 1):
+                    errors.append(f"{label}: default series allows at most one teaching-companion card")
+                image_styles.append(set(styles))
         elif fmt == "video-edit-kit":
             check_text(base, note.get("edit_list"), label + ".edit_list", errors)
             check_text(base, note.get("asset_list"), label + ".asset_list", errors)
@@ -168,6 +198,18 @@ def check(manifest: dict, base: Path, expected_count: int | None) -> dict:
                         errors.append(f"{label}.clip {clip_index}: expected an object")
         else:
             errors.append(f"{label}: format must be image or video-edit-kit")
+    profile = manifest.get("series_profile")
+    if profile is not None:
+        if profile != "three-image-two-video":
+            errors.append("unsupported series_profile")
+        elif ([note.get("format") if isinstance(note, dict) else None for note in notes]
+                != ["image"] * 3 + ["video-edit-kit"] * 2):
+            errors.append("series requires three image posts followed by two video editing kits")
+        elif (len(image_styles) != 3 or image_styles[0] - {"teaching-companion"} != {"watermark"}
+                or len(image_styles[1] - {"teaching-companion"}) != 1
+                or not image_styles[1] - {"teaching-companion"} <= {"product", "direct-133-33", "direct-1222-3-3"}
+                or not image_styles[2] <= {"legacy", "teaching-companion"}):
+            errors.append("series image styles must be layout1, one of layout2/3/4, then original explanatory cards")
     return {"status": "PASS" if not errors else "FAIL", "notes": len(notes), "errors": errors}
 
 

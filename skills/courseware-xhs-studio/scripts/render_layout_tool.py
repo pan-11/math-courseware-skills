@@ -1,4 +1,4 @@
-"""Render ordered courseware page images with an unchanged local layout4 template."""
+"""Render ordered courseware page images with an unchanged local layout template."""
 from __future__ import annotations
 
 import argparse
@@ -6,7 +6,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import re
 import subprocess
 import sys
 
@@ -15,6 +14,8 @@ from PIL import Image
 TEMPLATE = "direct-1222-3-3"
 SCRIPTS = Path(__file__).resolve().parent
 DEFAULT_SETTINGS = SCRIPTS.parents[2] / "sources/xhs-layout-tool.local.json"
+sys.path.insert(0, str(SCRIPTS))
+from layout_profiles import TEMPLATES, layout_config, layout_outputs
 
 
 def sha256(path: Path) -> str:
@@ -42,15 +43,15 @@ def resolve(base: Path, value, label: str) -> Path:
 def prepare_job(job_path, tool_root=None, settings=None) -> dict:
     job_path = Path(job_path).resolve()
     job = read_object(job_path)
-    if job.get("template", TEMPLATE) != TEMPLATE:
-        raise ValueError(f"Unsupported template; use {TEMPLATE}")
+    template_id = job.get("template", TEMPLATE)
+    config, native_config = layout_config(template_id, job.get("config", {}))
     local = {}
     settings_path = Path(settings).resolve() if settings else DEFAULT_SETTINGS
     if tool_root is None:
         local = read_object(settings_path)
         tool_root = resolve(settings_path.parent, local.get("tool_root"), "tool_root")
     tool_root = Path(tool_root).resolve()
-    template = tool_root / "legacy-tools/direct-layout-1222-3-3.html"
+    template = tool_root / "legacy-tools" / TEMPLATES[template_id]
     if not template.is_file():
         raise ValueError(f"Local tool template not found: {template}")
     electron = (resolve(settings_path.parent, local["electron"], "electron") if local.get("electron")
@@ -64,24 +65,6 @@ def prepare_job(job_path, tool_root=None, settings=None) -> dict:
         raise ValueError(f"Declare and create the output parent first: {output.parent}")
     if output.is_relative_to(tool_root):
         raise ValueError("Output must be outside the external tool directory")
-
-    config = {"width": 1242, "gap": 10, "bgColor": "#f3f3f3",
-              "fitMode": "contain", "watermarkText": ""}
-    supplied = job.get("config", {})
-    if not isinstance(supplied, dict) or set(supplied) - set(config):
-        raise ValueError("Unknown layout config fields")
-    config.update(supplied)
-    if config["fitMode"] != "contain":
-        raise ValueError("Courseware images require fitMode=contain")
-    if type(config["width"]) is not int or config["width"] < 720:
-        raise ValueError("config.width must be an integer of at least 720")
-    if type(config["gap"]) is not int or not 0 < config["gap"] < config["width"] / 4:
-        raise ValueError("config.gap must be a positive integer smaller than width/4")
-    if not isinstance(config["bgColor"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", config["bgColor"]):
-        raise ValueError("config.bgColor must be a six-digit hex color")
-    if not isinstance(config["watermarkText"], str):
-        raise ValueError("config.watermarkText must be text")
-    config["watermarkText"] = config["watermarkText"].strip()
 
     raw_images = job.get("images")
     if not isinstance(raw_images, list) or not raw_images:
@@ -110,21 +93,15 @@ def prepare_job(job_path, tool_root=None, settings=None) -> dict:
         images.append({"path": str(path), "name": path.name, "slide": slide,
                        "width": width, "height": height, "sha256": digest})
 
-    groups = ([("overview", images[:7])] if len(images) >= 7 else [])
-    groups += [("detail", images[start:start + 3]) for start in range(0, len(images), 3)]
-    outputs = []
-    for index, (role, group) in enumerate(groups, 1):
-        label = "overview" if role == "overview" else "pages-" + "-".join(f"{i['slide']:03d}" for i in group)
-        outputs.append({"file": f"{index:02d}-{label}.jpg", "role": role,
-                        "slides": [i["slide"] for i in group]})
+    outputs = layout_outputs(template_id, images)
     tool_files = [{"path": str(template), "sha256": sha256(template)}]
     helper = template.parent / "export-directory-helper.js"
     if helper.is_file():
         tool_files.append({"path": str(helper), "sha256": sha256(helper)})
-    prepared = {"kind": "courseware-layout", "template": TEMPLATE,
+    prepared = {"kind": "courseware-layout", "template": template_id,
                 "tool_root": str(tool_root), "template_file": str(template),
                 "tool_files": tool_files, "electron": str(electron),
-                "output_dir": str(output), "config": config, "images": images,
+                "output_dir": str(output), "config": config, "render_config": native_config, "images": images,
                 "outputs": outputs, "job_sha256": sha256(job_path)}
     if job.get("source_pptx"):
         deck = resolve(job_path.parent, job["source_pptx"], "source_pptx")
@@ -176,7 +153,10 @@ def render(job_path, tool_root=None, settings=None, timeout=90) -> dict:
                 width, height = image.size
                 fmt = image.format
                 image.verify()
-            if fmt != "JPEG" or width != prepared["config"]["width"] or height <= 0:
+            expected = item.get("expected_size")
+            if (fmt != "JPEG" or width < 720 or height <= 0
+                    or (expected is not None and [width, height] != expected)
+                    or (expected is None and width != prepared["config"]["width"])):
                 raise RuntimeError(f"Invalid layout output: {path.name}")
             item.update(width=width, height=height, format=fmt, sha256=sha256(path))
         sources = prepared["images"] + prepared["tool_files"]
