@@ -1,4 +1,4 @@
 interface:
-  display_name: "课件小红书笔记制作"
-  short_description: "用定稿课件与真实配套资料制作图文笔记和视频剪辑资料包"
-  default_prompt: "使用 $courseware-xhs-studio 根据我已完成的课件和配套资料，制作一组主题不同的小红书图文笔记与视频剪辑资料包。"
+  display_name: "课件商品图与小红书笔记制作"
+  short_description: "用定稿课件与真实配套先制作商品主图和详情图，再制作图文笔记及视频封面文案"
+  default_prompt: "使用 $courseware-xhs-studio 根据已完成的课件和配套资料，先生成商品主图与详情图，再制作3篇每篇约10张、课件与同环节配套内容对应的图文笔记，以及2篇由我制作的视频所需的封面、标题、正文和话题。"

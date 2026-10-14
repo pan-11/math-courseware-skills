@@ -31,12 +31,12 @@
 
 先核最终PPT的版本、页码和来源。复用该版本已有的准确页图；缺少时从最终PPT实际渲染，不把旧生图当成最终课件截图。按笔记主题选择页面并保留完整题干、数字、单位与图形；模板接收PNG/JPEG，不直接渲染PPTX。
 
-在本课`02_work/notes/vNNN`先约定目录，再为前两篇分别写任务JSON和不同输出目录。相对路径以任务JSON所在目录为基准。`images`数组就是排版顺序，不自动按文件名排序；`slide`必须是本课源PPT中唯一的正页码。可附图片`sha256`约束已核版本。真实课任务应填写`source_pptx`用于记录原PPT哈希；合成测试可省略。新任务明确写`template`；旧任务省略时继续按排版4，避免破坏已验证用法。下面保留排版4完整示例：
+在本课`中间文件/notes/vNNN`先约定目录，再为前两篇分别写任务JSON和不同输出目录。相对路径以任务JSON所在目录为基准。`images`数组就是排版顺序，不自动按文件名排序；`slide`必须是本课源PPT中唯一的正页码。可附图片`sha256`约束已核版本。真实课任务应填写`source_pptx`用于记录原PPT哈希；合成测试可省略。新任务明确写`template`；旧任务省略时继续按排版4，避免破坏已验证用法。下面保留排版4完整示例：
 
 ```json
 {
   "template": "direct-1222-3-3",
-  "source_pptx": "../../../03_final/lesson.pptx",
+  "source_pptx": "../../../最终产品/lesson.pptx",
   "output_dir": "layout-v001",
   "images": [
     {"path": "page-exports/p004.png", "slide": 4},
@@ -72,7 +72,7 @@ python <Skill目录>/scripts/render_layout_tool.py <任务JSON> --settings <本�
 - 四种模板均输出JPG，保留原版式和页面等比完整显示，不改扩展名冒充PNG或拉伸成3:4。排版2首张`lead`、排版3/4的`overview`都是内容角色。
 - `output_dir`必须是尚不存在的新版本目录，父目录已建立并声明用途，且不在外部工具目录内。入口先写AGENTS，再保存编号JPEG、`layout-request.json`和`render-manifest.json`；runtime保存隔离的Electron数据和真实执行返回，失败记录为`failure.json`。失败目录和旧图均保留，下次使用新目录。
 - 成功清单逐图记录实际编码、尺寸、SHA256、原页码与角色；排版1另记`detail_slides/thumbnail_slides`，排版2记重复的`panel_slides`或`empty_slots`。同时记录输入页图、可选源PPT及原模板哈希；`PASS`仅代表渲染完整性检查，不代表数学、手机阅读或人工验收通过。
-- 检查完整图与手机缩图，确认页序、完整条件、数字/单位、等比与可读性。合格后按原字节复制选用图片到`04_notes/vNNN/note-NN`，内部参数/来源/运行记录留在工作区，交付检查引用对应工作区清单。
+- 检查完整图与手机缩图，确认页序、完整条件、数字/单位、等比与可读性。合格后按原字节复制选用图片到`笔记素材/vNNN/note-NN`，内部参数/来源/运行记录留在工作区，交付检查引用对应工作区清单。
 - 工具、模板或输入缺失时给出实际原因和已准备材料；不静默改用旧卡片脚本并称作工具输出，不要求重复批准已授权制作。
 
 ## 图文交付清单
@@ -87,13 +87,13 @@ python <Skill目录>/scripts/render_layout_tool.py <任务JSON> --settings <本�
     "cards": [{
       "file": "note-01/01-content.jpg",
       "kind": "courseware-layout",
-      "render_manifest": "../../02_work/notes/v001/layout-v001/render-manifest.json",
+      "render_manifest": "../../中间文件/notes/v001/layout-v001/render-manifest.json",
       "render_output": "01-pages-004-007-010.jpg"
     }]
   }]
 }
 ```
 
-此例的`delivery.json`位于`04_notes/v001`，任务与输出位于`02_work/notes/v001`；实际沿本课目录调整引用。默认整组另在顶层写`"series_profile": "three-image-two-video"`，放入按顺序的五篇：第1篇图片清单全部匹配`watermark`，第2篇全部匹配`product/direct-133-33/direct-1222-3-3`其中同一种，第3篇为原PNG卡，第4/5篇为既有`video-edit-kit`。不同素材完整性规则见[文案与交付检查](copy-and-review.md)。
+此例的`delivery.json`位于`笔记素材/v001`，任务与输出位于`中间文件/notes/v001`；实际沿本课目录调整引用。默认整组另在顶层写`"series_profile": "three-image-two-video"`，放入按顺序的五篇：第1篇课件主体匹配`watermark`，第2篇主体匹配`product/direct-133-33/direct-1222-3-3`其中同一种，第3篇为原PNG卡；三篇可加入多张显式`teaching-companion`组合图，同一成品组合图可跨篇复用，不需要改本工具。第4/5篇为`video-cover-copy`（封面、标题、正文和话题；视频由用户制作）。历史或明确另需的`video-edit-kit`保持兼容。不同素材完整性规则见[文案与交付检查](copy-and-review.md)。
 
 使用`check_delivery.py`检查整篇或整组，同时执行逐图目视与文案核查。交付当轮在聊天展示实际图、编号文件名、顺序和整包目录，并说明第2篇实际选用的版式和理由，不只保存文件或给总览链接。

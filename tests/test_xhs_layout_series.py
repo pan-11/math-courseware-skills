@@ -154,7 +154,8 @@ class SeriesDeliveryTests(Fixture):
         self.checker = load("check_delivery")
         Image.new("RGB", (720, 960), "white").save(self.root / "cover.png")
         Image.new("RGB", (1200, 1600), "#ddeeff").save(self.root / "layout.jpg")
-        (self.root / "copy.md").write_text("# Synthetic title\n" + "Synthetic explanatory sentence. " * 5, encoding="utf-8")
+        (self.root / "copy.md").write_text("# Synthetic title\n" + "Synthetic explanatory sentence. " * 5
+                                           + "\n\n#数学 #教学设计\n", encoding="utf-8")
 
     def card(self, template):
         file = self.root / "layout.jpg"
@@ -169,12 +170,73 @@ class SeriesDeliveryTests(Fixture):
         for note, cards in zip(notes[:3], ([self.card("watermark")], [self.card(second)], ["cover.png"])):
             note.update(format="image", cards=cards)
         for note in notes[3:]:
-            note.update(format="video-edit-kit", edit_list="copy.md", asset_list="copy.md",
-                        clips=[{"source": "cover.png", "hold_seconds": 3}])
+            note.update(format="video-cover-copy")
         return {"series_profile": "three-image-two-video", "notes": notes}
 
     def result(self, manifest):
         return self.checker.check(manifest, self.root, None)
+
+    def test_cover_copy_needs_no_video_sources_or_editing_files(self):
+        value = self.series()
+        result = self.result(value)
+        self.assertEqual(result["status"], "PASS", result)
+        for note in value["notes"][3:]:
+            self.assertEqual(set(note), {"id", "topic", "format", "cover", "copy"})
+
+    def test_cover_copy_is_also_valid_as_a_single_post(self):
+        result = self.result({"notes": [self.series()["notes"][3]]})
+        self.assertEqual(result["status"], "PASS", result)
+
+    def test_cover_copy_requires_title_body_and_hashtags(self):
+        valid = (self.root / "copy.md").read_text(encoding="utf-8")
+        for text in (valid.split("#数学")[0], valid.replace("# Synthetic title", "Synthetic title"),
+                     valid.replace("# Synthetic title", "# "),
+                     "# Synthetic title\n\n" + "#SyntheticTag " * 20,
+                     valid.replace("#数学 #教学设计", "## 话题")):
+            with self.subTest(text=text):
+                (self.root / "video-copy.md").write_text(text, encoding="utf-8")
+                note = self.series()["notes"][3]
+                note["copy"] = "video-copy.md"
+                self.assertEqual(self.result({"notes": [note]})["status"], "FAIL")
+
+    def test_cover_copy_rejects_accidental_editing_deliverables(self):
+        for field, value in (("edit_list", "copy.md"), ("asset_list", "copy.md"),
+                             ("narration", "copy.md"), ("clips", [{"source": "cover.png", "hold_seconds": 3}]),
+                             ("cards", ["cover.png"]), ("planned_seconds", 55),
+                             ("timeline", "timeline.json"), ("captions", "captions.srt")):
+            with self.subTest(field=field):
+                note = self.series()["notes"][3]
+                note[field] = value
+                self.assertEqual(self.result({"notes": [note]})["status"], "FAIL")
+
+    def test_cover_copy_still_requires_real_readable_cover_and_copy(self):
+        Image.new("RGB", (360, 480), "white").save(self.root / "small.png")
+        for field, value in (("cover", "absent.png"), ("cover", "small.png"), ("copy", "absent.md")):
+            with self.subTest(field=field, value=value):
+                note = self.series()["notes"][3]
+                note[field] = value
+                self.assertEqual(self.result({"notes": [note]})["status"], "FAIL")
+
+    def test_legacy_and_explicit_video_kits_remain_compatible(self):
+        for count in (1, 2):
+            with self.subTest(kits=count):
+                value = self.series()
+                for note in value["notes"][3:3 + count]:
+                    note.update(format="video-edit-kit", edit_list="copy.md", asset_list="copy.md",
+                                clips=[{"source": "cover.png", "hold_seconds": 3}])
+                result = self.result(value)
+                self.assertEqual(result["status"], "PASS", result)
+                value["notes"][3]["clips"][0]["hold_seconds"] = 0
+                self.assertEqual(self.result(value)["status"], "FAIL")
+                value["notes"][3]["clips"][0] = {"source": "absent.mp4", "in_seconds": 0, "out_seconds": 2}
+                self.assertEqual(self.result(value)["status"], "FAIL")
+
+    def test_invalid_video_format_reports_failure(self):
+        for fmt in ([], {}, None, "video"):
+            with self.subTest(format=fmt):
+                value = self.series()
+                value["notes"][3]["format"] = fmt
+                self.assertEqual(self.result(value)["status"], "FAIL")
 
     def test_all_three_second_post_choices_pass(self):
         for template in ("product", "direct-133-33", "direct-1222-3-3"):
@@ -297,11 +359,48 @@ class SeriesDeliveryTests(Fixture):
             value["notes"][index]["cards"].extend([self.companion(), self.card("direct-133-33")])
             self.assertEqual(self.result(value)["status"], "FAIL")
 
-    def test_default_series_limits_each_post_to_one_companion(self):
-        for index in range(3):
-            value = self.series()
-            value["notes"][index]["cards"].extend([self.companion(), self.companion("verbatim-script")])
-            self.assertEqual(self.result(value)["status"], "FAIL")
+    def test_default_series_accepts_multiple_sourced_companions(self):
+        for template in ("product", "direct-133-33", "direct-1222-3-3"):
+            with self.subTest(template=template):
+                value = self.series(template)
+                for note in value["notes"][:3]:
+                    note["cards"].extend([self.companion(), self.companion("verbatim-script")])
+                result = self.result(value)
+                self.assertEqual(result["status"], "PASS", result)
+
+    def test_presentation_worksheet_and_board_layout_are_supported(self):
+        for material in ("lesson-presentation", "worksheet", "blackboard-layout"):
+            with self.subTest(material=material):
+                value = self.series()
+                for note in value["notes"][:3]:
+                    note["cards"].append(self.companion(material))
+                result = self.result(value)
+                self.assertEqual(result["status"], "PASS", result)
+
+    def test_same_finished_companion_image_can_be_reused_across_posts(self):
+        Image.new("RGB", (720, 960), "#f3efe2").save(self.root / "shared-content.png")
+        shared = self.companion("verbatim-script")
+        shared["file"] = "shared-content.png"
+        value = self.series()
+        for note in value["notes"][:3]:
+            note["cards"].append(dict(shared))
+        result = self.result(value)
+        self.assertEqual(result["status"], "PASS", result)
+
+    def test_expanded_series_checks_sources_on_every_companion(self):
+        value = self.series()
+        value["notes"][0]["cards"].extend([
+            self.companion("teaching-design"), self.companion("verbatim-script"),
+            self.companion("lesson-presentation"), self.companion("worksheet"),
+        ])
+        result = self.result(value)
+        self.assertEqual(result["status"], "PASS", result)
+        value["notes"][0]["cards"][-1]["sources"] = [
+            {"file": "missing-worksheet.docx", "ref": "task 2; courseware P03"}
+        ]
+        result = self.result(value)
+        self.assertEqual(result["status"], "FAIL", result)
+        self.assertTrue(any("missing-worksheet.docx" in error for error in result["errors"]), result)
 
     def test_companion_requires_material_type_and_readable_source_references(self):
         for change in (

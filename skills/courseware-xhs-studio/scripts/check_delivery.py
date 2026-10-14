@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 
 from PIL import Image
@@ -65,7 +66,8 @@ def check_card(base: Path, card, label: str, errors: list[str]) -> str | None:
         check_image(base, card.get("file"), label, errors)
         material = card.get("material_type")
         if (not isinstance(material, str)
-                or material not in {"teaching-design", "verbatim-script", "blackboard-stickers"}):
+                or material not in {"teaching-design", "verbatim-script", "lesson-presentation",
+                                    "worksheet", "blackboard-stickers", "blackboard-layout"}):
             errors.append(f"{label}: unsupported companion material_type")
         sources = card.get("sources")
         if not isinstance(sources, list) or not sources:
@@ -106,7 +108,8 @@ def check_card(base: Path, card, label: str, errors: list[str]) -> str | None:
         errors.append(f"{label}: invalid render manifest: {exc}")
 
 
-def check_text(base: Path, value: str, label: str, errors: list[str], copy: bool = False) -> None:
+def check_text(base: Path, value: str, label: str, errors: list[str], copy: bool = False,
+               hashtags: bool = False) -> None:
     path = check_file(base, value, label, errors)
     if path is None:
         return
@@ -115,6 +118,14 @@ def check_text(base: Path, value: str, label: str, errors: list[str], copy: bool
         errors.append(f"{label}: text is too short for a usable deliverable")
     if copy and not body.lstrip().startswith("# "):
         errors.append(f"{label}: start the copy with one '# title' line")
+    if hashtags:
+        lines = body.strip().splitlines()
+        if not lines or not lines[0].strip()[2:].strip():
+            errors.append(f"{label}: include a nonempty title")
+        if not lines or re.fullmatch(r"#[^\s#]+(?:\s+#[^\s#]+)*", lines[-1].strip()) is None:
+            errors.append(f"{label}: end the copy with space-separated #hashtags")
+        if not any(line.strip() and not line.lstrip().startswith("#") for line in lines[1:-1]):
+            errors.append(f"{label}: include body copy between the title and hashtags")
 
 
 def check_clip(base: Path, clip: dict, label: str, errors: list[str]) -> None:
@@ -168,7 +179,8 @@ def check(manifest: dict, base: Path, expected_count: int | None) -> dict:
         ids.add(note_id)
         topics.add(topic)
         check_image(base, note.get("cover"), label + ".cover", errors)
-        check_text(base, note.get("copy"), label + ".copy", errors, copy=True)
+        check_text(base, note.get("copy"), label + ".copy", errors, copy=True,
+                   hashtags=note.get("format") == "video-cover-copy")
         fmt = note.get("format")
         if fmt == "image":
             cards = note.get("cards")
@@ -178,10 +190,12 @@ def check(manifest: dict, base: Path, expected_count: int | None) -> dict:
                 styles = []
                 for card_index, card in enumerate(cards, 1):
                     styles.append(check_card(base, card, f"{label}.card {card_index}", errors))
-                if (manifest.get("series_profile") == "three-image-two-video"
-                        and styles.count("teaching-companion") > 1):
-                    errors.append(f"{label}: default series allows at most one teaching-companion card")
                 image_styles.append(set(styles))
+        elif fmt == "video-cover-copy":
+            extra = {"cards", "clips", "edit_list", "asset_list", "narration",
+                     "captions", "timeline", "planned_seconds"}.intersection(note)
+            if extra:
+                errors.append(f"{label}: cover/copy-only scope cannot include editing fields: {', '.join(sorted(extra))}")
         elif fmt == "video-edit-kit":
             check_text(base, note.get("edit_list"), label + ".edit_list", errors)
             check_text(base, note.get("asset_list"), label + ".asset_list", errors)
@@ -197,14 +211,15 @@ def check(manifest: dict, base: Path, expected_count: int | None) -> dict:
                     else:
                         errors.append(f"{label}.clip {clip_index}: expected an object")
         else:
-            errors.append(f"{label}: format must be image or video-edit-kit")
+            errors.append(f"{label}: format must be image, video-cover-copy or video-edit-kit")
     profile = manifest.get("series_profile")
     if profile is not None:
+        formats = [note.get("format") if isinstance(note, dict) else None for note in notes]
         if profile != "three-image-two-video":
             errors.append("unsupported series_profile")
-        elif ([note.get("format") if isinstance(note, dict) else None for note in notes]
-                != ["image"] * 3 + ["video-edit-kit"] * 2):
-            errors.append("series requires three image posts followed by two video editing kits")
+        elif (len(formats) != 5 or formats[:3] != ["image"] * 3
+                or any(fmt not in ("video-cover-copy", "video-edit-kit") for fmt in formats[3:])):
+            errors.append("series requires three image posts followed by two video notes (cover-copy or explicit editing kits)")
         elif (len(image_styles) != 3 or image_styles[0] - {"teaching-companion"} != {"watermark"}
                 or len(image_styles[1] - {"teaching-companion"}) != 1
                 or not image_styles[1] - {"teaching-companion"} <= {"product", "direct-133-33", "direct-1222-3-3"}
