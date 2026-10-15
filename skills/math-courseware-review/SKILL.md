@@ -12,6 +12,7 @@ description: Independently review courseware analysis, teaching and math, images
 以下派发与入库步骤由主持审核的主会话执行。**如果你已经是被派发的独立审核者，直接读取packet及原始材料，按第3步返回报告；不再次派发子代理，不写入库记录。**
 
 1. 已有packet时核路径、版本和范围；单独审核时用`review-prepare`创建packet，输入真实producer_id、artifacts、sources、rubric和instruction。不要让用户填写JSON。依据原始资料、已采用内容和当前需求选择范围，不把制作自评当原始依据。
+   涉及情景视频时，按[开场情境核查](references/review-contract.md#opening-context-in-scenario-videos)纳入实际前文与当前剧本/预览或成片，在现有审核项内给出背景交代的具体证据；不以素材一致代替观看内容判断。
 2. **调用全新、只读的独立子代理，不继承制作对话。** 只给本Skill/审核协议、packet和其中列出的原始产物/依据；请求实际阅读或看图，核每条criteria。不得给它预设通过结论、可疑问题答案或上轮作者解释。适用的项目约束仍有效，但不额外转交制作过程或自评。没有独立代理能力时保留pending，说明缺口，不能由制作者填一份报告冒充独立审核。
 3. 审核者逐条返回pass、changes_required或unverified，含实际证据路径、位置/观察、具体修正建议或不能验证的原因。五类规则见协议；数学要实算，图片要实看，声音/动态/投屏没有实际证据就写未验证。已知数学错误不能因“整体还可以”通过。
 4. 主会话原样保存真实审核者报告，填真实reviewer_id及packet绑定信息，调用`review-record`。报告必须逐项齐全、来源未变且与制作者身份不同；运行时从逐条结论计算总结果，不接受省略项或自报passed:true。

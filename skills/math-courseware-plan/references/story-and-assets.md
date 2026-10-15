@@ -31,4 +31,6 @@
 
 `video_nodes`每条保存`video_id/purpose/event/place/characters/math_ids/dialogue/narration/asset_refs/teacher_next/status`。教师接续动作应具体，如“暂停后让学生先估计，再摆学具验证”。未取得成片写“必做，待制作/待回传”，不能写已生成或默认可选；本记录只是内容简述，不代表完整视频方案与流程已完成。
 
+在现有`video-handoff.md`逐片注明用途是首次导入、情境续接还是固定讲话，以及学生从哪一页/前片已经知道哪些背景、本片仍需让学生看见什么活动或变化、问题怎样由此产生。只有课题页或制作者背景说明时，不能当作学生已知；前文已建立的信息直接承接，不要求每段重讲。按[开场情境与观众已知](../../math-courseware-video-writer/references/script-and-preview.md#开场情境与观众已知)交编剧细化，不提前锁定镜头或秒数，不新增JSON必填字段或采用节点。
+
 同时产出人可读的`story-bible.md`和`video-handoff.md`。整课将故事、目标/活动/评价、原内容去向、课时、总页数及全部视频清单合入[入口规定的whole-course-plan](../SKILL.md)，取得该具体蓝图与共同核心的真实采用后，再交video补齐[全部方案和制作步骤](../../math-courseware-studio/references/video-integration.md#ppt开工前的视频方案检查)；只选故事不能代替蓝图采用。全部视频准备通过后再推进pages。所需正式资产在剧本/25格预览之后、导演之前由video-assets与本模块协同制作；不固定九宫格、故事板平台或视频模型。

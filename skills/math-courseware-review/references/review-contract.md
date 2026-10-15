@@ -32,6 +32,14 @@ The host dispatches a fresh agent with no production history. Supply this Skill,
 
 Every listed criterion is required. Adapt observations to the actual task, not a fictional full-course scope. A preparation-only video review can verify a consistent script/packet while explicitly stating it has not validated a final movie; a final-movie request without actual audio/motion evidence must mark the applicable checks unverified. No numerical score may hide a mathematical or source error.
 
+## Opening context in scenario videos
+
+Apply the writer's [opening context rule](../../math-courseware-video-writer/references/script-and-preview.md#开场情境与观众已知) within the existing rubric IDs, without new approval steps or report fields. For course videos include the relevant preceding page/clip or course handoff as raw evidence when the opening relies on it. Distinguish a first introduction, continuation and fixed-camera speech; a course title or production-only setting note is not evidence that pupils already know the situation. Respect an explicitly scoped independent video without inventing course prerequisites.
+
+Under teaching `continuity` or video `production`/`handoff`, identify which scene, visible preview cell or movie timestamp establishes the necessary activity, goal and reason for the task, and how it leads into the next event. Compare this with the actual prior context and intended purpose. For available previews, first inspect the opening without relying on dialogue text, then check the sound design; do not demand that images alone explain abstract mathematics. Consistency between files alone does not establish a comprehensible opening. Do not require silent openings, extra establishing shots or introductions when the visible action and verified prior context already suffice, and do not force a story sequence onto fixed-camera speech.
+
+Assess timing from the actual information, actions, speech and necessary pauses; overlapping action and speech are not additive, and an estimated duration is not a measured one. A confirmed missing context or broken transition requires `changes_required` with a specific location and minimal correction within scope. Missing visual/audio evidence remains `unverified` for those effects; a text-only review can assess the proposed design without pretending to inspect absent media. This check is not a pupil comprehension test. Preserve adopted versions and actual authorization; the rule update alone does not reopen or rewrite ongoing productions.
+
 ## Actual report format
 
 ```json
