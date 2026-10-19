@@ -11,8 +11,11 @@ SCHEMA = '1.0'
 RECORDS = {'materials': 'materials', 'story': 'events', 'math': 'problems',
            'assets': 'assets', 'pages': 'pages'}
 ROUTES = ('builtin', 'openai_image_api')
-LAYOUTS = ('legacy', 'four-folders')
+LAYOUTS = ('legacy', 'four-folders', 'five-folders')
 FOLDERS = ('01_source', '02_work', '03_final', '04_notes')
+FIVE_FOLDERS = ('原始资料', '中间文件', '最终产品', '笔记素材', '商品详情')
+STATE_DIRS = {'legacy': '_state', 'four-folders': '02_work/_state',
+              'five-folders': '中间文件/_state'}
 
 
 def now():
@@ -55,17 +58,27 @@ def append_line(path, value):
 
 def storage_layout(project):
     root = Path(project).resolve()
-    legacy = (root / '_state/project.json').is_file()
-    current = (root / '02_work/_state/project.json').is_file()
-    if legacy and current:
-        raise ValueError('Two initialized layouts in one course; select the intended root without moving files')
-    return 'four-folders' if current else 'legacy'
+    found = [layout for layout, folder in STATE_DIRS.items()
+             if (root / folder / 'project.json').is_file()]
+    if len(found) > 1:
+        raise ValueError('Multiple initialized layouts in one course; select the intended root without moving files')
+    return found[0] if found else 'legacy'
 
 
-def _four_folder_path(relative):
+def _folder_path(relative, layout):
     path = Path(relative)
     if not path.parts or '..' in path.parts:
-        raise ValueError('Use a path inside the four course folders')
+        raise ValueError('Use a path inside the course folders')
+    if layout == 'five-folders':
+        if path.parts[0] in FIVE_FOLDERS or path.as_posix() in ('AGENTS.md', 'HANDOFF.md'):
+            return path
+        if path.parts[:2] == ('04_notes', 'product-images'):
+            return Path('商品详情', *path.parts[2:])
+        aliases = dict(zip(FOLDERS, FIVE_FOLDERS))
+        aliases.update({'inputs': '原始资料', 'product-images': '商品详情'})
+        if path.parts[0] in aliases:
+            return Path(aliases[path.parts[0]], *path.parts[1:])
+        return Path('中间文件') / path
     if path.parts[0] in FOLDERS or path.as_posix() in ('AGENTS.md', 'HANDOFF.md'):
         return path
     if path.parts[0] == 'inputs':
@@ -75,8 +88,9 @@ def _four_folder_path(relative):
 
 def resolve(project, relative):
     root = Path(project).resolve()
-    if storage_layout(root) == 'four-folders' and not Path(relative).is_absolute():
-        relative = _four_folder_path(relative)
+    layout = storage_layout(root)
+    if layout != 'legacy' and not Path(relative).is_absolute():
+        relative = _folder_path(relative, layout)
     path = (root / relative).resolve()
     if not path.is_relative_to(root) or path == root:
         raise ValueError('Path must name a file or directory inside the project')
@@ -84,11 +98,24 @@ def resolve(project, relative):
 
 
 def relative_path(project, value):
-    """Stable record path for a physical file or logical path, in either layout."""
+    """Stable record path for a physical file or logical path in each layout."""
     root = Path(project).resolve()
     actual = resolve(root, value)
     path = actual.relative_to(root)
-    if storage_layout(root) == 'four-folders':
+    layout = storage_layout(root)
+    if layout == 'five-folders':
+        if path.parts[0] == '原始资料':
+            path = Path('inputs', *path.parts[1:])
+        elif path.parts[0] == '中间文件' and len(path.parts) > 1:
+            path = Path(*path.parts[1:])
+        elif path.parts[0] in ('最终产品', '笔记素材', '商品详情'):
+            prefix = {'最终产品': '03_final', '笔记素材': '04_notes', '商品详情': 'product-images'}
+            path = Path(prefix[path.parts[0]], *path.parts[1:])
+        elif path.parts[0] not in FIVE_FOLDERS and path.as_posix() not in ('AGENTS.md', 'HANDOFF.md'):
+            raise ValueError('Import original files into 原始资料 before registering their paths')
+        if resolve(root, path) != actual:
+            path = actual.relative_to(root)
+    elif layout == 'four-folders':
         if path.parts[0] == '01_source':
             path = Path('inputs', *path.parts[1:])
         elif path.parts[0] == '02_work' and len(path.parts) > 1:
@@ -119,24 +146,50 @@ def init_project(project, title, route=None, mode=None, scope_evidence='', layou
     if layout not in LAYOUTS:
         raise ValueError('Unknown storage layout')
     current_layout = storage_layout(root)
-    existing = root / ('02_work/_state/project.json' if current_layout == 'four-folders' else '_state/project.json')
+    existing = root / STATE_DIRS[current_layout] / 'project.json'
     if existing.exists():
-        return load_project(root)
+        data = load_project(root)
+        if current_layout == 'five-folders':
+            for name in FIVE_FOLDERS:
+                path = resolve(root, name)
+                if path.exists() and not path.is_dir():
+                    raise ValueError('Course folder name is already a file: ' + name)
+            for name in FIVE_FOLDERS:
+                resolve(root, name).mkdir(exist_ok=True)
+        return data
     if root.is_file():
         raise ValueError('Project must be the course folder, not an input file')
     if layout == 'legacy' and root.exists() and any(root.iterdir()):
         raise ValueError('Nonempty directory is not an initialized courseware project')
-    if layout == 'four-folders':
+    work_directories = ['inputs', 'planning', 'assets/characters', 'assets/scenes', 'assets/props',
+                        'slides/prompts', 'editable/handoff', 'editable/returned', 'editable/output',
+                        'documents/classroom-script', 'documents/lesson-presentation', 'documents/lesson-plan',
+                        '_state/versions', '_state/jobs', '_state/editable', '_state/documents',
+                        '_state/qa', 'deliveries']
+    if layout != 'legacy':
         for name in ('inputs', 'planning', 'assets', 'slides', 'editable', 'documents', '_state', 'deliveries', 'videos'):
             if (root / name).is_dir():
                 raise ValueError('Existing production directory requires inspection; no automatic migration: ' + name)
-        for name in FOLDERS:
+        for name in FIVE_FOLDERS if layout == 'five-folders' else FOLDERS:
             if (root / name).exists() and not (root / name).is_dir():
                 raise ValueError('Course folder name is already a file: ' + name)
         work = root / '02_work'
-        if work.exists() and any(work.iterdir()):
+        if work.exists() and (not work.is_dir() or any(work.iterdir())):
             raise ValueError('Existing 02_work is not an initialized course; inspect it before resuming')
-        existing = root / '02_work/_state/project.json'
+        if layout == 'five-folders':
+            area = root / STATE_DIRS[layout]
+            if area.exists() and (not area.is_dir() or any(area.iterdir())):
+                raise ValueError('Existing 中间文件/_state is not an initialized course; inspect it before resuming')
+            for name in [*FIVE_FOLDERS, *(_folder_path(x, layout) for x in work_directories)]:
+                path = root / name
+                if not path.resolve().is_relative_to(root):
+                    raise ValueError('Course folder resolves outside the project: ' + str(name))
+                for ancestor in (path, *path.parents):
+                    if ancestor == root:
+                        break
+                    if ancestor.exists() and not ancestor.is_dir():
+                        raise ValueError('Course directory name is already a file: ' + str(ancestor.relative_to(root)))
+        existing = root / STATE_DIRS[layout] / 'project.json'
     if not title.strip():
         raise ValueError('Project title required')
     root.mkdir(parents=True, exist_ok=True)
@@ -163,6 +216,24 @@ def init_project(project, title, route=None, mode=None, scope_evidence='', layou
                  'Use state.resolve for disk paths and state.relative_path for record paths; explicit 03_final/04_notes stay unchanged.\n'
                  'Declare new subdirectory uses before creation. Keep old versions; never auto-delete or auto-adopt.\n'
                  'Read HANDOFF.md before resuming; preserve actual scope and approvals.\n')
+    elif layout == 'five-folders':
+        rules = ('# Five-folder Courseware Rules\n\n'
+                 'This user-supplied folder is the course root; keep AGENTS.md and HANDOFF.md here.\n'
+                 '原始资料/: original source files or byte-identical copies; never rewrite or relocate originals.\n'
+                 '中间文件/: planning, assets, videos, slides, editable, documents, interactive, notes and readable.\n'
+                 '中间文件/_state/: canonical records, approvals, versions, jobs, queues and QA; retain all evidence.\n'
+                 '中间文件/deliveries/: collect staging, not a final teaching product.\n'
+                 '最终产品/vNNN/: checked teaching products and their playback dependencies.\n'
+                 '笔记素材/vNNN/note-NN/: note covers, content images and copy; extra media only within actual scope.\n'
+                 '商品详情/vNNN/: product main/detail images, local preview and source manifest.\n'
+                 'Each delivery area README.md identifies the current checked version and actual completion status.\n'
+                 'Reuse existing folders and ordinary files; create only missing folders. Keep all prior versions.\n'
+                 'Product and note preparation records stay in 中间文件/notes; no automatic publishing.\n'
+                 'Records stay logical: inputs -> 原始资料; work paths -> 中间文件; 03_final -> 最终产品;\n'
+                 '04_notes -> 笔记素材; product-images (also 04_notes/product-images) -> 商品详情.\n'
+                 'Use state.resolve for disk paths and state.relative_path for record identity.\n'
+                 'Declare subdirectory uses before creation. Do not auto-migrate, delete, overwrite or adopt.\n'
+                 'Read HANDOFF.md before resuming; preserve actual scope and approvals.\n')
     rules_path = root / 'AGENTS.md'
     if rules_path.exists():
         with rules_path.open('a', encoding='utf-8') as stream:
@@ -171,20 +242,16 @@ def init_project(project, title, route=None, mode=None, scope_evidence='', layou
         rules_path.write_text(rules, encoding='utf-8')
     if not (root / 'HANDOFF.md').exists():
         (root / 'HANDOFF.md').write_text('# Courseware Handoff\n\nInitialized; awaiting source analysis.\n', encoding='utf-8')
-    if layout == 'four-folders':
-        for name in FOLDERS:
+    if layout != 'legacy':
+        for name in FIVE_FOLDERS if layout == 'five-folders' else FOLDERS:
             (root / name).mkdir(exist_ok=True)
-    for name in ['inputs', 'planning', 'assets/characters', 'assets/scenes', 'assets/props',
-                 'slides/prompts', 'editable/handoff', 'editable/returned', 'editable/output',
-                 'documents/classroom-script', 'documents/lesson-presentation', 'documents/lesson-plan',
-                 '_state/versions', '_state/jobs', '_state/editable', '_state/documents',
-                 '_state/qa', 'deliveries']:
-        (root / (_four_folder_path(name) if layout == 'four-folders' else name)).mkdir(parents=True, exist_ok=True)
+    for name in work_directories:
+        (root / (_folder_path(name, layout) if layout != 'legacy' else name)).mkdir(parents=True, exist_ok=True)
     data = {'schema_version': SCHEMA, 'project_id': root.name, 'title': title,
             'revision': 'v001', 'created_at': now(), 'image_route': route,
             'font': 'KaiTi', 'artifacts': {}, 'stale_targets': [],
             'branches': {name: 'draft' for name in ['analysis', 'story', 'pages', 'editable', 'documents']}}
-    if layout == 'four-folders':
+    if layout != 'legacy':
         data['storage_layout'] = layout
     write_json(existing, data)
     for name, array in RECORDS.items():
@@ -198,7 +265,7 @@ def init_project(project, title, route=None, mode=None, scope_evidence='', layou
 
 
 def is_approved(project, relative):
-    if storage_layout(project) == 'four-folders':
+    if storage_layout(project) != 'legacy':
         relative = relative_path(project, relative)
     path = resolve(project, relative)
     if not path.is_file():
@@ -234,7 +301,7 @@ def _record_approval(project, record, calibration_run=None):
     decision = record.get('decision', 'approved')
     if decision not in ('approved', 'rejected'):
         raise ValueError('Invalid decision')
-    if storage_layout(project) == 'four-folders':
+    if storage_layout(project) != 'legacy':
         record = {**record, 'targets': [{**item, 'path': relative_path(project, item['path'])}
                                        for item in record['targets']]}
     for item in record['targets']:
@@ -295,7 +362,7 @@ def entry_ids(value):
 
 
 def impact(project, change):
-    relative = relative_path(project, change['path']) if storage_layout(project) == 'four-folders' else change['path']
+    relative = relative_path(project, change['path']) if storage_layout(project) != 'legacy' else change['path']
     before = read_json(resolve(project, relative))
     replacement = change['replacement']
     old, new = entry_ids(before), entry_ids(replacement)
@@ -329,7 +396,7 @@ def impact(project, change):
 
 
 def record_change(project, change):
-    relative = relative_path(project, change['path']) if storage_layout(project) == 'four-folders' else change['path']
+    relative = relative_path(project, change['path']) if storage_layout(project) != 'legacy' else change['path']
     if not re.fullmatch(r'_state/(project|materials|story|math|assets|pages)\.json', relative):
         raise ValueError('record-change only updates canonical records')
     path = resolve(project, relative)
@@ -365,7 +432,7 @@ def record_change(project, change):
 
 
 def register_artifact(project, artifact_id, path, dependencies=(), metadata=None):
-    if storage_layout(project) == 'four-folders':
+    if storage_layout(project) != 'legacy':
         path = relative_path(project, path)
         dependencies = [relative_path(project, value) for value in dependencies]
     resolved = resolve(project, path)
@@ -382,7 +449,7 @@ def status(project):
     from . import workflow
     data['workflow'] = workflow.summary(project)
     data['approvals'] = {name: is_approved(project, '_state/' + name + '.json') for name in RECORDS}
-    data['jobs'] = [{'path': relative_path(project, path) if storage_layout(project) == 'four-folders' else str(path.relative_to(Path(project))),
+    data['jobs'] = [{'path': relative_path(project, path) if storage_layout(project) != 'legacy' else str(path.relative_to(Path(project))),
                      'status': read_json(path).get('status')} for path in
                     sorted(resolve(project, '_state/jobs').glob('*/job.json'))]
     return data

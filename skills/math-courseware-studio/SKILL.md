@@ -13,8 +13,8 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 ## 启动与恢复
 
-1. 按[每课四目录规范](references/workspace-layout.md)绑定用户每次给定的课程文件夹地址，先读根AGENTS.md、HANDOFF.md及[共用流程](references/workflow.md)；只有原文件/链接且课根不明时才补问保存地址。已存在项目执行`status`和`validate`，不因换对话另建项目或迁移旧目录。两条命令通过不代表阶段依赖已满足。
-2. 新课项目使用`scripts/courseware.py init --project <课程根目录绝对路径> --title <课题> --layout four-folders`，目录规则由初始化器先写入。`--project`始终为用户给定课根，不指02_work；原资料/过程/教学成品/笔记分别进入01_source/02_work/03_final/04_notes。可同时指定`--route builtin`或`--route openai_image_api`；已明确选择的线路直接记录，无需重问。
+1. 按[每课五目录规范](references/workspace-layout.md)绑定用户每次给定的课程文件夹地址，先读根AGENTS.md、HANDOFF.md及[共用流程](references/workflow.md)；只有原文件/链接且课根不明时才补问保存地址。已存在项目先识别布局：五目录课按下一项补齐缺少目录，再执行`status`和`validate`；旧课直接沿原根检查，不另建项目或迁移目录。两条命令通过不代表阶段依赖已满足。
+2. 新课与五目录课恢复时使用`scripts/courseware.py init --project <课程根目录绝对路径> --title <课题> --layout five-folders`，新目录规则由初始化器先写入，恢复不重写原状态。`--project`始终为用户给定课根，不指中间文件；原资料/过程/教学成品/笔记/商品图分别进入原始资料/中间文件/最终产品/笔记素材/商品详情；已有同名目录复用，缺少才创建。新课可同时指定`--route builtin`或`--route openai_image_api`；已明确选择的线路直接记录，无需重问。
 3. 读取[项目协议](references/project-contract.md)，只在需要生图时读[生图线路](references/image-routing.md)，发生修改、中断或等待回传时读[恢复规则](references/recovery.md)。
 4. 脚本依赖Python、Pillow、python-pptx、python-docx、pypdf、ReportLab；先用Codex的运行时发现工具定位现有环境，再运行`doctor`。缺依赖先报告，不自动安装全局依赖。
 
@@ -28,7 +28,9 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 按真实指令分别记录项目`project_mode`与本次`current_task.mode`、范围和依据；课程使用`_state/workflow.json`，独立视频可用原`manifest.workflow`。整课中“现在做视频”只改变当前工作，不把项目改成独立视频；明确只修已有页面的局部任务可核对该输入后执行，同时保留整课待办。“先看一下”本轮只分析。旧项目没有索引时先核历史与实际产物，登记为输入接入或已有有效成果，不凭目录数量推断完成。
 
-每个专业步骤开始前运行`scripts/courseware.py workflow-check --project <目录> --step <步骤>`，视频步骤加`--video-id <视频ID>`；结束后登记实际产物、来源版本、内部核查与必要采用依据，再检查下一实际动作的前置并交接。步骤名及依赖统一见共用流程。该只读检查给出当前允许项与缺口，重复检查当前动作不证明它已完成；它不替代教学/视觉判断，也不把执行许可变成产物采用。“继续”从本次范围中最早可做的必要缺项恢复，并保留可并行分支。
+课程C1—C8的专业步骤开始前运行`scripts/courseware.py workflow-check --project <目录> --step <步骤>`，视频步骤加`--video-id <视频ID>`；结束后登记实际产物、来源版本、内部核查与必要采用依据，再检查下一实际动作的前置并交接。步骤名及依赖统一见共用流程。该只读检查给出当前允许项与缺口，重复检查当前动作不证明它已完成；它不替代教学/视觉判断，也不把执行许可变成产物采用。“继续”从本次范围中最早可做的必要缺项恢复，并保留可并行分支。成品后的商品图/笔记是宿主按相应Skill执行的步骤，不虚构控制器命令。
+
+整课页面制作及下游接收共用[制作路线与来源核查](../math-courseware-pages/references/page-production.md)。默认完整页生图，不因可编辑、赶进度或直接用OfficeCLI而改为原生卡片；本课AI未完成稿不能自行当作外部成品接入文稿。核采用逐页稿与真实生成/回传/复用来源，不能用PPT截图补造生图记录；代表性内容页纳入已有样页节点。用户明确改变路线或独立任务仍按其真实范围处理。
 
 ## 按实际进度调用
 
@@ -40,18 +42,21 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 | 逐页内容和图片 C4—C5 | [pages](../math-courseware-pages/SKILL.md) | 蓝图及全部视频准备有效；分别检查`pages`/`page-image`/`image-export` |
 | 可画与原生文字 C6 | [editable](../math-courseware-editable/SKILL.md) | 相应真实输入及明确A/B方向；检查`editable-handoff`/`editable-import`/`editable-build` |
 | 教师文稿、学习单与黑板贴 C7 | [documents](../math-courseware-documents/SKILL.md) | 配套文稿先核PPT是否完成及现用版本，无法判断再问；教师文稿另查`documents`，学习单/黑板贴按专门规范核来源与成品 |
+| 成品后的商品图 → 笔记素材 | [courseware-xhs-studio](../courseware-xhs-studio/SKILL.md) | 当前课件与配套完成并经适用汇合核对；先三张主图和真实资料详情，再制作新一组笔记，同版商品图可复用 |
 
 表内整课阶段只适用于当前整课推进范围。独立模块或明确局部维护只核所需真实输入，登记来源、版本与接入范围；没有执行的上游保持未执行，不补造整课完成记录。
 
 有原课时，C1第一步按[原课报告模板](../math-courseware-analyze/references/source-report-template.md)展示总体质量、可借鉴优点、问题与优化建议、实际总页数、逐页功能及完整教学流程、去重视频数与全部播放页、具体内容/作用及实际看听依据。未读/未知项明确列出；只有课题时做需求分析，不伪造原页或原视频。
 
+C2情境选择默认按[原课情境对照](../math-courseware-plan/references/story-and-assets.md#原课情境对照)先描述原课故事，再展示各候选保留、改编或新增的内容及推荐理由；聊天回复和可阅读方案都要包含这份对照。重做课件可沿用原课情境方向，具体故事内容须按[改编边界](../math-courseware-plan/references/story-and-assets.md#同方向重新编故事)重新设计，不能仅换人物名字或改写原台词。
+
 从头整课只有“某课题＋大致情境”时，先提取教学目标与不可变数学，plan负责课程共同故事与教学节点，video-writer把视频想法写成可见事件和剧本；已有情境不强制重选。单独视频直接交video从粗情境开始，不先要求整套教学方案。缺关键教材数据只列必要缺口，不要求用户先写故事或准备图片。
 
-从头整课顺序是：可见原课/需求分析→整课教学蓝图与共同核心真实采用→全部视频创作与准备→逐页文案（含视频页）→页面生图→可编辑及成片回填→核查PPT完成状态→正式配套文稿与汇合检查。播放检查仍按真实进度完成并记录；只有用户明确要求的文稿草稿可提前并行，PPT完成后须重新核对。只选故事不等于采用整课蓝图；缺少`whole-course-plan`的活动/评价、时间/页数、全部视频数量及节点时先回plan，已有V001草稿保留。视频内部六步为剧本/25格预览→图片资产→导演→黑白板→固定风格→完整视频词；封面候选、风格和共享资产在视频第二步协同完成，同版复用，不能推迟到依赖它们的导演/制板之后。视频先关联教学节点/预留页数，排页时再补page_id/order。
+从头整课顺序是：可见原课/需求分析→整课教学蓝图与共同核心真实采用→全部视频创作与准备→逐页文案（含视频页）→页面生图→可编辑及成片回填→核查PPT完成状态→正式配套文稿与汇合检查→商品主图与详情图→笔记素材。后两项按[成品后衔接](references/workflow.md#成品后的商品图与笔记素材)执行，不改变C1—C8教学完成条件。播放检查仍按真实进度完成并记录；只有用户明确要求的文稿草稿可提前并行，PPT完成后须重新核对。只选故事不等于采用整课蓝图；缺少`whole-course-plan`的活动/评价、时间/页数、全部视频数量及节点时先回plan，已有V001草稿保留。视频内部六步为剧本/25格预览→图片资产→导演→黑白板→固定风格→完整视频词；封面候选、风格和共享资产在视频第二步协同完成，同版复用，不能推迟到依赖它们的导演/制板之后。视频先关联教学节点/预留页数，排页时再补page_id/order。
 
 **进入PPT逐页制作前，逐项检查[视频方案前置清单](references/video-integration.md#ppt开工前的视频方案检查)。** 只写video_nodes简述、只完成一个小样操作包或说“后面再做视频”，均不算通过。材料完整后成组展示，沿用同版已有确认和视频侧两组创作审阅，不重复逐表审批；确认前不开始逐页文案、PPT页面生图或可编辑制作。方案与流程通过后，实际成片生产可与PPT并行，视频待办持续保留；素材、平台、费用和成片状态如实记录。
 
-每次视频提示词、参考图等素材准备完成后，都必须按[主动聊天交付要求](../math-courseware-video-prompts/references/delivery-reply.md#每次完成后主动发到当前聊天)在当轮主动发给用户：展示实际板图/首帧，列编号参考图、逐次完整TXT、时长和上传顺序及文件夹入口。不能只存文件、更新HANDOFF或发一个总览链接，也不等用户询问；自动推进先交付再进入已授权后续步骤。该发送要求不新增采用节点、不改变媒体授权，缺项按部分准备稿如实交付。
+每次视频提示词、参考图等素材准备完成后，都必须按[主动聊天交付要求](../math-courseware-video-prompts/references/delivery-reply.md#每次完成后主动发到当前聊天)当轮主动发给用户，并套用其中[唯一固定模板](../math-courseware-video-prompts/references/delivery-reply.md#唯一固定模板)：平台/模型、步骤/产物、总入口、编号图片表、逐次完整TXT表、各片目录、操作与真实状态依次呈现，顺序/列名/必交项固定，只填本次实际值。不能只存文件、更新HANDOFF或发总览链接，也不等用户询问；自动推进先交付再续作。该发送要求不新增采用节点、不改变媒体授权，缺项按模板如实交准备稿。
 
 ## 确认与持续执行
 
@@ -71,7 +76,7 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 ## 交付
 
-按[目录与版本规则](references/workspace-layout.md#交付与版本)归位：控制器collect含制作资料，留02_work/deliveries暂存；另将实际教学产品与使用依赖按清单核验复制到03_final/vNNN，笔记按篇放04_notes/vNNN。各区README标当前版本和真实状态；待审候选/过程阅读版/审核记录留02_work，不增加采用节点。JSON继续用逻辑路径，用户点击链接必须展开为实际文件位置。
+按[目录与版本规则](references/workspace-layout.md#交付与版本)归位：控制器collect含制作资料，留中间文件/deliveries暂存；另将实际教学产品与使用依赖按清单核验复制到最终产品/vNNN，笔记按篇放笔记素材/vNNN，商品主图及详情放商品详情/vNNN。各区README标当前版本和真实状态；待审候选/过程阅读版/审核记录留中间文件，不增加采用节点。JSON继续用逻辑路径，用户点击链接必须展开为实际文件位置。
 
 整课C7四类文档先按[已验证的结构与篇幅基准](../math-courseware-documents/references/teaching-pack-profile.md)区分教案、说课、师生逐字稿与学习单；逐字稿按环节展开，逐页核对而不强制每页单设标题。默认制作[学生课堂学习单](../math-courseware-documents/references/student-worksheet.md)，依据定稿课件与教学设计选核心任务，默认学生版，提供足够作答空间和实际可编辑中文DOCX；与其他配套放同一交付文件夹。用户明确省略除外，独立任务不扩范围。C8核真实文件与来源、内容、分页及交付副本，不能用三文稿导出成功代替学习单完成。
 
@@ -79,6 +84,8 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 课堂观看任务、教师接话、预留页、成片回填和播放由本入口协调plan/pages/documents/editable，统一按[视频与整课衔接](references/video-integration.md)执行；不要求视频编剧或导演为此新增课堂活动段落。
 
-课件收集前检查`collect`并执行现有收集命令；视频按[独立清单](../math-courseware-video/references/handoff.md)复制并核对，当前collect不收视频。收集阶段稿不要求整课完成；结束登记实际交付后，只有`complete`检查与对应实际教学、显示和播放核查均通过，才称当前范围或整课完成。分别说明“制作准备包”“成片已检查”“WPS播放已检查”等状态。发布、安装全局依赖、密钥配置和删除按用户授权处理。
+C8默认由用户用WPS导出当前整课视频，自行检查确认无误后提供本地地址。AI按[用户验收与交接规范](references/wps-export-review.md)只核文件可访问及版本、记录`user_report`并继续后续步骤，不重复审片或生成检查报告。会话已明确约定“检查后才交接”时，结合实际回传记录确认，不再追问同一结果；未来计划不提前当作已通过。其他项目复用同版有效记录，未确认范围保持实际状态，不因视频交接自动发起额外审查。
+
+课件收集前检查`collect`并执行现有收集命令；视频按[独立清单](../math-courseware-video/references/handoff.md)复制并核对，当前collect不收视频。收集阶段稿不要求整课完成；结束登记实际交付后，只有`complete`检查与对应实际教学、显示和播放核查均通过，才称当前范围或整课完成。分别说明“制作准备包”“成片已检查”“用户已确认导出视频无误”“实际点击/互动已检查”等实际状态，用户检查不表述为AI复核。发布、安装全局依赖、密钥配置和删除按用户授权处理。
 
 从头整课交付还必须逐项核对：全部必做视频实际成片、PPT中对应视频页与独立播放区域、实际插入/播放方式、片尾教师接话及三文稿一致。仅有占位页或教师代读时，可以交付“静态阶段稿（视频待回填）”，不得标为整套制作完成。无可用视频工具时先交完整人工制作操作包，继续已满足前置条件的PPT工作，成片回传与播放核查列为未完成事项。

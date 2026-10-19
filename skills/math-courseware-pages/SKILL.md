@@ -5,11 +5,11 @@ description: Plan exact per-slide teaching content and generate complete text-be
 
 # 页面内容、提示词与图片课件
 
-先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
+先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入中间文件，已有课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
-读取[页面规范](references/page-design.md)、[项目协议](../math-courseware-studio/references/project-contract.md)，生图时读[线路规则](../math-courseware-studio/references/image-routing.md)。控制器位于相邻总入口`scripts/courseware.py`。
+读取[页面规范](references/page-design.md)、[制作路线与来源核查](references/page-production.md)、[项目协议](../math-courseware-studio/references/project-contract.md)，生图时读[线路规则](../math-courseware-studio/references/image-routing.md)。控制器位于相邻总入口`scripts/courseware.py`。
 
 先读[共用流程](../math-courseware-studio/references/workflow.md)，保留项目目标并核本次任务范围。逐页内容、页面生图、图片课件导出开始前分别执行`workflow-check --project <目录> --step pages`、`--step page-image`、`--step image-export`；结束后登记实际产物/来源、检查及必要采用依据，再核下一动作：逐页稿交生图查`page-image`，整套图交导出查`image-export`，导出交可编辑或文稿查其对应步骤。
 
@@ -23,11 +23,13 @@ description: Plan exact per-slide teaching content and generate complete text-be
 
 从`pages.json`执行`render-prompts`，得到可见文字稿和固定五段式提示词。每页独立展开完整风格、角色和真实内容；生成的是带字完整PPT成品页。不要把用户另一段“85%留白底图”要求套给全部成品页。
 
-默认第1—3页试样，默认最多5页；必要时加关键复杂页并说明。确认试样后复用已通过图片，生成余页。参考资产以实际图片进入任务，不只在文字中提名。
+整课C5不得自行改成OfficeCLI/原生卡片排版；只生封面或角色不等于内容页已生图。逐页核真实生成、回传或合法复用来源，不把PPT渲染截图登记为生成结果。当前候选与采用页稿不一致时先核内容和版本，不能只按制作脚本的自报清单验收。用户明确改变路线或独立输入的边界按共用制作规范处理。
+
+默认第1—3页试样，默认最多5页；同组包含代表性数学/探究内容页，不能只有封面和视频页，必要时加关键复杂页并说明。沿用原试样确认节点，不增加确认轮次；复用已通过图片，生成余页。参考资产以实际图片进入任务，不只在文字中提名。
 
 逐页查看真实图片，核对文字、组数/每组数量、图形/数轴/统计关系、角色连续性和投屏层级；另逐项核对全部必做视频的预留页、页序和播放区域未缺失或被遮挡。发现问题局部修复，不把API成功当成页面通过。
 
-登记`page.image={path,sha256}`与检查证据，整套确认后登记当前页面记录和图片的批准；执行`export-slides`输出图片PPTX/PDF，再交给可编辑或文稿模块。进入可编辑制作时按[路线节点](../math-courseware-editable/SKILL.md)核明确A/B方向，缺选择才说明区别、询问并等待；整套图片采用或“继续”不是路线选择。已有同范围选择及明确无字分层PPT回填请求沿用。正式带字图片版导出和独立文稿不依赖路线选择。
+登记`page.image={path,sha256}`与检查证据，整套确认后登记当前页面记录和图片的批准；执行`export-slides`输出图片PPTX/PDF。导出完成后先按[带字图片版实物查看](../math-courseware-studio/references/workflow.md#带字图片版实物查看)把实际PPTX/PDF直链和完整知识预览交给用户，收到查看后的继续或修改意见再进入去字/可画等下游；不能只在过程记录或下游页面里放链接。进入可编辑制作时按[路线节点](../math-courseware-editable/SKILL.md)核明确A/B方向，缺选择才说明区别、询问并等待；整套图片采用或“继续”不是路线选择。已有同范围选择及明确无字分层PPT回填请求沿用。正式带字图片版导出和独立文稿不依赖路线选择。
 
 前面的带字页试样安排不适用于B去字交接。用户选B后，交editable完成全部页面去字，再按原课件页序一页一图生成完整PPTX；不得把带字页试样数量当作去字制作范围，具体按[全页交接规范](../math-courseware-editable/references/canva-handoff.md)执行。
 

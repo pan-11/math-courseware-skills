@@ -5,7 +5,7 @@ description: Use after source analysis when primary-school math courseware needs
 
 # 整课教学蓝图、情境与共享资产
 
-先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
+先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入中间文件，已有课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
@@ -13,7 +13,11 @@ description: Use after source analysis when primary-school math courseware needs
 
 先按[共用流程](../math-courseware-studio/references/workflow.md)核项目目标、本次范围及实际分析成果。制作蓝图、封面、共享资产前，分别执行`workflow-check --project <目录> --step blueprint`、`--step cover`或`--step asset`；结束后登记实际产物、来源、内部核查及必要采用依据，再检查下一实际动作的前置。整课蓝图交视频时检查`video-script`及具体视频ID。独立方案/资产任务只核当前必需输入，不补整课历史。
 
-默认提出3套可比较的情境，说明任务链、教学收益、角色地点和制作负担。已有情境时给同一情境的少量故事走向，已有故事时直接补缺口；不要求用户先交故事。推荐一稿，写明人物、目标、困难、因果事件、数学问题和学生行动，供用户审阅。用户选定后把每个事件与数学问题绑定；缺教材数据明确标注自拟示例或待补信息，不能伪装成原题。优先确认事件、条件和核心数据，视频表演与镜头由[视频模块](../math-courseware-video/SKILL.md)细化。
+情境选择的聊天回复、`scenario-options.md`及其阅读版，默认按“原课情境→候选与原课差异→推荐理由”呈现，遵循[原课情境对照](references/story-and-assets.md#原课情境对照)。即使C1已讲过原故事，当前选择材料仍须给出简述，便于直接比较。
+
+重做课件时，情境方向可以与原课相同，具体故事内容不能照搬。按[同方向重新编故事](references/story-and-assets.md#同方向重新编故事)设计新的任务、冲突、事件和对白，保留必要数学条件；在候选对照中说明内容的实质变化。
+
+默认提出3套可比较的情境，说明任务链、教学收益、角色地点、制作负担及与原课的异同。已有情境时给同一情境的少量故事走向，已有故事时直接补缺口；不要求用户先交故事。推荐一稿，写明人物、目标、困难、因果事件、数学问题和学生行动，供用户审阅。用户选定后把每个事件与数学问题绑定；缺教材数据明确标注自拟示例或待补信息，不能伪装成原题。优先确认事件、条件和核心数据，视频表演与镜头由[视频模块](../math-courseware-video/SKILL.md)细化。
 
 从头整课必须产出`planning/whole-course-plan.md`（已有版本化同类文件可沿用），把已选故事合入完整教学蓝图：
 

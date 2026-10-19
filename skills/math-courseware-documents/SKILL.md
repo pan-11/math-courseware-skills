@@ -5,7 +5,9 @@ description: Create teaching documents, student worksheets and blackboard sticke
 
 # 配套教学文稿、学习单与黑板贴
 
-按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)沿用户给定课程根制作；源稿、分页检查与制作版本进入02_work，已核文稿/学习单/黑板贴及使用依赖交03_final/vNNN。记录路径与点击链接按规范区分，旧课不自动迁移。
+接入PPT先按[页面制作路线与来源核查](../math-courseware-pages/references/page-production.md)辨明范围。本课整课推进中，已知未完成C5的AI候选不能自行当作外部已完成PPT制作最终配套；回到实际缺口，不能改模式绕过。用户明确指定外部成品、独立资料或提前草稿时保留原接入规则，不要求重做上游。
+
+按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)沿用户给定课程根制作；源稿、分页检查与制作版本进入中间文件，已核文稿/学习单/黑板贴及使用依赖交最终产品/vNNN。记录路径与点击链接按规范区分，旧课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 

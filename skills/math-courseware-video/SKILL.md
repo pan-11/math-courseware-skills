@@ -7,7 +7,7 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 仅当本课自动run显式选择 `grouped_creative_v1` 且当前范围仍为full_course时，按[D1分组协议](../math-courseware-autopilot/references/grouped-creative-review.md)组织两次整组采用：全部剧本/实图/共享资产与讲话实包一组，全部运镜导演/正式板及实际完整准备一组。下文原小节点仅在此条件下合并；手动、旧run和独立模块不变。不把局部或review pass当整组采用，不给未生成文件预先授权。
 
-先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
+先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入中间文件，已有课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
@@ -59,7 +59,7 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 每次完成视频提示词、参考图等素材准备后，按[主动聊天交付要求](../math-courseware-video-prompts/references/delivery-reply.md#每次完成后主动发到当前聊天)在当轮主动展示实图并发出全部素材/完整TXT及使用顺序，不等待用户追问。首次、修订和恢复补交都适用；自动推进先交付再续作，文件夹、日志或总览链接不能代替聊天正文交付，也不因此增加确认轮次。
 
-视频制作材料的最后一步统一按[交付回复模板](../math-courseware-video-prompts/references/delivery-reply.md)输出：开头明确第几个视频及可制作状态，再给步骤/产物、编号实图表、逐次完整TXT/时长/上传图号表、各视频素材文件夹与必要操作说明。两条路线及重新交付都适用，多片按实际播放顺序标序号；缺项不宣称现在可开工。
+视频制作材料的每次交付都套用[唯一固定模板](../math-courseware-video-prompts/references/delivery-reply.md#唯一固定模板)：平台/模型 → 步骤/产物 → 总入口 → 编号图片表 → 逐次完整TXT表 → 各片目录 → 操作与真实状态。顺序、列名和必交项固定，只替换实际内容；两条路线及修订补交共用。多片按实际播放顺序标序号，准备稿保持真实缺项，不另起可开工式开头或只给总链接。
 
 每轮将实际图片、完整台词、提示词、映射和简明使用说明平铺到同一普通素材文件夹，直接给文件夹和关键文件链接，不自动压缩。由总入口执行[目录、依赖和恢复约定](references/handoff.md)，专业模块不各建第二套权威记录。
 

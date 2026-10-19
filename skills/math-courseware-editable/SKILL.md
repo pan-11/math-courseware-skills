@@ -7,7 +7,7 @@ description: Prepare Canva layer-splitting handoffs and edit returned layered ma
 
 仅显式 `grouped_creative_v1` 的full_course自动run，按[D1最终清单](../math-courseware-autopilot/references/grouped-creative-review.md)在C6展示整套真实可编辑结果与具体限制，不另排H19；H23再以同版实机报告检查独立文字/教学图形、视频区/分层、字体换行遮挡及全课使用效果。保留全部A/B选择、去字、可画往返、实际成片与播放门槛；其他模式不变。
 
-先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入02_work，已有课不自动迁移。
+先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入中间文件，已有课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
@@ -16,6 +16,8 @@ description: Prepare Canva layer-splitting handoffs and edit returned layered ma
 先读[共用流程](../math-courseware-studio/references/workflow.md)，分别保留项目目标与本次任务范围。交接、回传接收、文字加工开始前分别执行`workflow-check --project <目录> --step editable-handoff`、`--step editable-import`、`--step editable-build`；完成后登记真实产物、来源版本、检查和制作授权，再核下一动作：实际回传到位查`editable-import`，准备加工查`editable-build`，交付查`collect`或对应范围的`complete`。
 
 从头整课推进需核已采用蓝图、全部视频准备和当前图片课件，页面已预留视频区；缺项按[恢复规则](../math-courseware-studio/references/recovery.md)回对应模块。独立回填/校正或明确局部维护只核实际PPT、正确文字、页序/位置与图层，不以无关视频、故事或整课JSON阻断。
+
+按[页面制作路线与来源核查](../math-courseware-pages/references/page-production.md)接收整课页图：可编辑要求不能成为省略完整页生图的理由，本课AI原生排版的未完成稿不能自行登记成外部成品。核当前页稿、真实页图和交接/回传的页码对应；拆层后不以每页picture数量验收。已有合法来源、明确A/B方向和同版确认直接沿用，不新增样页或批准节点。
 
 外部已拆层PPT可直接接入后半段：保护原件，核对象与页序，从可靠逐页文字建立执行器需要的最小页面/文字记录及来源映射，随后导入、加工和逐页检查。带字参考提供几何/视觉依据，不替代正确文字；缺正确文字时只指出具体页的缺口。不重做原课分析、去字或可画拆层，也不批准空故事/数学或虚构原生成记录。
 
@@ -57,6 +59,6 @@ description: Prepare Canva layer-splitting handoffs and edit returned layered ma
 
 文字整套回填继续执行，不为视频再设样页确认。成片未回传时交付明确标注的视频待回填阶段稿，播放区域不能省略；已有页稿漏留视频页时回pages提出具体调整，保持总页数及已确认内容的边界，不在交付时静默加页。工具不能建立区域或插入媒体时给出对应页的具体人工步骤并记录未完成，不能只凭计划对象标记实物通过。
 
-实际视频回传后，在预留页工作副本中用可用工具插入，或按已选人工播放方式交接；记录实际媒体对象/播放方式、文件哈希、位置尺寸、海报及完整声音/片尾接话检查。课堂播放以用户实际WPS/PPT环境的证据为准；文件复制、缩略图或静态PDF不构成播放验收。已有同范围A/B选择和已验收文字沿用，不因此重问路线或重复全套回填。
+实际视频回传后，在预留页工作副本中用可用工具插入，或按已选人工播放方式交接；记录实际媒体对象/播放方式、文件哈希、位置尺寸、海报及完整声音/片尾接话检查。C8默认由用户用WPS导出整课视频，自行检查确认后发本地地址，AI按[用户验收与交接规范](../math-courseware-studio/references/wps-export-review.md)登记文件版本与user_report并继续，不重复审片、生成报告或追问同一确认；实际点击/互动和可编辑对象沿用其有效记录。文件复制、缩略图或静态PDF不构成播放验收。已有同范围A/B选择和已验收文字沿用，不因此重问路线或重复全套回填。
 
 自动run先读取有效editable.route/entry/evidence，复用本课已有A/B及full整套或returned回传接入选择，不再次询问。该偏好不代替真实回传文件、整套制作授权或验收；若与后续workflow.route_choice冲突，按真实指令run-configure协调后执行。

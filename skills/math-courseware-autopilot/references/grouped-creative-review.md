@@ -48,11 +48,13 @@ shared-assets.files 必须包含本轮真实选中图、实际共享资产及权
 
 成员收到后续否决或部分意见后，单独重新批准该成员不能恢复旧整组采用；须对当前完整组记录新的实际人工意见。失效按C的持久事件顺序判定，不依赖墙上时间或当前逐文件 approved 状态；同次整组意见重复回传仍只记一票。
 
-## C6展示、H23实机验收
+## C6展示、H23导出回传与最终检查
+
+分组策略不跳过C5导出后的[带字图片版实物查看](../../math-courseware-studio/references/workflow.md#带字图片版实物查看)：先交实际完整PPTX/PDF及适用的后显知识预览，收到针对该版的继续或修改意见再进C6。此前页图采用和A/B选择不代替这次文件交付；有真实同版交付与继续记录时直接沿用，不重复设采用轮次。
 
 C6仍实际完成整套可编辑课件，展示真实 PPTX 和具体限制；在 `stages.editable.files` 保存 `pptx` 与 `limitations` 真实文件。本策略不另排 H19 人工任务，原代码本来也没有独立 H19 approved 门槛可删。A/B路线、全套去字H17、可画操作与回传H18照旧。
 
-H23是 `kind:human, step:complete` 的最终实机任务。它在整套文件及前置采用齐备后展示 `final_checklist` 和 `input_versions`，此时可以还没有本次实机报告；只能说“待检查”。收到同版真实报告后，completed 和 workflow complete 仍完整执行原成片/播放/来源/可编辑/documents/delivery门槛。
+H23是 `kind:human, step:complete` 的最终检查任务。默认人工操作是用WPS导出当前整课视频、自行检查确认无误后提供地址，AI按[用户验收与交接规范](../../math-courseware-studio/references/wps-export-review.md)核接收版本并登记user_report，不再追加AI复审任务或审片报告。已有“检查后交接”约定与实际回传可合记，无需再问同一确认。同版其他已查项复用，未覆盖项目保留真实状态；最终清单`final_checklist`、`input_versions`及原七项不变。确认覆盖本节点全部适用范围且原成片/播放/来源/可编辑/documents/delivery门槛通过后，才能completed；未来检查计划或仅视频确认不推断为全节点完成。
 
 同版 WPS/实际检查报告的 `checks` 逐项记录实际核查为 true，并由原 `inspection:actual|user_report`、basis和 source_versions绑定实际文件：
 
@@ -62,8 +64,8 @@ H23是 `kind:human, step:complete` 的最终实机任务。它在整套文件及
 | teaching_graphics | 必要教学图形是否独立对象及可操作 |
 | video_regions_layers | 视频独立播放区、分层与遮挡 |
 | fonts_wrapping_overlap | 字体、换行、溢出和遮挡 |
-| all_pages_animations | 全部页面与需要的动画，不能只看封面 |
-| all_video_playback_audio | 所有实际成片在最终课件中播放与听音 |
+| all_pages_animations | 全部页面与需要的动画；可采用用户对同版导出视频的检查确认，AI不重复核查；实际单击触发按其已有操作记录 |
+| all_video_playback_audio | 所有实际成片在最终课件中的完整音画；可采用用户对当前整课导出视频的完整检查确认，保存真实范围并使用user_report |
 | interactive_worksheet_blackboard | 实际互动、学习单及黑板贴的课堂使用效果；无某类互动时具体说明范围，默认学习单/黑板贴照常交 |
 
 source_versions覆盖当前 pages、editable、documents 中全部文件、全部最终视频以及 delivery.files 中实际交付成品；将实际学习单、黑板贴及本课选用互动入口/依赖放入文稿或交付的真实清单后逐项实查，不以三篇教师稿代替。delivery.files 的 wps/manifest 角色及其文件路径是本次检查报告/清单元数据，不进入待验实物输入，避免报告采用自己；其他交付文件在派发前须真实存在且版本匹配，完成时须被同版报告覆盖。结构/文件检查不能证明这些人机实测已经发生。每段final仍需实际media＋playback并绑定最终PPT。queue_complete一直不等于整课完成。

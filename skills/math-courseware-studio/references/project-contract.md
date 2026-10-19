@@ -4,7 +4,7 @@
 
 ## 执行与目录
 
-先读[每课四目录规范](workspace-layout.md)。新课根目录由用户开工提供，Skill初始化显式使用`--layout four-folders`；根保留AGENTS/HANDOFF，原始资料、过程文件、教学产品、笔记分别归01_source/02_work/03_final/04_notes。旧课保留旧结构。以下表格、JSON和专业参考中的inputs/planning/_state等均为逻辑路径，实际文件操作与点击链接按四目录映射展开；所有命令的--project仍是课程根。
+先读[每课五目录规范](workspace-layout.md)。新课根目录由用户开工提供，Skill初始化显式使用`--layout five-folders`；根保留AGENTS/HANDOFF，原始资料、过程文件、教学产品、笔记、商品图分别归原始资料/中间文件/最终产品/笔记素材/商品详情；已有同名目录复用、缺少才创建。旧课保留旧结构。以下表格、JSON和专业参考中的inputs/planning/_state等均为逻辑路径，实际文件操作与点击链接按五目录映射展开；所有命令的--project仍是课程根。
 
 整个十二Skill源码集合放在同一父目录，专业Skill通过相邻`math-courseware-studio/scripts/courseware.py`定位执行器。路径相对于当前课件项目，调用时传项目绝对路径；包内不写某台机器的Python、字体或用户名路径。
 
@@ -24,7 +24,7 @@
 | editable/handoff、returned、output | 可画交接、原始回传副本、修改结果 |
 | documents | 三类教师文稿的版本化输出；worksheet-vNNN保存[学生学习单](../../math-courseware-documents/references/student-worksheet.md)来源/任务对应、源稿、实际DOCX、分页检查和manifest，旧版本不覆盖 |
 | _state | 权威记录、确认、变更、任务、坐标、文稿源和检查 |
-| deliveries | 控制器收集的副本与清单；新课实际为02_work/deliveries暂存，教学最终产品与笔记另按清单分别交03_final、04_notes |
+| deliveries | 控制器收集的副本与清单；新课实际为中间文件/deliveries暂存，教学最终产品、笔记与商品图另按清单分别交最终产品、笔记素材、商品详情 |
 
 不自动清理旧版。原稿不覆盖，发布与全局安装另按实际授权处理。
 
@@ -122,7 +122,7 @@
 
 | 命令 | 参数 | 用途 |
 |---|---|---|
-| init | --title TEXT --layout four-folders [--route builtin/openai_image_api] | 新课四目录；不覆盖/迁移已有项目，省略layout仅保留旧脚本兼容 |
+| init | --title TEXT --layout five-folders [--route builtin/openai_image_api] | 新课五目录；不覆盖/迁移已有项目，省略layout仅保留旧脚本兼容 |
 | status / validate | 无额外参数 | 读取进度/检查引用和哈希 |
 | workflow-check | --step STEP [--video-id ID] | 只读检查本次范围的实际依赖，返回允许项、缺失/过期产物及可继续步骤；步骤名见共用流程 |
 | record-approval | --record FILE | 记录实际用户批准 |
@@ -156,7 +156,7 @@ run.json的limits.max_images默认60；image_budget保存记账起点、旧用�
 
 有active run时，record-approval仍按真实targets/SHA256和user_evidence写采用或否决；可附stage/human_node/task_id/video_id、实际human_reason或null，以及本次实际展示的review_packet或review_packets。只核指定报告，必须同版本、同来源且完整覆盖决定的产物整组；无审核、未验证、范围或版本不符均未配对，不新增等待。先在共享锁内冻结审核快照，再写人工决定，避免否决使当时有效报告丢失。
 
-`decisions.jsonl`条目的calibration_event或run的保留revision先保存原快照，再追加本run的`calibration.jsonl`。新课物理位置为`02_work/_state/automation/runs/<run-id>/calibration.jsonl`，旧课沿原布局；哈希清单保持逻辑路径。恢复只补缺失event_id，run-status只读显示缺口与分阶段统计，不按新文件或晚到报告改写历史。
+`decisions.jsonl`条目的calibration_event或run的保留revision先保存原快照，再追加本run的`calibration.jsonl`。新课物理位置为`中间文件/_state/automation/runs/<run-id>/calibration.jsonl`，旧课沿原布局；哈希清单保持逻辑路径。恢复只补缺失event_id，run-status只读显示缺口与分阶段统计，不按新文件或晚到报告改写历史。
 
 事件ID表示一次实际发生；旧decision_id可能在approve→reject→approve时复用，不能当唯一发生次数。event_seq在共享锁内按全部持久快照最大序号递增（包括run指针中断前已落盘的revision），恢复沿用原序号；时间戳只展示，不用时钟先后判断旧链接是否失效。人工回执用decision_id及必要的decision_event_id关联同一次同版决定；反向顺序可显式human_event_id关联首次实际回执。后续改口保留新事件；同版、同实际意见/原话仅补审核引用、阶段节点或理由注释时，保留原事件及原配对状态。显式来源链接先验证，不能借补注吞掉旧/错链接。详见[队列协议](../../math-courseware-autopilot/references/queue-contract.md#human-calibration-records)。
 

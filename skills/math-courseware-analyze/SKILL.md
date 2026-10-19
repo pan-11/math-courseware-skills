@@ -5,7 +5,7 @@ description: Use when a primary-school math courseware task starts from an uploa
 
 # 课件与教学材料分析
 
-先按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)核用户给定课程地址：原样输入归01_source，提取/抽帧/分析报告和核查记录归02_work。单个PPT或链接不直接当课程根；已有课按原布局继续。
+先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)核用户给定课程地址：原样输入归原始资料，提取/抽帧/分析报告和核查记录归中间文件。单个PPT或链接不直接当课程根；已有课按原布局继续。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
