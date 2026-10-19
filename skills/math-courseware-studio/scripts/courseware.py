@@ -17,15 +17,14 @@ def validate_editable_authority(project, plan):
     if text_refill and set(mapping) != set(pages):
         raise ValueError('Full text-refill must cover every page')
     units = plan.get('text_units', [])
-    from runtime.pptx_editor import expand_text_units
+    from runtime.pptx_editor import expand_text_units, legacy_refill_replay
+    from runtime import refill_modes
     expanded = expand_text_units(units)
+    legacy_replay = legacy_refill_replay(project, plan)
+    coverage = refill_modes.validate_content(pages, plan, legacy_replay=legacy_replay)
     for page_id in mapping:
-        source = {u['unit_id']: u['text'] for u in pages[page_id].get('text_units', [])}
-        selected = [u for u in units if u['page_id'] == page_id]
-        actual = {u['unit_id']: u['text'] for u in selected}
-        if len(actual) != len(selected) or source != actual:
-            raise ValueError(page_id + ': editable plan must cover every authoritative text unit exactly')
-        required = {x['object_id'] for x in pages[page_id].get('native_objects', []) if x.get('required', True)}
+        required = refill_modes.native_required(pages[page_id],
+            'teaching_reveal' if legacy_replay else coverage['page_modes'][page_id])
         legacy = pages[page_id].get('editable_objects', [])
         text_roles = {u.get('role') for u in pages[page_id].get('text_units', [])}
         for item in legacy:
@@ -44,6 +43,11 @@ def validate_editable_authority(project, plan):
             raise ValueError(page_id + ': independently editable math objects still need mapping: ' + ', '.join(sorted(required - provided)))
     if any(u['page_id'] not in mapping for u in units):
         raise ValueError('Text unit page is outside the reviewed page mapping')
+    for page_id in mapping:
+        reference = pages[page_id].get('image')
+        if reference and state.sha256(state.resolve(project, reference['path'])) != reference['sha256']:
+            raise ValueError(page_id + ': text-bearing reference image changed')
+    return coverage
 
 
 def parser():
@@ -169,6 +173,8 @@ def execute(args):
         plan = state.read_json(args.plan)
         validate_editable_authority(project, plan)
         result = pptx_editor.build_editable(project, plan)
+        if result.get('idempotent') and pptx_editor.legacy_refill_replay(project, plan):
+            return result  # Historical output reuse must not refresh its original provenance.
         versions = {path: state.sha256(state.resolve(project, path))
                     for path in workflow.basis_paths(project)}
         versions[plan['source_deck']] = plan['source_sha256']

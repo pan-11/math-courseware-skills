@@ -17,10 +17,11 @@ import zipfile
 
 from lxml import etree as ET
 if __package__:
-    from . import errors, state
+    from . import errors, state, refill_modes
 else:
     import errors
     import state
+    import refill_modes
 
 NS = {"p": "http://schemas.openxmlformats.org/presentationml/2006/main",
       "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
@@ -287,6 +288,7 @@ def _office(args):
 
 
 def _review(project, plan):
+    modes = refill_modes.resolve_modes(plan)
     if "authorization" in plan:
         if "review" in plan:
             raise ValueError("Choose authorization or historical review, not both")
@@ -303,6 +305,8 @@ def _review(project, plan):
                 or any(not isinstance(data.get(key), str) or not data[key].strip()
                        for key in ("requested_by", "user_instruction", "evidence_ref"))):
             raise ValueError("Direct authorization does not cover this source and page range")
+        if ('teaching_reveal' in modes.values() or 'refill_modes' in data) and data.get('refill_modes') != modes:
+            raise ValueError('Direct authorization does not cover the selected refill modes')
         return
     review = plan.get("review", {})
     if review.get("confirmed") is not True:
@@ -316,7 +320,7 @@ def _review(project, plan):
 
 
 def expand_text_units(units):
-    expanded, logical_ids = [], set()
+    expanded, logical_ids, references = [], set(), []
     for unit in units:
         key = (unit["page_id"], unit["unit_id"])
         if key in logical_ids:
@@ -334,6 +338,12 @@ def expand_text_units(units):
                 or (mode == "instances" and any(s["text"] != unit["text"] for s in segments))):
             raise ValueError("Text " + mode + " must preserve the authoritative unit exactly")
         for segment in segments:
+            if "reuse_object_id" in segment:
+                if (mode != "segments" or set(segment) != {"reuse_object_id", "text"}
+                        or not isinstance(segment["reuse_object_id"], str) or not segment["reuse_object_id"]):
+                    raise ValueError("Shared text segments need only reuse_object_id and exact text")
+                references.append((unit["page_id"], segment["reuse_object_id"], segment["text"]))
+                continue
             if not isinstance(segment.get("object_id"), str) or not segment["object_id"]:
                 raise ValueError("Text segments need nonempty object_id")
             if "page_id" in segment or "unit_id" in segment:
@@ -341,13 +351,34 @@ def expand_text_units(units):
             value = {k: v for k, v in segment.items() if k != "object_id"}
             value.update(page_id=unit["page_id"], unit_id=segment["object_id"])
             expanded.append((value, unit["unit_id"]))
+    objects = {(unit["page_id"], unit["unit_id"]): unit["text"] for unit, _ in expanded}
+    if len(objects) != len(expanded):
+        raise ValueError("Duplicate text object name")
+    for page_id, object_id, text in references:
+        if objects.get((page_id, object_id)) != text:
+            raise ValueError("Shared text must match an existing same-page object exactly")
     return expanded
+
+
+def legacy_refill_replay(project, plan):
+    """Recognize only an unchanged, already-built pre-mode output; never infer a new mode."""
+    if 'refill_mode' in plan or 'page_modes' in plan or not plan.get('output'):
+        return False
+    output = _inside(project, plan['output'])
+    report_path = output.with_suffix('.report.json')
+    if not output.is_file() or not report_path.is_file():
+        return False
+    report = json.loads(report_path.read_text(encoding='utf-8'))
+    return ('refill' not in report and report.get('plan_sha256') == plan_digest(plan)
+            and report.get('output_sha256') == sha256(output)
+            and report.get('source_sha256') == plan.get('source_sha256'))
 
 
 def build_editable(project, plan):
     _review(project, plan)
     _known_fields(plan, {"source_deck", "source_sha256", "output", "mapping", "review", "authorization", "text_units",
-                         "required_native_objects", "build_scope", "remaining_native_objects"}, "plan")
+                         "required_native_objects", "build_scope", "remaining_native_objects",
+                         "refill_mode", "page_modes"}, "plan")
     scope = plan.get("build_scope", "complete")
     if scope not in {"complete", "text-refill"}:
         raise ValueError("Unsupported build_scope")
@@ -376,12 +407,33 @@ def build_editable(project, plan):
         if report.get("plan_sha256") != digest or report.get("output_sha256") != sha256(output):
             raise ValueError("Output was manually modified or belongs to another plan")
         return {**report, "idempotent": True}
+    expanded_units = expand_text_units(plan.get('text_units', []))
+    pages_path = state.resolve(project, '_state/pages.json')
+    authoritative = pages_path.is_file()
+    if authoritative:
+        pages = {p['page_id']: p for p in state.read_json(pages_path)['pages']}
+    else:
+        if 'teaching_reveal' in refill_modes.resolve_modes(plan).values():
+            raise ValueError('Teaching reveal requires authoritative initial/reveal text records')
+        pages = {page_id: {'page_id': page_id, 'text_units': [u for u in plan.get('text_units', [])
+                   if u['page_id'] == page_id]} for page_id in mapping}
+    if set(mapping) - set(pages):
+        raise ValueError('Editable plan maps unknown authoritative pages')
+    coverage = refill_modes.validate_content(pages, plan)
+    coverage.update(authoritative_sources_verified=authoritative,
+                    source_pages_sha256=sha256(pages_path) if authoritative else None,
+                    reference_images={page_id: pages[page_id]['image'] for page_id in mapping if pages[page_id].get('image')},
+                    visual_verification='unverified',
+                    teaching_animation='pending' if 'teaching_reveal' in coverage['page_modes'].values() else 'not_requested')
+    for page_id, reference in coverage['reference_images'].items():
+        if sha256(_inside(project, reference['path'])) != reference['sha256']:
+            raise ValueError(page_id + ': text-bearing reference image changed')
     operations, names, targets = [], set(), set()
     for slide in before["slides"]:
         existing_names = [shape["name"] for shape in slide["shapes"]]
         if len(existing_names) != len(set(existing_names)):
             raise ValueError("Duplicate source shape names require review")
-    for unit, source_unit_id in expand_text_units(plan.get("text_units", [])):
+    for unit, source_unit_id in expanded_units:
         font, paragraph = _format(unit)
         page_id, unit_id = unit["page_id"], unit["unit_id"]
         if page_id not in mapping or not isinstance(unit_id, str) or not unit_id:
@@ -502,6 +554,11 @@ def build_editable(project, plan):
             raise ValueError("Non-target ZIP part changed")
     if sha256(source) != before["source_sha256"]:
         raise ValueError("Source changed during build")
+    if authoritative and sha256(pages_path) != coverage['source_pages_sha256']:
+        raise ValueError('Authoritative text changed during build')
+    for page_id, reference in coverage['reference_images'].items():
+        if sha256(_inside(project, reference['path'])) != reference['sha256']:
+            raise ValueError(page_id + ': text-bearing reference image changed during build')
     validation = _office(["validate", candidate])
     with output.open("xb") as handle:
         handle.write(candidate.read_bytes())
@@ -511,7 +568,7 @@ def build_editable(project, plan):
               "source_unchanged": True, "wps_render": "unverified", "idempotent": False,
               "officecli_validation": validation, "work_directory": state.relative_path(project, work_dir)}
     report.update(build_scope=scope, remaining_native_objects=remaining,
-                  full_editability_verified=scope == "complete" and not remaining)
+                  full_editability_verified=scope == "complete" and not remaining, refill=coverage)
     (work_dir / "officecli-log.json").write_text(json.dumps(command_log, ensure_ascii=False, indent=2), encoding="utf-8")
     for name, value in (("reviewed-plan.json", plan), ("source-inventory.json", before), ("output-inventory.json", after)):
         (work_dir / name).write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")

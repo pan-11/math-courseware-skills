@@ -1,6 +1,6 @@
 ---
 name: math-courseware-editable
-description: Prepare manual Canva layer-splitting handoffs and edit returned layered PPTX files for primary-school math courseware. Correct existing native text or refill text-free slides with OfficeCLI while preserving original layers.
+description: Prepare Canva layer-splitting handoffs and edit returned layered math PPTX files. Default to faithful reference restoration with inline, colored, click-to-reveal blank answers while preserving original layers.
 ---
 
 # 可画拆层与可编辑PPT
@@ -11,7 +11,7 @@ description: Prepare manual Canva layer-splitting handoffs and edit returned lay
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
-读取[可画交接](references/canva-handoff.md)和[文字与几何](references/text-and-geometry.md)。控制器位于相邻`math-courseware-studio/scripts/courseware.py`；先运行`doctor`确认OfficeCLI。
+读取[可画交接](references/canva-handoff.md)、[默认回填组合与底层模式](references/refill-modes.md)和[文字与几何](references/text-and-geometry.md)。控制器位于相邻`math-courseware-studio/scripts/courseware.py`；先运行`doctor`确认OfficeCLI。
 
 先读[共用流程](../math-courseware-studio/references/workflow.md)，分别保留项目目标与本次任务范围。交接、回传接收、文字加工开始前分别执行`workflow-check --project <目录> --step editable-handoff`、`--step editable-import`、`--step editable-build`；完成后登记真实产物、来源版本、检查和制作授权，再核下一动作：实际回传到位查`editable-import`，准备加工查`editable-build`，交付查`collect`或对应范围的`complete`。
 
@@ -37,17 +37,19 @@ description: Prepare manual Canva layer-splitting handoffs and edit returned lay
 
 由用户手动导入可画、逐页AI拆层、导出PPTX。用交接清单、页标题和实际预览核对映射，不按文件出现顺序猜页码。接收原稿后执行`canva-import`保存副本和对象清单。
 
-整课正确文字来自已确认`pages.json`；外部成品来自本次可靠文字来源，核对后整理为同样的最小文字索引并保留来源。带字图提供几何与视觉参考，提示词补充设计意图。分别建立文字单元、原生/图片归属、坐标计划；标题、题干、答案、步骤、关键数学标签分开。默认KaiTi，显式中文字体槽、逐单元字号及段落设置，不自动缩小塞字。
+整课正确文字来自已确认`pages.json`；外部成品来自本次可靠文字来源，核对后整理为同样的最小文字索引并保留来源。带字图提供几何与视觉参考，提示词补充设计意图。分别建立文字单元、原生/图片归属、坐标计划；标题、题干、答案、步骤、关键数学标签分开。先沿用本课已确认字体约定，再匹配原图可用字体；仍缺可靠依据时用KaiTi。显式中文字体槽、逐单元字号及段落设置，不自动缩小塞字。
 
 ## 回传后直接整套回填
 
+默认交付**忠实复原＋原位填空答案逐个点击出现**：先以`faithful_restore`恢复原图初始文字与版式，再由AI给已有明确作答位补确定的可编辑答案，默认深红色、放映初始隐藏、每次单击出现一个且累计保留。复用题干和原空位，不新增答案底板；无需再问是否加答案或做样页。明确纯复原、保留空白或无答案学生版时只做基础复原；开放题/不确定答案逐项说明。完整`teaching_reveal`讲解及图示后显仍按明确范围执行。这个组合独立于A/B路线，当前底层执行器只处理文字，AI须继续实际完成动画并核验；新旧版本分开，已交版本不追溯重做。具体流程、字段和验收见[模式规范](references/refill-modes.md)。
+
 核对真实回传页序后，直接规划并回填当前课件全部页面的文字，完成后统一逐页检查和交付。**不再设置单页原生文字试样、字体/坐标预览采用等前置确认节点，也不得做完一页就停下来等用户答复。** 已有样页或已通过坐标可直接复用；内部校准和分批执行不改变整套交付范围。只有用户主动要求先看样页或限制范围时才按其要求暂停。
 
-记录真实整套制作指令，作为`editable-build`的`authorization`依据；制作授权与对未来效果的采用分开，不伪造样页确认。默认整套文字阶段使用`build_scope:text-refill`，必须覆盖全部页及全部定稿文字单元；算式分片逐字拼回原单元。未拆开的数学图形逐项列入`remaining_native_objects`及报告，继续完成文字，不把该报告称为所有图形都已独立的最终验收。后续完整图层验收仍核查必要独立对象。
+记录真实整套制作指令，作为`editable-build`的`authorization`依据；制作授权与对未来效果的采用分开，不伪造样页确认。默认基础文字阶段使用`build_scope:text-refill`，必须覆盖全部页及各页底层模式要求的定稿文字；原位答案另存来源/验算、对象和点击计划，连续完成后再交默认组合。其他原图外后显按明确范围保留或实现，不删除权威单元。算式分片含共享片段须逐字拼回原单元。未拆开的适用数学图形逐项列入`remaining_native_objects`及报告，继续完成文字，不把该报告称为所有图形都已独立的最终验收。后续完整图层验收仍核查必要独立对象。
 
 编辑器只处理回传副本，不清空课件、不以整页图片覆盖图层。不支持的对象先记录具体限制，不能静默扁平化。
 
-回读每个文字单元和原图层；检查WPS显示、手动动画所需的独立对象。当前本地结构验证与真实WPS/可画验证分开记录。文案或题目有改动需同步上游及文稿，纯动画不改文稿。
+回读每个文字单元和原图层；检查答案、原生动画目标/顺序及WPS显示。当前本地结构验证、静态步骤和真实单击播放分开记录。文案或题目有改动需同步上游及文稿，纯动画不改文稿。
 
 ## 视频页与成片回填
 

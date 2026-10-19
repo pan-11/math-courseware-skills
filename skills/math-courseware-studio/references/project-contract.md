@@ -114,7 +114,7 @@
 
 产物注册使用`state.register_artifact(project,id,path,dependencies,metadata)`：依赖填写实际使用的数学ID、页面ID及相关权威记录路径，metadata记录`source_versions`（路径到哈希）及审查状态。仅坐标改变不使故事和数学记录失效。不要在生成期间修改全局权威数据。
 
-真实回传核对后直接整套回填；制作授权独立记录，不以单页样页采用或坐标批准作为前置。`editable-build`的authorization绑定真实用户指令、源文件和全部页ID；text-refill范围严格覆盖全页全文，图形粒度缺口单列，不能将文字成功混同全部图形验收。
+真实回传核对后直接整套回填；制作授权独立记录，不以单页样页采用或坐标批准作为前置。`editable-build`的authorization绑定真实用户指令、源文件和全部页ID；按[默认组合与底层模式](../../math-courseware-editable/references/refill-modes.md)，先以faithful_restore恢复基础文字，再由宿主按独立原位答案计划实际补异色单击答案；明确纯复原/无答案版省略第二阶段。现有CLI的两个模式枚举不变，完整teaching_reveal另按明确范围，不虚构新参数。text-refill严格覆盖全页及底层模式要求的全文，延后文字原文保留，最终答案与其来源另映射，图形粒度缺口单列，不能将基础文字成功混同默认组合完成或全部图形/实际播放验收。旧成品不因默认值变化而迁移重建。
 
 ## 命令接口
 
