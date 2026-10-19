@@ -1,15 +1,15 @@
 ---
 name: math-courseware-documents
-description: Create teaching documents, student worksheets and electronic blackboard stickers from a locked primary-school math courseware deck. Use for classroom scripts, lesson plans, presentation scripts, editable Word activity sheets, board lettering and movable sticker PPTX, including standalone requests.
+description: Create teaching documents, student worksheets and blackboard stickers from a locked primary-school math courseware deck. Use for classroom scripts, lesson plans, presentation scripts, editable Word activity sheets, board lettering, movable sticker PPTX and actual-size printable sticker PDFs, including standalone requests.
 ---
 
-# 配套教学文稿、学习单与电子黑板贴
+# 配套教学文稿、学习单与黑板贴
 
 按[每课四目录规范](../math-courseware-studio/references/workspace-layout.md)沿用户给定课程根制作；源稿、分页检查与制作版本进入02_work，已核文稿/学习单/黑板贴及使用依赖交03_final/vNNN。记录路径与点击链接按规范区分，旧课不自动迁移。
 
 **每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
 
-先按真实任务选择分支：整课C7默认制作三份教师文稿、学生课堂学习单和电子黑板贴；独立任务只做用户指定部分。用户明确省略某配套时记录依据，不另问要不要做。
+先按真实任务选择分支：整课C7默认制作三份教师文稿、学生课堂学习单和黑板贴（电子版＋同款实尺寸打印版）；独立任务只做用户指定部分。用户明确省略某配套或只要电子版时记录依据，不另问要不要做打印版。
 
 四类文档先读[结构与篇幅基准](references/teaching-pack-profile.md)：默认沿用户已验证样本的栏目顺序，教学设计约5000字（以Word/WPS字数统计为准）、说课稿和逐字稿各约5000—6500字符；学习单1—3页均合理，按年龄、任务和作答空间确定。用户最新要求优先；不把教案扩成逐字稿，不把说课稿和逐字稿压成提纲，不机械凑字数。
 
@@ -17,7 +17,7 @@ description: Create teaching documents, student worksheets and electronic blackb
 
 学习单读取[学生版制作规范](references/student-worksheet.md)，依据有效课件与教案自主选核心任务，留足书写/画图空间，默认无答案学生版，交实际可编辑中文DOCX并检查分页。学习单与教师稿分开，不用教案练习摘录代替，也不把视频未给的数据当作观看所得。
 
-黑板贴读取[稳定制作规范](references/blackboard-stickers.md)，由AI决定素材清单和板书组织，沿用已认可字体分工、程序描边及真实字形安全区检查，交实际整套素材，不只交提示词。黑板贴不固定数量、课题或板数，也不改原课件。
+黑板贴读取[稳定制作规范](references/blackboard-stickers.md)，由AI决定素材清单和板书组织；新制作默认楷体黑字、白衬、彩色圆润外轮廓，中文统一楷体，数学保持清晰的数字与上下分数。程序绘制并检查真实字形、描边和安全区；整套默认一起交电子素材和可直接打印的实尺寸PDF、打印说明与尺寸表，明确A3推荐版和同成品尺寸A4备选、实际页数及100%打印设置，不只交提示词或布局缩略图。用户明确的其他样式或仅电子范围优先，不批量重做旧成品；不固定数量、课题或板数，也不改原课件。
 
 教师文稿分支读取[课堂逐字稿](references/classroom-script.md)、[说课稿](references/lesson-presentation.md)、[教学设计](references/lesson-plan.md)及[项目协议](../math-courseware-studio/references/project-contract.md)。控制器在相邻总入口`scripts/courseware.py`。以下教师文稿规则按实际范围执行，单做学习单或黑板贴不要求补三份文稿。
 
@@ -33,4 +33,4 @@ description: Create teaching documents, student worksheets and electronic blackb
 
 先完成同源的完整正文，再以可用DOCX工具按本基准生成真实可编辑Word和同源核查PDF。`export-documents`的旧版结构限制见[接口说明](references/teaching-pack-profile.md#导出格式服从正文用途)，只在其格式符合本次要求时使用，不让接口反向限制教学文稿。来源索引只登记实际输入，不伪造空故事/数学的采用来满足接口。检查内容、版式、跨页表格和教师正文清洁度；普通质量问题直接修订，不增加独立最终审批。
 
-整课三种教师文稿、学生学习单和电子黑板贴完成后整理交付；学习单与黑板贴分别按实际manifest核对，不能只用教案里的练习或板书文字代替。学习单DOCX与本套课件配套放同一交付文件夹，中文命名。独立任务完成其指定范围；教学设计中的简明板书方案仍属于教案内容。
+整课三种教师文稿、学生学习单和黑板贴完成后整理交付；学习单与黑板贴分别按实际manifest核对，黑板贴含电子版及实尺寸打印版，或有用户明确省略依据，不能只用教案里的练习或板书文字代替。学习单DOCX与本套课件配套放同一交付文件夹，中文命名。独立任务完成其指定范围；教学设计中的简明板书方案仍属于教案内容。

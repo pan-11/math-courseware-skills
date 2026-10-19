@@ -15,9 +15,10 @@ import re
 from PIL import Image, ImageDraw, ImageFont, ImageChops, ImageFilter
 
 PACKAGE=Path(__file__).resolve().parents[2]/'assets/blackboard'
-COLORS={'pink':'#EB7CA8','blue':'#43BCE5','yellow':'#F3CF51',
+COLORS={'pink':'#E88FA6','blue':'#65A5E4','yellow':'#E7B34C',
+        'teal':'#1CB6BE','purple':'#A28AD0','gold':'#E7B34C','rose':'#E88FA6',
         'mint':'#B8E5D5','coral':'#F19A88','lavender':'#D8CEF4'}
-INK='#15212B'
+INK='#050505'
 FONTS={}
 
 
@@ -44,10 +45,8 @@ def resolve_path(base,name):
 
 def resolve_fonts(spec,base,roles):
     system=Path(os.environ.get('WINDIR','C:/Windows'))/'Fonts'
-    defaults={'display':PACKAGE/'fonts/KNMaiyuan-Regular.ttf',
-              'explanation':PACKAGE/'fonts/LXGWZhenKaiGB-Regular.ttf',
-              'title':PACKAGE/'fonts/ZCOOLKuaiLe-Regular.ttf',
-              'reading':system/'msyhbd.ttc','math':system/'arial.ttf','unit':system/'msyh.ttc'}
+    defaults={role:system/'simkai.ttf' for role in ('display','explanation','title','reading','unit')}
+    defaults['math']=system/'arial.ttf'
     for role,path in spec.get('fonts',{}).items():
         if role not in defaults:raise ValueError('Unknown font role: '+role)
         defaults[role]=resolve_path(base,path)
@@ -123,61 +122,79 @@ def ImageOps_expand(im, pad):
     dest.alpha_composite(im, (pad, pad))
     return dest
 
-def word(text, color='blue', title=False, size=240):
-    ft = font('title' if title else 'brush', size)
-    advance = [ft.getlength(c) for c in text]
-    gap = -size * (0.035 if title else 0.025)
-    width = math.ceil(sum(advance) + gap * max(0, len(text)-1))
-    pad = round(size*.24)
-    canvas_size = (width+pad*2, round(size*1.55))
-    y = round(size*.12)
-    def mask(stroke, solid=False):
-        layer=Image.new('L', canvas_size)
-        draw=ImageDraw.Draw(layer)
-        x=pad
-        for ch,step in zip(text,advance):
-            draw.text((x,y),ch,font=ft,fill=255,stroke_width=round(stroke),stroke_fill=255)
-            x += step+gap
-        return fill_holes(layer) if solid else layer
-    im=Image.new('RGBA',canvas_size)
-    if title:
-        for radius,fill,solid in [(size*.103,'#FFFDF7',True),(size*.09,COLORS['pink'],True),
-                                  (size*.057,'#FFFFFF',True),(size*.018,INK,False),(0,'#FFDF58',False)]:
-            paste_color(im,mask(radius,solid),fill)
-    else:
-        for radius,fill,solid in [(size*.108,'#FFFDF8',True),(size*.094,COLORS[color],True),
-                                  (size*.058,'#FFFFFF',True),(size*.008,INK,False)]:
-            paste_color(im,mask(radius,solid),fill)
-    return trim(im,16)
+def cloud(layers,color):
+    ink,white,outer=layers
+    im=Image.new('RGBA',ink.size)
+    for mask,fill in [(fill_holes(outer),COLORS[color]),(fill_holes(white),'#FFFFFF'),(ink,INK)]:
+        paste_color(im,mask,fill)
+    box=im.getchannel('A').getbbox();result=trim(im,24)
+    result.info['drawing_origin']=[24-box[0],24-box[1]]
+    return result
+
+
+def word(text, color='teal', title=False, size=240):
+    ft=font('title' if title else 'brush',size);box=ft.getbbox(text)
+    pad=round(size*.37);layers=[]
+    for radius in (0,round(size*32/300),round(size*59/300)):
+        mask=Image.new('L',(box[2]-box[0]+2*pad,box[3]-box[1]+2*pad))
+        ImageDraw.Draw(mask).text((pad-box[0],pad-box[1]),text,font=ft,fill=255,
+                                 stroke_width=radius,stroke_fill=255)
+        layers.append(mask)
+    return cloud(layers,color)
 
 def card(text, color='blue', unit='', size=190):
-    ft=font('math',size);uf=font('sans',size*.48)
-    # Keep the multiplication cross distinct from a handwritten letter x.
-    display=text.replace('+','＋').replace('=','＝')
-    # Arial fullwidth signs are absent on some installations; use its real math signs.
-    display=text.replace('+',' + ').replace('=','   =   ' if '×' in text else ' = ').replace('×','   ×   ')
-    box=ft.getbbox(display);tw=ft.getlength(display)
-    ut=f'（{unit}）' if unit else ''
-    uw=uf.getlength(ut) if ut else 0
-    w=math.ceil(tw+uw+size*.46);h=math.ceil(size*1.32)
-    im=Image.new('RGBA',(w+32,h+32));d=ImageDraw.Draw(im)
-    d.rounded_rectangle((10,10,w+22,h+22),radius=20,fill=COLORS[color],outline='white',width=7)
-    d.rounded_rectangle((34,34,w-2,h-2),radius=8,fill='#FFFDF7')
-    y=(h-(box[3]-box[1]))/2-box[1]+16
-    d.text((size*.23+16,y),display,font=ft,fill=INK)
-    if ut:
-        ub=uf.getbbox(ut)
-        d.text((size*.23+16+tw,y+box[3]-ub[3]),ut,font=uf,fill=INK)
-    crop=im.getchannel('A').getbbox()
-    result=trim(im,16)
-    start=size*.23+16-crop[0]+16
-    tokens=[]
-    for match in re.finditer(r'\d+|[×+=]',display):
-        left=start+ft.getlength(display[:match.start()])
-        right=start+ft.getlength(display[:match.end()])
-        tokens.append({'text':match.group(),'center':(left+right)/2/result.width})
-    lhs=display.split('=')[0].rstrip()
-    result.info['anchors']={'tokens':tokens,'addends':[start/result.width,(start+ft.getlength(lhs))/result.width]}
+    display=text.replace('＋','+').replace('＝','=')
+    tokens=re.findall(r'\d+(?:\.\d+)?/\d+(?:\.\d+)?|\d+(?:\.\d+)?%?|[^\s]',display)
+    padding=round(size*85/235);gap=round(size*68/235)
+    radii=(0,round(size*32/235),round(size*59/235))
+    runs=[];fractions=[]
+    for token,is_unit in [(t,False) for t in tokens]+([(unit,True)] if unit else []):
+        fraction='/' in token and not is_unit
+        face=font('sans' if is_unit else 'math',size*(270 if is_unit else 235 if fraction else 285)/235)
+        if fraction:
+            top,bottom=token.split('/');tb,db=face.getbbox(top),face.getbbox(bottom)
+            width=max(tb[2]-tb[0],db[2]-db[0])+round(size*52/235)
+            th,dh=tb[3]-tb[1],db[3]-db[1];space=round(size*28/235);line=max(2,round(size*8/235))
+            height=th+dh+2*space+line
+            fractions.append({'numerator':top,'denominator':bottom})
+        else:
+            box=face.getbbox(token);width,height=box[2]-box[0],box[3]-box[1]
+        layers=[]
+        for radius in radii:
+            mask=Image.new('L',(width+2*padding,height+2*padding));d=ImageDraw.Draw(mask)
+            if fraction:
+                d.text((padding+(width-(tb[2]-tb[0]))/2-tb[0],padding-tb[1]),top,font=face,
+                       fill=255,stroke_width=radius,stroke_fill=255)
+                cy=padding+th+space+line//2;cap=(line+2*radius)/2
+                ends=(padding+round(size*8/235),padding+width-round(size*9/235))
+                d.line((ends[0],cy,ends[1],cy),fill=255,width=line+2*radius)
+                for cx in ends:d.ellipse((cx-cap,cy-cap,cx+cap,cy+cap),fill=255)
+                d.text((padding+(width-(db[2]-db[0]))/2-db[0],padding+th+2*space+line-db[1]),bottom,
+                       font=face,fill=255,stroke_width=radius,stroke_fill=255)
+            else:
+                d.text((padding-box[0],padding-box[1]),token,font=face,fill=255,
+                       stroke_width=radius,stroke_fill=255)
+            layers.append(mask)
+        runs.append({'text':token,'width':width,'layers':layers,'unit':is_unit})
+    height=max(r['layers'][0].height for r in runs)
+    width=sum(r['width'] for r in runs)+gap*(len(runs)-1)+2*padding
+    combined=[Image.new('L',(width,height)) for _ in radii];x=0
+    for run in runs:
+        run['x']=x+padding
+        for target,mask in zip(combined,run['layers']):
+            y=(height-mask.height)//2;box=(x,y,x+mask.width,y+mask.height)
+            target.paste(ImageChops.lighter(target.crop(box),mask),box)
+        x+=run['width']+gap
+    result=cloud(combined,color);offset=result.info['drawing_origin'][0]
+    anchors=[{'text':r['text'],'center':(r['x']+r['width']/2+offset)/result.width} for r in runs if not r['unit']]
+    lhs=[]
+    for run in runs:
+        if run['text']=='=' or run['unit']:break
+        lhs.append(run)
+    start=runs[0]['x']+offset
+    end=lhs[-1]['x']+lhs[-1]['width']+offset if lhs else start
+    result.info.update(anchors={'tokens':anchors,'addends':[start/result.width,end/result.width]},
+                       fractions=fractions,unit=unit)
     return result
 
 def blank_card(width=1400,height=370,color='blue'):
@@ -186,11 +203,16 @@ def blank_card(width=1400,height=370,color='blue'):
     d.rounded_rectangle((36,36,width-36,height-36),radius=30,fill='#FFFDF7')
     return im
 
-def arrow():
-    im=Image.new('RGBA',(1200,108));d=ImageDraw.Draw(im)
-    d.line([(20,54),(1140,54)],fill='#FFFDF3',width=14)
-    d.line([(1090,20),(1146,54),(1090,88)],fill='#FFFDF3',width=14,joint='curve')
-    return im
+def arrow(color='blue'):
+    points=[(110,160),(480,160),(480,85),(625,175),(480,265),(480,190),(110,190)]
+    layers=[]
+    for radius in (0,32,59):
+        mask=Image.new('L',(760,350));d=ImageDraw.Draw(mask);d.polygon(points,fill=255)
+        if radius:
+            d.line(points+[points[0]],fill=255,width=radius*2,joint='curve')
+            for cx,cy in points:d.ellipse((cx-radius,cy-radius,cx+radius,cy+radius),fill=255)
+        layers.append(mask)
+    return cloud(layers,color)
 
 def brace():
     # Two rounded corners with a visible center cusp; no sharp square stroke ends.
@@ -262,6 +284,8 @@ def preflight(spec,base):
         if kind=='card':
             roles.update(('math','unit'))
             expr=re.sub(r'\s+','',a['text']).replace('＋','+').replace('＝','=')
+            if any(float(n)==0 for n in re.findall(r'/([0-9]+(?:\.[0-9]+)?)',expr)):
+                raise ValueError('Zero denominator/分母不能为0: '+expr)
             match=re.fullmatch(r'(\d+(?:[+×]\d+)*)=(\d+)',expr)
             if match:
                 lhs,rhs=match.groups()
@@ -339,13 +363,14 @@ def render(spec_path,destination):
     global FONTS
     FONTS={'title':fonts.get('title'),'math':fonts.get('math'),'sans':fonts.get('unit')}
     for number,source in enumerate(spec['assets'],1):
-        a=dict(source);kind=a['kind'];params=a.get('params',{});color=a.get('color','blue');meta=None
+        a=dict(source);kind=a['kind'];params=a.get('params',{})
+        color=a.get('color',{'title':'yellow','display':'teal','explanation':'teal','reading':'yellow'}.get(a.get('role'),'blue'));meta=None
         if kind=='word':
             FONTS['brush']=fonts[a['role']]
             image=word(a['text'],color=color,title=a['role']=='title',**params)
         elif kind=='pill':image,meta,_=pill(a['text'],fonts[a['role']],color=color,**params)
         elif kind=='card':image=card(a['text'],color=color,**params)
-        elif kind=='arrow':image=arrow()
+        elif kind=='arrow':image=arrow(color)
         elif kind=='brace':image=brace()
         elif kind=='dots':image=dots(**params)
         elif kind=='blank':image=blank_card(color=color,**params)
@@ -353,7 +378,8 @@ def render(spec_path,destination):
             image=Image.open(resolve_path(spec_path.parent,params['source'])).convert('RGBA')
             image=ImageOps_expand(image,params.get('padding',16))
         filename=f'{number:02d}_{a["name"]}.png';image.save(out/filename,dpi=(300,300))
-        a.update(file=filename,width=image.width,height=image.height,anchors=image.info.get('anchors',{}),sha256=digest(out/filename))
+        a.update(file=filename,width=image.width,height=image.height,color=color,anchors=image.info.get('anchors',{}),sha256=digest(out/filename))
+        if kind=='card':a.update(fractions=image.info['fractions'],unit=image.info['unit'])
         if meta:a['label_fit']=meta
         records.append(a)
     layout,label_checks=draw_boards(spec,{a['id']:a for a in records},out)
@@ -398,7 +424,7 @@ def export(destination):
     prs.save(out/ppt_name);pdf.save()
     guide=f'{title}｜黑板贴\n\n先打开素材总览.html。编号PNG为透明独立贴纸；PPT各贴纸可移动、缩放，但不是逐字可编辑文字。PDF是整板布局参考，不是按实际尺寸分页裁剪稿。按课堂进度逐步展示。\n\n采用已选择的字形角色和安全内边距；不需要安装字体。来源与教学用途见文字源清单。'
     (out/'使用说明.txt').write_text(guide,encoding='utf-8-sig')
-    text='\n\n'.join(a['file']+'\n'+a.get('text','')+'\n用途：'+a.get('purpose','连接/底板')+'\n来源：'+json.dumps(a.get('source_refs',[]),ensure_ascii=False) for a in data['assets'])
+    text='\n\n'.join(a['file']+'\n'+a.get('text','')+(' '+a['unit'] if a.get('unit') else '')+'\n用途：'+a.get('purpose','连接/底板')+'\n来源：'+json.dumps(a.get('source_refs',[]),ensure_ascii=False) for a in data['assets'])
     (out/'文字源清单.txt').write_text(text,encoding='utf-8-sig')
     e=html.escape
     boards=''.join(f'<figure><a href="{e(b["preview"])}"><img src="{e(b["preview"])}" alt="{e(b["name"])}"></a><figcaption>{e(b["name"])}</figcaption></figure>' for b in layout['boards'])
