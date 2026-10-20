@@ -62,6 +62,18 @@ def check_card(base: Path, card, label: str, errors: list[str]) -> str | None:
     if isinstance(card, str):
         check_image(base, card, label, errors)
         return "legacy"
+    if isinstance(card, dict) and card.get("kind") == "script-illustrated":
+        check_image(base, card.get("file"), label, errors)
+        for role in ("courseware_source", "script_source"):
+            source_label = f"{label}.{role}"
+            source = card.get(role)
+            if not isinstance(source, dict):
+                errors.append(f"{source_label}: needs an actual source file and reference")
+                continue
+            check_file(base, source.get("file"), source_label, errors)
+            if not isinstance(source.get("ref"), str) or not source["ref"].strip():
+                errors.append(f"{source_label}: missing matched page or script passage reference")
+        return "script-illustrated"
     if isinstance(card, dict) and card.get("kind") == "teaching-companion":
         check_image(base, card.get("file"), label, errors)
         material = card.get("material_type")
@@ -215,16 +227,21 @@ def check(manifest: dict, base: Path, expected_count: int | None) -> dict:
     profile = manifest.get("series_profile")
     if profile is not None:
         formats = [note.get("format") if isinstance(note, dict) else None for note in notes]
-        if profile != "three-image-two-video":
+        with_script = profile == "three-image-two-video-plus-script"
+        if profile not in ("three-image-two-video", "three-image-two-video-plus-script"):
             errors.append("unsupported series_profile")
-        elif (len(formats) != 5 or formats[:3] != ["image"] * 3
-                or any(fmt not in ("video-cover-copy", "video-edit-kit") for fmt in formats[3:])):
-            errors.append("series requires three image posts followed by two video notes (cover-copy or explicit editing kits)")
-        elif (len(image_styles) != 3 or image_styles[0] - {"teaching-companion"} != {"watermark"}
+        elif (len(formats) != (6 if with_script else 5) or formats[:3] != ["image"] * 3
+                or any(fmt not in ("video-cover-copy", "video-edit-kit") for fmt in formats[3:5])
+                or (with_script and formats[5] != "image")):
+            errors.append("series requires three image posts followed by two video notes (cover-copy or explicit editing kits)"
+                          + (" and a sixth illustrated-script image post" if with_script else ""))
+        elif (len(image_styles) != (4 if with_script else 3) or image_styles[0] - {"teaching-companion"} != {"watermark"}
                 or len(image_styles[1] - {"teaching-companion"}) != 1
                 or not image_styles[1] - {"teaching-companion"} <= {"product", "direct-133-33", "direct-1222-3-3"}
                 or not image_styles[2] <= {"legacy", "teaching-companion"}):
             errors.append("series image styles must be layout1, one of layout2/3/4, then original explanatory cards")
+        elif with_script and "script-illustrated" not in image_styles[3]:
+            errors.append("sixth post needs script-illustrated cards with matched courseware and script sources")
     return {"status": "PASS" if not errors else "FAIL", "notes": len(notes), "errors": errors}
 
 

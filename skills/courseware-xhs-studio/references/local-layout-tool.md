@@ -77,7 +77,7 @@ python <Skill目录>/scripts/render_layout_tool.py <任务JSON> --settings <本�
 
 ## 图文交付清单
 
-原PNG内容卡仍用字符串路径；四种工具内容图使用显式对象。独立笔记可按需要混排，默认五篇整组则按已确认的三种图片路线分别交付。封面继续用原PNG、3:4规则。新类型必须匹配已支持模板的成功渲染记录中的某张输出，检查真实JPEG编码、尺寸和SHA256；复制或改名后也可核原字节。下面是单篇字段示例：
+原PNG内容卡仍用字符串路径；四种工具内容图使用显式对象。独立笔记可按需要混排，默认六篇整组的前三篇仍按已确认的三种图片路线分别交付。封面继续用原PNG、3:4规则。工具图片类型必须匹配已支持模板的成功渲染记录中的某张输出，检查真实JPEG编码、尺寸和SHA256；复制或改名后也可核原字节。下面是单篇字段示例：
 
 ```json
 {
@@ -94,6 +94,6 @@ python <Skill目录>/scripts/render_layout_tool.py <任务JSON> --settings <本�
 }
 ```
 
-此例的`delivery.json`位于`笔记素材/v001`，任务与输出位于`中间文件/notes/v001`；实际沿本课目录调整引用。默认整组另在顶层写`"series_profile": "three-image-two-video"`，放入按顺序的五篇：第1篇课件主体匹配`watermark`，第2篇主体匹配`product/direct-133-33/direct-1222-3-3`其中同一种，第3篇为原PNG卡；三篇可加入多张显式`teaching-companion`组合图，同一成品组合图可跨篇复用，不需要改本工具。第4/5篇为`video-cover-copy`（封面、标题、正文和话题；视频由用户制作）。历史或明确另需的`video-edit-kit`保持兼容。不同素材完整性规则见[文案与交付检查](copy-and-review.md)。
+此例的`delivery.json`位于`笔记素材/v001`，任务与输出位于`中间文件/notes/v001`；实际沿本课目录调整引用。新默认整组另在顶层写`"series_profile": "three-image-two-video-plus-script"`，按原五篇顺序追加第6篇：第1篇课件主体匹配`watermark`，第2篇主体匹配`product/direct-133-33/direct-1222-3-3`其中同一种，第3篇为原PNG卡；三篇可加入多张显式`teaching-companion`组合图，同一成品组合图可跨篇复用，不需要改本工具。第4/5篇为`video-cover-copy`（封面、标题、正文和话题；视频由用户制作）。第6篇是独立排版的[逐字稿图解](illustrated-script.md)，主体标记`script-illustrated`，不是本工具新增模板。旧五篇`three-image-two-video`和历史或明确另需的`video-edit-kit`保持兼容。不同素材完整性规则见[文案与交付检查](copy-and-review.md)。
 
 使用`check_delivery.py`检查整篇或整组，同时执行逐图目视与文案核查。交付当轮在聊天展示实际图、编号文件名、顺序和整包目录，并说明第2篇实际选用的版式和理由，不只保存文件或给总览链接。
