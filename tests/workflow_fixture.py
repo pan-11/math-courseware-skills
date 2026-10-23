@@ -12,6 +12,14 @@ def versions(*records):
             for item in record.get('files', {}).values()}
 
 
+def delivery_manifest(root, name, files, sources=None):
+    """Explicit existing-file package; copied packages have separate integration tests."""
+    path = 'deliveries/' + name + '.json'
+    state.write_json(Path(root) / path, {'schema_version': '1.0', 'files': files,
+        'source_versions': {**(sources or {}), **{item['path']: item['sha256'] for item in files.values()}}})
+    return ref(root, path)
+
+
 def evidence(root, name, files=None, approved=False, sources=None, **extra):
     root = Path(root)
     base = '_state/qa/workflow-' + name
@@ -41,6 +49,9 @@ def enable_modules(root, modules=None, deck=None, route='A'):
     (root / path).write_text('Synthetic request for these modules: ' + ', '.join(modules), encoding='utf-8')
     files = {'source': ref(root, path)}
     inputs = {m: evidence(root, 'input-' + m, files=files) for m in modules}
+    for module in set(modules) & {'documents', 'interactive'}:
+        source = str(deck).replace('\\', '/') if deck else '_state/pages.json'
+        inputs[module] = evidence(root, 'input-' + module, files={'source': ref(root, source)})
     if 'editable' in modules:
         edit_files = dict(files)
         pages_path = root / '_state/pages.json'

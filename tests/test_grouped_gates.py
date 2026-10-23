@@ -89,7 +89,7 @@ class GroupedGateTests(unittest.TestCase):
                     files={'image': self.image('planning/' + vid + '-frame.png')},
                     sources=self.versions(products['script']), color=True)
                 products['prompts'] = self.record(vid + '-prompts',
-                    sources=self.versions(products['script'], products['first-frame']), complete=True)
+                    sources=self.versions(products['script'], products['voice'], products['first-frame']), complete=True)
             self.manifests[vid] = dict(video_id=vid, route=route, workflow={'products': products})
             if route == 'talking': self.prepare_video(vid)
             self.save_video(vid)
@@ -148,6 +148,12 @@ class GroupedGateTests(unittest.TestCase):
         return state.record_approval(self.root, dict(targets=snap['targets'], decision='approved',
             user_evidence=evidence, review_group=snap['identity'], **extra))
 
+    def approve_stories(self):
+        targets = [item for video in self.manifests.values() for name in ('script', 'voice')
+                   for item in video['workflow']['products'][name]['files'].values()]
+        return state.record_approval(self.root, dict(targets=targets,
+            user_evidence='Synthetic actual full story and verbatim dialogue adoption before new images'))
+
     def allowed(self, step, **kwargs):
         return workflow.check(self.root, step, **kwargs)
 
@@ -174,17 +180,20 @@ class GroupedGateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'full_course'):
             self.start()
 
-    def test_candidates_only_in_explicit_current_automatic_full_course(self):
+    def test_manual_text_adoption_allows_assets_without_granting_grouped_authority(self):
         self.fixture()
         self.assertFalse(self.allowed('video-assets', video_id='V001')['allowed'])
+        self.approve_stories()
         self.start()
         self.assertTrue(self.allowed('video-assets', video_id='V001')['allowed'])
         autopilot.control(self.root, mode='manual', evidence='Synthetic manual switch')
-        self.assertFalse(self.allowed('video-assets', video_id='V001')['allowed'])
+        self.assertFalse(groups.active(self.root))
+        self.assertTrue(self.allowed('video-assets', video_id='V001')['allowed'])
         autopilot.control(self.root, mode='automatic', evidence='Synthetic return')
         self.data['current_task']['evidence'] = 'Different task scope'
         self.save()
-        self.assertFalse(self.allowed('video-assets', video_id='V001')['allowed'])
+        self.assertFalse(groups.active(self.root))
+        self.assertTrue(self.allowed('video-assets', video_id='V001')['allowed'])
 
     def test_double_shots_two_groups_reach_pages_without_third_adoption(self):
         self.fixture(); self.start()
@@ -237,8 +246,9 @@ class GroupedGateTests(unittest.TestCase):
         self.approve(); self.directions(); self.approve('video-direction')
         self.assertFalse(self.allowed('page-image')['allowed'])
 
-    def image_setup(self, route='builtin'):
+    def image_setup(self, route='builtin', adopted_story=True):
         self.fixture()
+        if adopted_story: self.approve_stories()
         for path in ('_state/math.json', '_state/story.json'):
             state.record_approval(self.root, dict(targets=[self.ref(path)], user_evidence='Synthetic adopted teaching core'))
         self.start(preferences={'image': {'route': route, 'evidence': 'Synthetic actual image choice',
@@ -271,6 +281,7 @@ class GroupedGateTests(unittest.TestCase):
 
     def test_candidate_images_never_waive_teaching_core_approval(self):
         self.fixture(); self.start(preferences={'image': {'route': 'builtin', 'evidence': 'Synthetic choice'}})
+        self.approve_stories()
         with self.assertRaisesRegex(ValueError, 'confirmation'):
             self.prepare_image()
 
@@ -324,6 +335,47 @@ class GroupedGateTests(unittest.TestCase):
         saved = store.load_run(self.root)
         self.assertEqual(saved['tasks'][-1]['last_human_receipt']['event_id'], decision['calibration_event']['event_id'])
         self.assertEqual(len(calibration.snapshots(self.root, store.load_run(self.root))), before)
+
+    def test_waiting_story_reuses_later_actual_text_adoption_without_new_receipt(self):
+        from runtime import calibration
+        self.fixture(); self.start(review_policy='grouped_creative_v2')
+        snap = self.snapshot('video-story'); packet = self.independent(snap)
+        autopilot.extend(self.root, [self.group_task('video-story', packet)], 'Synthetic whole story review')
+        first = autopilot.next_task(self.root, 'host')['human_tasks'][0]
+        original = deepcopy(store.load_run(self.root)['tasks'][-1])
+        state.record_approval(self.root, dict(targets=snap['targets'][:-1],
+            user_evidence='Synthetic partial text adoption leaves one spoken script unapproved'))
+        partial = autopilot.next_task(self.root, 'host')['human_tasks'][0]
+        self.assertEqual(partial['claim'], first['claim'])
+        self.assertEqual(store.load_run(self.root)['tasks'][-1]['status'], 'waiting_external')
+        self.approve_stories()
+        self.assertTrue(groups.adopted(self.root, 'video-story')['approved'])
+        decisions = state.resolve(self.root, '_state/decisions.jsonl').read_bytes()
+        events = calibration.snapshots(self.root, store.load_run(self.root))
+        for _ in range(2):
+            action = autopilot.next_task(self.root, 'host')
+            self.assertEqual(action['human_tasks'], [])
+            saved = store.load_run(self.root)['tasks'][-1]
+            self.assertEqual(saved['status'], 'done')
+            self.assertEqual(saved['claim'], original['claim'])
+            self.assertEqual(saved['history'], original['history'])
+            self.assertEqual(saved['attempt'], original['attempt'])
+            self.assertTrue(saved['reused_adoption'])
+            self.assertNotIn('last_human_receipt', saved)
+        self.assertEqual(state.resolve(self.root, '_state/decisions.jsonl').read_bytes(), decisions)
+        self.assertEqual(calibration.snapshots(self.root, store.load_run(self.root)), events)
+
+    def test_waiting_v1_visual_group_still_needs_its_actual_group_decision(self):
+        self.fixture(); self.start()
+        snap = self.snapshot(); packet = self.independent(snap)
+        autopilot.extend(self.root, [self.group_task(packet=packet)], 'Synthetic visual review')
+        first = autopilot.next_task(self.root, 'host')['human_tasks'][0]
+        state.record_approval(self.root, dict(targets=snap['targets'],
+            user_evidence='Synthetic member adoption without a group decision'))
+        later = autopilot.next_task(self.root, 'host')['human_tasks'][0]
+        self.assertEqual(first['claim'], later['claim'])
+        self.assertEqual(store.load_run(self.root)['tasks'][-1]['status'], 'waiting_external')
+        self.assertFalse(groups.adopted(self.root, 'video-creative')['approved'])
 
     def test_group_requires_independent_review_to_dispatch_but_pass_does_not_adopt(self):
         self.fixture(); self.start()
@@ -399,13 +451,21 @@ class GroupedGateTests(unittest.TestCase):
         stages['editable'] = self.record('editable',
             files={'pptx': self.ref('planning/editable.pptx'), 'limitations': self.text('planning/limitations.md')},
             sources=self.versions(stages['pages'], stages['images']))
-        stages['documents'] = self.record('documents', files={role: self.text('planning/' + role + '.md')
-            for role in ('classroom-script', 'lesson-presentation', 'lesson-plan', 'worksheet', 'blackboard')},
-            sources=self.versions(stages['pages'], stages['images']))
+        from docx import Document
+        worksheet = Document(); worksheet.add_paragraph('Synthetic student task: show your reasoning.')
+        worksheet.save(state.resolve(self.root, 'planning/worksheet.docx'))
+        documents = {role: self.text('planning/' + role + '.md')
+            for role in ('classroom-script', 'lesson-presentation', 'lesson-plan')}
+        documents.update(worksheet=self.ref('planning/worksheet.docx'), blackboard=picture)
+        stages['documents'] = self.record('documents', files=documents,
+            sources=self.versions(stages['pages'], stages['images'], stages['editable']))
         path = state.resolve(self.root, 'planning/actual-media.mp4')
         path.write_bytes(b'\x00\x00\x00\x18ftypisom\x00\x00\x02\x00isomiso2')
         self.manifests['V001']['workflow']['final'] = self.record('final-V001',
             files={'media': self.ref('planning/actual-media.mp4')}, approved=True)
+        from workflow_fixture import delivery_manifest
+        stages['delivery'] = {'files': {'manifest': delivery_manifest(self.root, 'h23-package',
+            {**stages['editable']['files'], **stages['documents']['files'], 'media': self.ref('planning/actual-media.mp4')})}}
         self.save_video('V001'); self.save()
 
     def finish_reports(self):
@@ -421,10 +481,12 @@ class GroupedGateTests(unittest.TestCase):
         self.save_video('V001')
         versions = self.versions(stages['pages'], stages['editable'], stages['documents'])
         versions[media['path']] = media['sha256']
+        package = stages['delivery']['files']['manifest']
+        versions[package['path']] = package['sha256']
         report = dict(passed=True, inspection='user_report', basis='SYNTHETIC H23 only; no WPS inspection',
             source_versions=versions, checks={key: True for key in groups.FINAL_CHECKS})
         state.write_json(state.resolve(self.root, 'planning/wps.json'), report)
-        stages['delivery'] = self.record('delivery', files={'manifest': self.text('planning/delivery.md'),
+        stages['delivery'] = self.record('delivery', files={'manifest': package,
             'wps': self.ref('planning/wps.json')}, sources=versions)
         self.save()
 
@@ -611,7 +673,7 @@ class GroupedGateTests(unittest.TestCase):
 
     def test_H23_missing_current_supporting_file_keeps_final_gate_closed(self):
         self.final_fixture(); self.finish_reports()
-        self.text('planning/worksheet.md', 'Synthetic later worksheet revision')
+        state.resolve(self.root, 'planning/worksheet.docx').write_bytes(b'Synthetic later worksheet revision')
         self.assertFalse(self.allowed('complete')['allowed'])
 
     def test_actual_later_readoption_of_rejected_same_group_is_new_event(self):
@@ -661,10 +723,11 @@ class GroupedGateTests(unittest.TestCase):
 
     def test_H23_dispatch_includes_real_delivery_files_before_inspection_metadata(self):
         self.final_fixture()
-        interactive = self.text('planning/selected-interactive.html', '<p>Synthetic classroom interaction</p>')
+        interactive = self.text('planning/selected-interactive.html', '<html><button>Test</button><script>document.querySelector("button").onclick=()=>{};</script></html>')
         self.data['stages']['delivery'] = {'files': {'interactive': interactive,
             'wps': {'path': 'planning/future-wps.json', 'sha256': '0' * 64},
-            'manifest': {'path': 'planning/future-delivery.md', 'sha256': '0' * 64}}}
+            'manifest': {'path': 'planning/future-delivery.md', 'sha256': '0' * 64}},
+            'source_versions':self.versions(self.data['stages']['pages'], self.data['stages']['editable'])}
         self.save()
         autopilot.extend(self.root, [dict(id='acceptance', kind='human', step='complete', human_node='H23',
             inputs=['planning/editable.pptx'], outputs=['inspection'],
@@ -683,7 +746,7 @@ class GroupedGateTests(unittest.TestCase):
 
     def test_H23_inspection_must_bind_actual_delivery_supports_without_self_dependency(self):
         self.final_fixture(); self.finish_reports()
-        interactive = self.text('planning/selected-interactive.html', '<p>Synthetic classroom interaction</p>')
+        interactive = self.text('planning/selected-interactive.html', '<html><button>Test</button><script>document.querySelector("button").onclick=()=>{};</script></html>')
         delivery = self.data['stages']['delivery']
         delivery['files']['interactive'] = interactive
         self.data['stages']['delivery'] = self.record('delivery-with-interaction', files=delivery['files'],
@@ -692,6 +755,12 @@ class GroupedGateTests(unittest.TestCase):
         self.assertFalse(self.allowed('complete')['allowed'])
         report = state.read_json(state.resolve(self.root, 'planning/wps.json'))
         report['source_versions'][interactive['path']] = interactive['sha256']
+        from workflow_fixture import delivery_manifest
+        packet = state.read_json(state.resolve(self.root, delivery['files']['manifest']['path']))
+        packet['files']['interactive'] = interactive
+        package = delivery_manifest(self.root, 'h23-with-interaction', packet['files'])
+        self.data['stages']['delivery']['files']['manifest'] = package
+        report['source_versions'][package['path']] = package['sha256']
         state.write_json(state.resolve(self.root, 'planning/wps.json'), report)
         files = self.data['stages']['delivery']['files']
         files['wps'] = self.ref('planning/wps.json')
@@ -702,7 +771,7 @@ class GroupedGateTests(unittest.TestCase):
         dispatched = groups.final_dispatch(self.root)['inspection_versions']
         self.assertEqual(dispatched.get(interactive['path']), interactive['sha256'])
         self.assertNotIn(files['wps']['path'], dispatched)
-        self.assertNotIn(files['manifest']['path'], dispatched)
+        self.assertEqual(dispatched[files['manifest']['path']], files['manifest']['sha256'])
         self.text(interactive['path'], '<p>Synthetic later changed interaction</p>')
         self.assertFalse(groups.final_dispatch(self.root)['allowed'])
         self.assertFalse(self.allowed('complete')['allowed'])
@@ -714,6 +783,7 @@ class GroupedGateTests(unittest.TestCase):
             for status in ('pending', 'running', 'submission_unknown'):
                 with self.subTest(purpose=purpose, status=status):
                     self.setUp(); self.fixture()
+                    self.approve_stories()
                     project = state.load_project(self.root); project['image_route'] = 'openai_image_api'
                     state.write_json(state.resolve(self.root, '_state/project.json'), project)
                     state.record_approval(self.root, dict(targets=[self.ref(p) for p in

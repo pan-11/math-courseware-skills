@@ -73,6 +73,25 @@ class EditorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "manually modified"):
             editor.build_editable(self.project, self.plan)
 
+    def test_existing_duplicate_picture_names_are_preserved_by_id(self):
+        from pptx import Presentation
+        source = self.project / 'inputs/same-names.pptx'
+        deck = Presentation(self.source)
+        for shape in list(deck.slides[0].shapes)[:2]:
+            shape.name = 'Picture 1'
+        deck.save(source)
+        self.inventory = editor.import_deck(self.project, source, {'P001': 1})
+        self.source = self.project / self.inventory['source_deck']
+        self.plan.update(source_deck=self.inventory['source_deck'], source_sha256=editor.sha256(self.source))
+        self.review()
+        report = editor.build_editable(self.project, self.plan)
+        after = editor.inspect_deck(self.project / report['output'])['slides'][0]['shapes']
+        pictures = [s for s in after if s['name'] == 'Picture 1']
+        self.assertEqual(len(pictures), 2)
+        before = {s['shape_id']: s for s in self.inventory['slides'][0]['shapes']}
+        for shape in pictures:
+            self.assertEqual(shape['object_sha256'], before[shape['shape_id']]['object_sha256'])
+
     def test_reject_source_change(self):
         self.review()
         with self.source.open("ab") as handle:

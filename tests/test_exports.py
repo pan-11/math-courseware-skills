@@ -77,6 +77,182 @@ def textless_selection(root):
 
 
 class ExportTests(unittest.TestCase):
+    def test_collect_reserves_root_manifest_before_copying_dependencies(self):
+        from test_delivery_roles import package, save_package, file_ref
+        for destination in ('manifest.json', 'MANIFEST.JSON', './manifest.json', 'MANIFEST.JSON/data.json'):
+            with self.subTest(destination=destination):
+                root = fixture()
+                data = enable_modules(root, modules=['documents', 'interactive'])
+                manifest = package(root, data, ('worksheet', 'blackboard', 'interactive'))
+                dependency = file_ref(root, 'interactive/test/game-manifest.json', '{"synthetic":true}')
+                dependency['destination'] = destination
+                manifest['roles']['interactive'].append(dependency)
+                save_package(root, data, manifest)
+                with self.assertRaisesRegex(ValueError, 'reserved|manifest'):
+                    exports.collect(root)
+                self.assertFalse(list((root / 'deliveries').glob('delivery-v*')))
+
+    def test_collect_rejects_intermediate_deck_hidden_in_material_role(self):
+        from test_delivery_roles import package, save_package
+        root = fixture()
+        data = enable_modules(root, modules=['documents', 'interactive'])
+        manifest = package(root, data, ('worksheet', 'blackboard', 'interactive'))
+        path = root / 'editable/output/base.pptx'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        deck = Presentation()
+        deck.slides.add_slide(deck.slide_layouts[6])
+        deck.save(path)
+        sources = manifest['source_versions']
+        base = state.register_artifact(root, 'editable-base-pptx', 'editable/output/base.pptx',
+            list(sources), {'source_versions': sources, 'intermediate': True})
+        manifest['roles']['blackboard'].append({**base, 'path': 'editable/output/./base.pptx'})
+        save_package(root, data, manifest)
+        with self.assertRaisesRegex(ValueError, 'intermediate'):
+            exports.collect(root)
+        self.assertFalse(list((root / 'deliveries').glob('delivery-v*')))
+
+    def test_collect_normalizes_private_names_for_every_artifact_entrance(self):
+        from test_delivery_roles import package, save_package, file_ref
+        for entrance in ('source', 'destination', 'materials'):
+            with self.subTest(entrance=entrance):
+                root = fixture()
+                data = enable_modules(root, modules=['documents', 'interactive'])
+                manifest = package(root, data, ('worksheet', 'blackboard', 'interactive'))
+                if entrance == 'materials':
+                    manifest['roles']['interactive'].append(file_ref(root, 'interactive/test/API_KEY.json',
+                        '{"SYNTHETIC":"not real credentials"}'))
+                    save_package(root, data, manifest)
+                else:
+                    name = 'Api_Key.md' if entrance == 'source' else 'guide.md'
+                    ref = file_ref(root, 'documents/export-v001/' + name, 'Synthetic credential-name test')
+                    metadata = {'source_versions': manifest['source_versions']}
+                    if entrance == 'destination':
+                        metadata['destination'] = 'PRIVATE_KEY.md'
+                    state.register_artifact(root, 'synthetic-private-path', ref['path'],
+                        list(manifest['source_versions']), metadata)
+                with self.assertRaisesRegex(ValueError, 'private|unsupported'):
+                    exports.collect(root)
+                self.assertFalse(list((root / 'deliveries').glob('delivery-v*')))
+
+    def test_collect_full_course_requires_current_stage_and_current_material_sources(self):
+        from runtime import editable_delivery
+        from test_delivery_roles import package, save_package, file_ref
+        root = fixture()
+        data = state.read_json(root / '_state/workflow.json')
+        data['project_mode'] = data['current_task']['mode'] = 'full_course'
+        manifest = package(root, data, ('worksheet', 'blackboard'))
+        paths = []
+        for name, title in (('old', '3 + 2'), ('current', '3 + 3')):
+            path = root / ('editable/output/' + name + '.pptx')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            deck = Presentation()
+            slide = deck.slides.add_slide(deck.slide_layouts[0])
+            slide.shapes.title.text = title
+            deck.save(path)
+            paths.append({'path': path.relative_to(root).as_posix(), 'sha256': state.sha256(path)})
+        old, current = paths
+        sources = manifest['source_versions']
+        base = state.register_artifact(root, 'editable-base-pptx', current['path'], list(sources),
+            {'source_versions': sources, 'intermediate': True})
+        evidence = file_ref(root, '_state/qa/current-blank-request.md', 'Synthetic current student version request')
+        editable_delivery.register_override(root, base, {'variant': 'student_without_answers',
+            'user_instruction': 'Use current student version', 'evidence_ref': evidence})
+        manifest['source_versions'] = {**sources, old['path']: old['sha256']}
+        save_package(root, data, manifest)
+        with self.assertRaisesRegex(ValueError, 'current|stage'):
+            exports.collect(root)
+        data['stages']['editable'] = {'files': {'pptx': old}}
+        save_package(root, data, manifest)
+        with self.assertRaisesRegex(ValueError, 'current|Selected PPT'):
+            exports.collect(root)
+        data['stages']['editable']['files']['pptx'] = current
+        save_package(root, data, manifest)
+        with self.assertRaisesRegex(ValueError, 'binding'):
+            exports.collect(root)
+        self.assertFalse(list((root / 'deliveries').glob('delivery-v*')))
+        manifest['source_versions'] = {**sources, current['path']: current['sha256']}
+        save_package(root, data, manifest)
+        self.assertIn('editable-pptx', exports.collect(root)['artifacts'])
+
+    def test_collect_explicit_material_roles_and_dependencies_only(self):
+        from test_delivery_roles import package, save_package, file_ref
+        root = fixture()
+        data = enable_modules(root, modules=['documents', 'interactive'])
+        manifest = package(root, data, ('worksheet', 'blackboard', 'interactive'))
+        dependency = file_ref(root, 'interactive/test/app.js', 'window.syntheticActivity = true;')
+        manifest['roles']['interactive'].append(dependency)
+        save_package(root, data, manifest)
+        file_ref(root, 'interactive/test/unlisted.html', '<html>Unrequested draft</html>')
+        report = exports.collect(root)
+        copied = {item['path']: item for item in report['artifacts'].values()}
+        for role in ('worksheet', 'blackboard', 'interactive'):
+            for item in manifest['roles'][role]:
+                self.assertIn(item['path'], copied)
+                actual = root / copied[item['path']]['delivery_path']
+                self.assertEqual(state.sha256(actual), item['sha256'])
+        self.assertNotIn('interactive/test/unlisted.html', copied)
+        self.assertEqual(exports.DOCUMENTS, ('classroom-script', 'lesson-presentation', 'lesson-plan'))
+
+    def test_collect_full_course_stops_before_creating_incomplete_delivery(self):
+        root = fixture()
+        data = state.read_json(root / '_state/workflow.json')
+        data['project_mode'] = data['current_task']['mode'] = 'full_course'
+        state.write_json(root / '_state/workflow.json', data)
+        with self.assertRaisesRegex(ValueError, 'worksheet|blackboard'):
+            exports.collect(root)
+        self.assertFalse(list((root / 'deliveries').glob('delivery-v*')))
+
+    def test_collect_rejects_intermediate_base_instead_of_legacy_final(self):
+        root = fixture()
+        enable_modules(root, modules=['editable'])
+        path = root / 'editable/output/base.pptx'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        deck = Presentation()
+        deck.slides.add_slide(deck.slide_layouts[6])
+        deck.save(path)
+        sources = {'_state/pages.json': state.sha256(root / '_state/pages.json')}
+        state.register_artifact(root, 'editable-base-pptx', path.relative_to(root).as_posix(), list(sources),
+            {'source_versions': sources, 'intermediate': True})
+        state.register_artifact(root, 'editable-pptx', path.relative_to(root).as_posix(), list(sources),
+            {'source_versions': sources})
+        with self.assertRaisesRegex(ValueError, 'intermediate|answer'):
+            exports.collect(root)
+
+    def test_collect_explicit_current_variant_outside_legacy_export_folders(self):
+        from runtime import editable_delivery
+        from test_delivery_roles import file_ref
+        root = fixture()
+        enable_modules(root, modules=['editable'])
+        path = root / 'editable/custom/base.pptx'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        deck = Presentation()
+        deck.slides.add_slide(deck.slide_layouts[6])
+        deck.save(path)
+        sources = {'_state/pages.json': state.sha256(root / '_state/pages.json')}
+        base = state.register_artifact(root, 'editable-base-pptx', path.relative_to(root).as_posix(), list(sources),
+            {'source_versions': sources, 'intermediate': True})
+        evidence = file_ref(root, '_state/qa/no-answer-request.md', 'Synthetic user requests student blank version')
+        final = editable_delivery.register_override(root, base, {
+            'variant': 'student_without_answers', 'user_instruction': 'Keep student blanks', 'evidence_ref': evidence})
+        report = exports.collect(root)
+        self.assertIn('editable-pptx', report['artifacts'])
+        self.assertEqual(report['artifacts']['editable-pptx']['sha256'], final['sha256'])
+        self.assertNotIn('editable-base-pptx', report['artifacts'])
+
+    def test_scoped_documents_ignore_unrequested_incomplete_editable_base(self):
+        root = fixture()
+        exports.export_documents(root)
+        enable_modules(root, modules=['documents'])
+        record = state.load_project(root)
+        record['artifacts']['editable-base-pptx'] = {
+            'path': 'editable/missing-base.pptx', 'sha256': '0' * 64, 'intermediate': True}
+        state.write_json(root / '_state/project.json', record)
+        result = exports.collect(root)
+        self.assertTrue(result['artifacts'])
+        self.assertTrue(all(item['path'].startswith('documents/export-v')
+                            for item in result['artifacts'].values()))
+
+
     def test_direct_export_functions_reject_unclassified_scope(self):
         for operation in (exports.export_slides, exports.export_documents, exports.collect):
             with self.subTest(operation=operation.__name__):

@@ -378,7 +378,7 @@ def build_editable(project, plan):
     _review(project, plan)
     _known_fields(plan, {"source_deck", "source_sha256", "output", "mapping", "review", "authorization", "text_units",
                          "required_native_objects", "build_scope", "remaining_native_objects",
-                         "refill_mode", "page_modes"}, "plan")
+                         "refill_mode", "page_modes", "delivery_override"}, "plan")
     scope = plan.get("build_scope", "complete")
     if scope not in {"complete", "text-refill"}:
         raise ValueError("Unsupported build_scope")
@@ -406,6 +406,17 @@ def build_editable(project, plan):
         report = json.loads(report_path.read_text(encoding="utf-8"))
         if report.get("plan_sha256") != digest or report.get("output_sha256") != sha256(output):
             raise ValueError("Output was manually modified or belongs to another plan")
+        if 'refill' in report:
+            recorded = dict(report.get('source_versions', {}))
+            coverage = report['refill']
+            if coverage.get('authoritative_sources_verified'):
+                recorded['_state/pages.json'] = coverage.get('source_pages_sha256')
+            recorded.update({ref['path']: ref['sha256']
+                             for ref in coverage.get('reference_images', {}).values()})
+            for path, version in recorded.items():
+                actual = _inside(project, path)
+                if not actual.is_file() or sha256(actual) != version:
+                    raise ValueError('Build source changed; preserve old output and use a new version: ' + path)
         return {**report, "idempotent": True}
     expanded_units = expand_text_units(plan.get('text_units', []))
     pages_path = state.resolve(project, '_state/pages.json')
@@ -430,9 +441,9 @@ def build_editable(project, plan):
             raise ValueError(page_id + ': text-bearing reference image changed')
     operations, names, targets = [], set(), set()
     for slide in before["slides"]:
-        existing_names = [shape["name"] for shape in slide["shapes"]]
-        if len(existing_names) != len(set(existing_names)):
-            raise ValueError("Duplicate source shape names require review")
+        existing_ids = [shape['shape_id'] for shape in slide['shapes']]
+        if len(existing_ids) != len(set(existing_ids)):
+            raise ValueError('Duplicate source shape IDs require review')
     for unit, source_unit_id in expanded_units:
         font, paragraph = _format(unit)
         page_id, unit_id = unit["page_id"], unit["unit_id"]
@@ -477,6 +488,17 @@ def build_editable(project, plan):
             raise ValueError("Required native/math object is absent or raster")
     if not operations:
         raise ValueError("At least one reviewed text unit required")
+    authority = plan.get('authorization', plan.get('review'))
+    source_versions = {plan['source_deck']: plan['source_sha256'], authority['evidence']: authority['sha256']}
+    if authoritative:
+        source_versions['_state/pages.json'] = coverage['source_pages_sha256']
+    source_versions.update({ref['path']: ref['sha256'] for ref in coverage['reference_images'].values()})
+    if state.resolve(project, '_state/project.json').is_file():
+        if __package__:
+            from . import workflow
+        else:
+            import workflow
+        source_versions.update({path: sha256(state.resolve(project, path)) for path in workflow.basis_paths(project)})
     output.parent.mkdir(parents=True, exist_ok=True)
     work_dir = output.parent / ("work-" + uuid.uuid4().hex)
     work_dir.mkdir()
@@ -541,8 +563,8 @@ def build_editable(project, plan):
     for slide in before["slides"]:
         resulting_shapes = after["slides"][slide["slide_index"] - 1]["shapes"]
         after_shapes = {s["shape_id"]: s for s in resulting_shapes}
-        if len(after_shapes) != len(resulting_shapes) or len({s["name"] for s in resulting_shapes}) != len(resulting_shapes):
-            raise ValueError("Output contains duplicate shape IDs or names")
+        if len(after_shapes) != len(resulting_shapes):
+            raise ValueError("Output contains duplicate shape IDs")
         prior_ids = [s["shape_id"] for s in slide["shapes"]]
         if [s["shape_id"] for s in resulting_shapes if s["shape_id"] in prior_ids] != prior_ids:
             raise ValueError("Original stacking/group order changed")
@@ -560,10 +582,14 @@ def build_editable(project, plan):
         if sha256(_inside(project, reference['path'])) != reference['sha256']:
             raise ValueError(page_id + ': text-bearing reference image changed during build')
     validation = _office(["validate", candidate])
+    for path, version in source_versions.items():
+        if sha256(_inside(project, path)) != version:
+            raise ValueError('Build source changed during build: ' + path)
     with output.open("xb") as handle:
         handle.write(candidate.read_bytes())
     report = {"plan_sha256": digest, "source_sha256": before["source_sha256"], "output": plan["output"],
-              "output_sha256": sha256(output), "units": operations, "native_objects": native,
+              "output_sha256": sha256(output), "source_versions": source_versions,
+              "units": operations, "native_objects": native,
               "non_target_parts_preserved": True, "media_preserved": before["media"] == after["media"],
               "source_unchanged": True, "wps_render": "unverified", "idempotent": False,
               "officecli_validation": validation, "work_directory": state.relative_path(project, work_dir)}

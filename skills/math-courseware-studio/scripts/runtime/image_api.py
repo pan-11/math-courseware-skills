@@ -182,6 +182,8 @@ def _checked_inputs(project, job, authorization_evidence=''):
     if job['status'] == 'pending':
         preferences.require_image_job(project, job, authorization_evidence)
         workflow.require_image(project, job['purpose'])
+        from . import story_adoption
+        story_adoption.check_job(project, job)
         from . import grouped_gates
         candidate = grouped_gates.check_image_candidate(project, job)
     changed = []
@@ -366,6 +368,9 @@ def _register_builtin_locked(project, result):
         raise ValueError('Actual built-in tool evidence and matching route required')
     if result.get('input_digest') != job['input_digest']:
         raise ValueError('Result does not identify the dispatched input version')
+    if not already_downloaded:
+        from . import story_adoption
+        story_adoption.check_job(project, job)
     if job.get('creative_candidate') and not already_downloaded:
         _checked_inputs(project, job)
     for file in [{'path': job['prompt_path'], 'sha256': job['prompt_sha256']}, *job.get('references', [])]:

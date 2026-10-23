@@ -8,7 +8,9 @@ from copy import deepcopy
 from . import state, automation_store as store
 
 POLICY = 'grouped_creative_v1'
-GROUPS = {'video-creative': 'video-assets', 'video-direction': 'video-board'}
+STORY_POLICY = 'grouped_creative_v2'
+POLICIES = (POLICY, STORY_POLICY)
+GROUPS = {'video-creative': 'video-assets', 'video-direction': 'video-board', 'video-story': 'video-script'}
 FINAL_CHECKS = ('editable_text', 'teaching_graphics', 'video_regions_layers',
                 'fonts_wrapping_overlap', 'all_pages_animations', 'all_video_playback_audio',
                 'interactive_worksheet_blackboard')
@@ -19,18 +21,18 @@ def validate_policy(project, plan):
         if 'review_policy_evidence' in plan:
             raise ValueError('review_policy_evidence needs an explicit review_policy')
         return
-    if plan['review_policy'] != POLICY:
+    if plan['review_policy'] not in POLICIES:
         raise ValueError('Unknown review_policy')
     if not isinstance(plan.get('review_policy_evidence'), str) or not plan['review_policy_evidence'].strip():
         raise ValueError('review_policy needs actual selection evidence')
     scope = store.scope(project)
     if scope.get('project_mode') != 'full_course' or scope.get('current_task', {}).get('mode') != 'full_course':
-        raise ValueError('grouped_creative_v1 requires full_course scope')
+        raise ValueError('Grouped review policies require full_course scope')
 
 
 def active(project, run=None):
     run = store.load_run(project) if run is None else run
-    if not run or run.get('review_policy') != POLICY or run.get('mode') != 'automatic':
+    if not run or run.get('review_policy') not in POLICIES or run.get('mode') != 'automatic':
         return False
     scope = store.scope(project)
     return (bool(run.get('review_policy_evidence', '').strip()) and run.get('scope') == scope
@@ -41,13 +43,15 @@ def active(project, run=None):
 def validate_tasks(tasks, policy):
     for task in tasks:
         group = task.get('review_group')
-        if group is not None and (policy != POLICY or not isinstance(group, str) or group not in GROUPS
+        if group is not None and (policy not in POLICIES or not isinstance(group, str) or group not in GROUPS
                 or task.get('kind') != 'human' or task.get('step') != GROUPS[group]
-                or task.get('video_id')):
+                or task.get('video_id') or (group == 'video-story' and policy != STORY_POLICY)):
             raise ValueError('review_group requires its automatic policy and a whole-group human task')
-        if policy == POLICY and task.get('kind') == 'human':
+        if policy in POLICIES and task.get('kind') == 'human':
             node = task.get('human_node')
-            if node in ('H06', 'H07', 'H09') and group != 'video-creative':
+            if policy == STORY_POLICY and node == 'H06' and group != 'video-story':
+                raise ValueError('H06 reviews the complete video-story text before images')
+            if node in (('H06', 'H07', 'H09') if policy == POLICY else ('H07', 'H09')) and group != 'video-creative':
                 raise ValueError('H06/H07/H09 use one video-creative group')
             if node == 'H08' and group != 'video-direction':
                 raise ValueError('H08 covers all shots in one video-direction group')
@@ -62,6 +66,15 @@ def snapshot(project, name, run=None):
     if not isinstance(name, str) or name not in GROUPS or not active(project, run):
         return {'issues': ['Creative groups require the explicit current automatic full_course policy'],
                 'targets': [], 'identity': None}
+    if name == 'video-story':
+        if run['review_policy'] != STORY_POLICY:
+            return {'issues': ['video-story requires grouped_creative_v2; v1 history is unchanged'],
+                    'targets': [], 'identity': None}
+        from . import story_adoption
+        current = story_adoption.inspect(project, approved=False)
+        payload = {key: value for key, value in current.items() if key not in ('issues', 'approval_sources')}
+        payload.update(policy=STORY_POLICY, run_id=run['run_id'], name=name, scope=run['scope'])
+        return {**current, 'identity': dict(name=name, run_id=run['run_id'], fingerprint=state.digest(payload))}
     data = workflow.load(project)
     audit = workflow.Inspection(project, data)
     plan = audit.blueprint()
@@ -96,6 +109,9 @@ def snapshot(project, name, run=None):
 
     shared = data.get('stages', {}).get('shared-assets', {})
     if name == 'video-creative':
+        if run['review_policy'] == STORY_POLICY:
+            from . import story_adoption
+            audit.issues.extend(story_adoption.inspect(project)['issues'])
         audit.stage('shared-assets')
         add('shared-assets', shared, visual=True)
         canonical = {'path': '_state/assets.json', 'sha256': ''}
@@ -144,8 +160,17 @@ def snapshot(project, name, run=None):
             names = ['director', 'storyboard', 'style', 'prompts']
         for product in names:
             record = products.get(product, {})
-            add(vid + '/' + product, record,
-                visual=product in ('preview', 'assets', 'first-frame', 'storyboard', 'style'))
+            if run['review_policy'] == STORY_POLICY and product in ('script', 'voice'):
+                # Adopted text is an upstream source, not a second visual adoption target.
+                audit.evidence(record, vid + '/' + product, approved=True)
+                records[vid + '/' + product] = {k: deepcopy(v) for k, v in record.items() if k != 'approval'}
+                versions.update({item['path']: item['sha256'] for item in record.get('files', {}).values()})
+                versions.update(record.get('source_versions', {}))
+                if record.get('review', {}).get('path'):
+                    versions[record['review']['path']] = record['review']['sha256']
+            else:
+                add(vid + '/' + product, record,
+                    visual=product in ('preview', 'assets', 'first-frame', 'storyboard', 'style'))
             deps = chains.get(product, ())
             if product == 'prompts':
                 deps = ('script', 'first-frame') if route == 'talking' else ('script', 'voice', 'director', 'storyboard', 'style')
@@ -177,7 +202,7 @@ def snapshot(project, name, run=None):
         add('video-preparation', ready)
         audit.need(set(ready.get('video_ids', [])) == set(videos), 'video-preparation: cover all planned videos')
         audit.bind(ready, 'video-preparation', plan, *(v.get('preparation', {}) for v in videos.values()))
-    payload = dict(policy=POLICY, run_id=run['run_id'], name=name, scope=run['scope'],
+    payload = dict(policy=run['review_policy'], run_id=run['run_id'], name=name, scope=run['scope'],
         blueprint={k: v for k, v in plan.items() if k != 'approval'}, routes=routes,
         manifest_paths=pointers, records=records, source_versions=versions)
     if previous: payload['creative_identity'] = previous.get('identity')
@@ -191,6 +216,11 @@ def adopted(project, name, run=None):
     from . import calibration
     run = store.load_run(project) if run is None else run
     current = snapshot(project, name, run)
+    if name == 'video-story':
+        from . import story_adoption
+        actual = story_adoption.inspect(project)
+        return {**current, 'approved': not current['issues'] and not actual['issues'],
+                'approval_sources': actual['approval_sources'], 'decision_id': None, 'event_id': None}
     found = None
     if not current['issues']:
         for entry in reversed(state.read_lines(state.resolve(project, '_state/decisions.jsonl'))):
@@ -262,13 +292,15 @@ def image_candidate(project, purpose):
     from . import workflow
     run = store.load_run(project)
     if purpose not in ('cover', 'asset') or not active(project, run): return None
+    from . import story_adoption
+    story_adoption.require_image(project, purpose)
     audit = workflow.Inspection(project, workflow.load(project))
     plan = audit.blueprint()
     canonical = '_state/assets.json'
     versions = store.versions(project, [canonical])
     audit.issues.extend(store.issues(project, versions))
     if audit.issues: raise ValueError('; '.join(audit.issues))
-    return dict(policy=POLICY, run_id=run['run_id'], scope_digest=state.digest(run['scope']),
+    return dict(policy=run['review_policy'], run_id=run['run_id'], scope_digest=state.digest(run['scope']),
                 purpose=purpose, assets_sha256=versions[canonical],
                 blueprint=state.digest({k: v for k, v in plan.items() if k != 'approval'}))
 
@@ -308,9 +340,16 @@ def validate_receipt(project, run, task, result, versions):
         raise ValueError('Only actual complete current group adoption completes this human task')
 
 
-def final_versions(audit):
+def final_versions(audit, require_manifest=False):
     """Files a real H23 inspection must cover; no future report is an input."""
-    versions = {}
+    from . import delivery_roles
+    materials = delivery_roles.check(audit.project, audit.data)
+    audit.issues.extend(materials['issues'])
+    versions = {item['path']: item['sha256'] for item in materials['artifacts'].values()}
+    from . import delivery_manifest
+    package = delivery_manifest.inspect(audit.project, audit.data, required=require_manifest)
+    audit.issues.extend(package['issues'])
+    versions.update(package['versions'])
     for name in ('pages', 'editable', 'documents'):
         for item in audit.data.get('stages', {}).get(name, {}).get('files', {}).values():
             if item.get('path'): versions[item['path']] = item.get('sha256')
@@ -352,5 +391,5 @@ def final_inspection(audit, reference):
         audit.need(isinstance(checks, dict) and checks.get(key) is True,
                    'H23: actual same-version inspection missing ' + key)
     versions = report.get('source_versions', {})
-    audit.need(all(versions.get(path) == sha for path, sha in final_versions(audit).items()),
+    audit.need(all(versions.get(path) == sha for path, sha in final_versions(audit, require_manifest=True).items()),
                'H23: actual inspection must cover every current page/deck/video/supporting document/delivery artifact')

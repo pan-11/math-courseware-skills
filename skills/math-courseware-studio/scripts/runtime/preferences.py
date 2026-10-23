@@ -7,7 +7,7 @@ from . import state, workflow, automation_store as store
 GROUPS = {'image', 'video', 'editable'}
 PURPOSES = {'test', 'cover', 'asset', 'page', 'erase', 'repair'}
 IMAGE_STEPS = {'cover': 'cover', 'asset': 'asset', 'page-image': 'page',
-               'video-script': 'asset', 'video-assets': 'asset', 'video-board': 'asset'}
+               'video-assets': 'asset', 'video-board': 'asset'}
 
 
 def _text(value):
@@ -168,6 +168,12 @@ def image_authorization_issues(project, requests, route, data=None):
     return list(dict.fromkeys(issues))
 
 
+def zero_image_export(spec):
+    return (spec.get('step') in ('image-export', 'editable-handoff')
+            and type(spec.get('image_count')) is int and spec['image_count'] == 0
+            and not spec.get('image_requests'))
+
+
 def task_issues(project, spec, data):
     values = effective(project, data, strict=False)
     step = spec['step']
@@ -176,13 +182,16 @@ def task_issues(project, spec, data):
                else ['image'] if step in IMAGE_STEPS
                else ['editable'] if step.startswith('editable-') else [])
     groups = set(spec.get('requires_preferences', default))
-    if 'image_requests' in spec or 'image_count' in spec or (not human and step == 'editable-handoff'
+    if zero_image_export(spec):
+        groups.discard('image')
+    elif 'image_requests' in spec or 'image_count' in spec or (not human and step == 'editable-handoff'
             and values['editable'].get('route') == 'B' and values['editable'].get('entry') == 'full'):
         groups.add('image')
     issues = [item for item in conflicts(project, data) if item.split('.')[0] in groups]
     issues += ['Missing preference: ' + item for item in missing(values) if item.split('.')[0] in groups]
     if 'image' in groups:
-        requests = spec.get('image_requests', [{'purpose': IMAGE_STEPS.get(step, 'erase'), 'version': 'v001'}])
+        requests = spec.get('image_requests', [{'purpose': IMAGE_STEPS.get(step,
+            'asset' if step == 'video-script' else 'erase'), 'version': 'v001'}])
         issues += image_authorization_issues(project, requests, values['image'].get('route'), data)
     return list(dict.fromkeys(issues))
 

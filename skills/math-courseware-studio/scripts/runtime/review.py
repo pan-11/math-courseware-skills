@@ -4,12 +4,12 @@ from pathlib import Path
 from . import state, automation_store as store
 
 RUBRICS = {
-    'source': [('coverage', 'Original pages/materials are accounted for; omissions are explicit.'),
+    'source': [('coverage', 'Original pages, definitions, conditions, examples and transitions are accounted for with source locations; unread content and omissions are explicit.'),
                ('accuracy', 'Facts, mathematical quantities and source attribution match the supplied originals.'),
                ('limitations', 'Unknown media/content is explicitly unverified; no invented inspection.')],
     'teaching': [('math', 'Recompute answers and verify mathematical conditions and reasoning.'),
                  ('alignment', 'Goals, activities and assessment follow the adopted source and age level.'),
-                 ('continuity', 'Story, teacher transitions, timing and page/video mapping are consistent.')],
+                 ('continuity', 'Compare original teaching evidence with the actual new draft/deck: prerequisite before task, examples before warranted conclusions, definitions and necessary transitions retained or explicitly justified; inspect initial/reveal order and classroom timing.')],
     'visual': [('math', 'Visible quantities, diagrams, symbols and text express the intended mathematics.'),
                ('readability', 'Actually view each supplied image; check clipping, legibility and layout.'),
                ('continuity', 'Characters, props, style and source references remain consistent.')],

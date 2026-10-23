@@ -50,6 +50,37 @@ class PromptTests(unittest.TestCase):
         self.assertEqual(body.count('半3D卡通，浅蓝底色，楷体，大屏简洁留白'), 2)
         self.assertIn('红衣短发男孩', body)
 
+    def test_initial_prompt_and_export_exclude_deferred_answer_without_changing_source(self):
+        pages = state.read_json(self.root / '_state/pages.json')
+        page = pages['pages'][0]
+        page['reveal_steps'] = [{'step_id': 'answer-1', 'unit_ids': ['P002-T02']}]
+        state.write_json(self.root / '_state/pages.json', pages)
+        before = state.sha256(self.root / '_state/pages.json')
+        enable_modules(self.root)
+        result = prompts.render_pages(self.root)
+        for key in ('prompts', 'visible_text'):
+            text = (self.root / result[key]).read_text(encoding='utf-8')
+            self.assertNotIn('3×5＝15（个）', text)
+            self.assertIn('5组，每组3个', text)
+        self.assertEqual(state.sha256(self.root / '_state/pages.json'), before)
+        self.assertEqual(state.read_json(self.root / '_state/pages.json')['pages'][0]['text_units'][1]['text'],
+                         '3×5＝15（个）')
+
+    def test_all_deferred_text_does_not_fall_back_to_exposing_answers(self):
+        data = prompts.records(self.root)
+        page = data['pages']['pages'][1]
+        page['reveal_steps'] = [{'step_id': 'summary', 'unit_ids': ['P001-T01']}]
+        body, formatted = prompts.page_prompt(page, data)
+        self.assertNotIn('我学会了乘法', body + formatted)
+        self.assertIn('初始画面无上屏文字', formatted)
+
+    def test_invalid_visibility_cannot_silently_become_initial_text(self):
+        data = prompts.records(self.root)
+        page = data['pages']['pages'][0]
+        page['text_units'][1]['visible_at'] = 'unknown-click'
+        with self.assertRaisesRegex(ValueError, 'visible_at'):
+            prompts.page_prompt(page, data)
+
     def test_render_blocks_unclassified_scope_before_writes(self):
         with self.assertRaisesRegex(ValueError, 'workflow|Workflow|scope|mode'):
             prompts.render_pages(self.root)

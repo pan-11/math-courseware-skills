@@ -1,6 +1,6 @@
 """Frozen pre-autopilot workflow behavior using retained synthetic fixtures.
 
-Normal unittest runs only read fixtures/manual-mode-baseline-v001.json.
+Normal tests read the immutable v001 baseline plus the approved v002 role-check overlay.
 One-time capture before runtime edits, from repository root:
   python -B -X utf8 tests/test_manual_mode_baseline.py --capture
 Capture refuses an existing baseline and any non-6437018 workflow/state source.
@@ -18,6 +18,7 @@ from runtime import state, workflow
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / 'tests/fixtures/manual-mode-baseline-v001.json'
+OVERLAY = ROOT / 'tests/fixtures/manual-mode-baseline-v002.json'
 BASE_COMMIT = '643701823368991d9dc78c2b65e8804721ab173e'
 
 
@@ -114,6 +115,10 @@ class ManualModeBaselineTests(unittest.TestCase):
     def test_pre_autopilot_workflow_contract_and_read_only_checks(self):
         expected = json.loads(BASELINE.read_text(encoding='utf-8-sig'))
         self.assertEqual(expected['source_commit'], BASE_COMMIT)
+        overlay = json.loads(OVERLAY.read_text(encoding='utf-8'))
+        self.assertEqual(overlay['base_sha256'], hashlib.sha256(BASELINE.read_bytes()).hexdigest())
+        self.assertEqual(overlay['base_baseline'], BASELINE.name)
+        expected['scenarios'].update(overlay['scenario_overrides'])
         self.assertEqual(scenarios(), expected['scenarios'])
 
 

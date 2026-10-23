@@ -9,7 +9,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'skills/math-courseware-studio/scripts'))
 from runtime import state
-from workflow_fixture import evidence, ref, enable_modules, versions
+from workflow_fixture import evidence, ref, enable_modules, versions, delivery_manifest
 try:
     from runtime import workflow
 except ImportError:
@@ -61,6 +61,8 @@ class WorkflowTests(unittest.TestCase):
                       'timing', 'page_budget', 'video_inventory', 'source_mapping'])
 
     def video(self, vid='V001', route='shots', products=(), prepare=False, final=False):
+        if 'script' in products and 'voice' not in products:
+            products = [*products, 'voice']
         path = 'planning/' + vid + '-manifest.json'
         checks = {'products': {name: evidence(self.root, vid + '-' + name, approved=True)
                                for name in products}}
@@ -73,14 +75,15 @@ class WorkflowTests(unittest.TestCase):
         chains = {'preview': ('script',), 'voice': ('script',),
                   'director': ('script', 'voice', 'assets'), 'storyboard': ('director', 'assets'),
                   'style': ('assets', 'storyboard'), 'first-frame': ('script',),
-                  'prompts': ('script', 'first-frame') if route == 'talking'
+                  'prompts': ('script', 'voice', 'first-frame') if route == 'talking'
                              else ('script', 'voice', 'director', 'storyboard', 'style')}
         for name, product in list(checks['products'].items()):
             deps = [checks['products'][dep] for dep in chains.get(name, ()) if dep in checks['products']]
             if name == 'script' and self.data['current_task']['mode'] == 'full_course':
                 deps.append(self.data['stages'].get('blueprint', {}))
             checks['products'][name] = evidence(self.root, vid + '-' + name,
-                files=product['files'], approved=True, sources=versions(*deps))
+                files=product['files'], approved=True, sources=versions(*deps),
+                **({'complete': True} if name == 'script' else {'verbatim': True} if name == 'voice' else {}))
         if prepare:
             names = ['script', 'voice', 'frame_plan', 'prompts', 'production', 'classroom']
             if route == 'shots':
@@ -221,13 +224,13 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue(workflow.check(root, 'video-script', video_id='V001')['allowed'])
         self.assertFalse((root / '_state/project.json').exists())
 
-    def test_talking_materials_continue_without_intermediate_adoption(self):
+    def test_talking_after_text_adoption_needs_no_intermediate_visual_adoption(self):
         self.data = enable_modules(self.root, ['video'])
         self.video(route='talking', products=['script', 'first-frame', 'prompts'])
         path = self.root / self.data['videos']['V001']['path']
         manifest = state.read_json(path)
-        for product in manifest['workflow']['products'].values():
-            product.pop('approval', None)
+        for name, product in manifest['workflow']['products'].items():
+            if name not in ('script', 'voice'): product.pop('approval', None)
         for route in ('talking', 'fixed_talking'):
             manifest['route'] = route
             state.write_json(path, manifest)
@@ -243,8 +246,7 @@ class WorkflowTests(unittest.TestCase):
         path = self.root / self.data['videos']['V001']['path']
         manifest = state.read_json(path)
         products = manifest['workflow']['products']
-        for product in products.values():
-            product.pop('approval', None)
+        products['first-frame'].pop('approval', None)
         state.write_json(path, manifest)
         self.data['videos']['V001'] = ref(self.root, path.relative_to(self.root).as_posix())
         self.assertTrue(self.allowed('video-prompts', video_id='V001'))
@@ -260,8 +262,7 @@ class WorkflowTests(unittest.TestCase):
         path = self.root / self.data['videos']['V001']['path']
         manifest = state.read_json(path)
         products = manifest['workflow']['products']
-        for product in products.values():
-            product.pop('approval', None)
+        products['first-frame'].pop('approval', None)
         state.write_json(path, manifest)
         self.data['videos']['V001'] = ref(self.root, path.relative_to(self.root).as_posix())
         self.assertTrue(self.allowed('video-prompts', video_id='V001'))
@@ -393,7 +394,13 @@ class WorkflowTests(unittest.TestCase):
 
     def test_independent_document_delivery_does_not_need_course_assets(self):
         self.data = enable_modules(self.root, ['documents'])
-        self.data['stages']['delivery'] = evidence(self.root, 'document-delivery')
+        files = {'lesson-plan': evidence(self.root, 'independent-lesson-plan')['files']['report']}
+        self.data['stages']['documents'] = evidence(self.root, 'independent-documents', files=files,
+            sources=versions(self.data['inputs']['documents']))
+        self.data['stages']['delivery'] = evidence(self.root, 'document-delivery',
+            files={'manifest': delivery_manifest(self.root, 'independent-documents', files,
+                sources=versions(self.data['inputs']['documents']))},
+            sources=versions(self.data['inputs']['documents']))
         self.assertTrue(self.allowed('complete'))
 
     def test_retained_old_blueprint_does_not_keep_preparation_current(self):
@@ -482,8 +489,12 @@ class WorkflowTests(unittest.TestCase):
             sources=versions(stages['pages'], stages['images']))
         documents = {role: evidence(self.root, 'doc-' + role)['files']['report']
                      for role in ('classroom-script', 'lesson-presentation', 'lesson-plan')}
+        from docx import Document
+        worksheet = Document(); worksheet.add_paragraph('Synthetic student comparison task')
+        worksheet.save(self.root / 'planning/worksheet.docx')
+        documents.update(worksheet=ref(self.root, 'planning/worksheet.docx'), blackboard=image)
         stages['documents'] = evidence(self.root, 'final-documents', files=documents,
-            sources=versions(stages['pages'], stages['images']))
+            sources=versions(stages['pages'], stages['images'], stages['editable']))
         # Fixed container marker fixture tests format classification only; it contains no encoded movie.
         media_path = 'planning/container-marker.mp4'
         (self.root / media_path).write_bytes(b'\x00\x00\x00\x18ftypisom\x00\x00\x02\x00isomiso2')
@@ -503,7 +514,8 @@ class WorkflowTests(unittest.TestCase):
         state.write_json(self.root / wps, {'passed': True, 'inspection': 'user_report',
             'basis': 'SYNTHETIC evidence only; no WPS inspection occurred.', 'source_versions': sources})
         stages['delivery'] = evidence(self.root, 'final-delivery', sources=sources,
-            files={'manifest': evidence(self.root, 'delivery-list')['files']['report'], 'wps': ref(self.root, wps)})
+            files={'manifest': delivery_manifest(self.root, 'whole-course',
+                {**stages['editable']['files'], **stages['documents']['files']}), 'wps': ref(self.root, wps)})
 
     def test_complete_accepts_current_artifacts_then_rejects_renamed_text_video(self):
         self.completed_files()

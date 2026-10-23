@@ -50,8 +50,9 @@ def capacity_issues(data, count):
 
 def validate_declaration(spec):
     if 'image_count' in spec:
-        if type(spec['image_count']) is not int or spec['image_count'] <= 0:
-            raise ValueError('image_count must be a positive integer, not a boolean')
+        if (type(spec['image_count']) is not int or spec['image_count'] < 0
+                or (spec['image_count'] == 0 and not preferences.zero_image_export(spec))):
+            raise ValueError('image_count must be positive; zero is only valid for an image-export/editable-handoff without image_requests')
         if 'image_requests' in spec and spec['image_count'] != len(spec['image_requests']):
             raise ValueError('image_count must match the actual image_requests quantity')
 
@@ -67,12 +68,12 @@ def amend_declarations(data, declarations):
                 or not isinstance(declaration['task_id'], str)
                 or not preferences._text(declaration['evidence'])):
             raise ValueError('Each image declaration requires task_id, image_count and actual evidence')
-        validate_declaration(declaration)
         task_id = declaration['task_id']
         if task_id not in tasks or task_id in seen:
             raise ValueError('Image declarations require known unique task IDs')
         seen.add(task_id)
         task = tasks[task_id]
+        validate_declaration({**task['spec'], 'image_count': declaration['image_count']})
         if (task['status'] != 'pending' or task.get('attempt', 0) != 0
                 or 'claim' in task or task.get('history')):
             raise ValueError('Only pending tasks that were never attempted or claimed can receive an image declaration')
@@ -89,6 +90,8 @@ def task_spec(task):
 
 def task_issues(project, spec, data):
     validate_declaration(spec)
+    if preferences.zero_image_export(spec):
+        return []
     count = spec.get('image_count', len(spec['image_requests']) if 'image_requests' in spec else None)
     human = spec.get('kind', 'produce') == 'human'
     defaults = ['image'] if not human and spec['step'] in preferences.IMAGE_STEPS else []

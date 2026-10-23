@@ -7,7 +7,7 @@ description: Use after source analysis when primary-school math courseware needs
 
 先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入中间文件，已有课不自动迁移。
 
-**每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
+**每次用户可见回复**（含进度、等待、提问、恢复、交付和独立调用）先按[共同回复合同](../math-courseware-studio/references/reply-contract.md)填写唯一开头：真实课件/任务、步骤/状态，本步工作及产出、用户检查、用户操作、下一步；编号列项，无检查/操作写明无需，计划与完成分开，不新增批准节点。
 
 读取[故事与资产](references/story-and-assets.md)、[项目协议](../math-courseware-studio/references/project-contract.md)；实际生图时读[线路规则](../math-courseware-studio/references/image-routing.md)。控制器在相邻总入口`scripts/courseware.py`。
 

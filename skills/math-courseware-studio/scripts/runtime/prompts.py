@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 from PIL import Image
 from . import state, checks, workflow, preferences, automation_store as store
+from .refill_modes import visibility
 
 LESS = ('版式疏朗，视觉重心明确，标题与正文大而清晰，适合课堂投屏。'
         '按页面用途控制密度：封面突出课题形象与故事入口，可展开有层次的完整主场景，'
@@ -44,8 +45,9 @@ def page_prompt(page, data):
         if not fixed:
             raise ValueError('Asset needs fixed_features: ' + ref['asset_id'])
         character.append(fixed if isinstance(fixed, str) else json.dumps(fixed, ensure_ascii=False))
-    texts = [unit['text'] for unit in page.get('text_units', [])]
-    if not texts or not page.get('layout') or not page.get('visual_description'):
+    at = visibility(page)
+    texts = [unit['text'] for unit in page.get('text_units', []) if at[unit['unit_id']] == 'initial']
+    if not page.get('text_units') or not page.get('layout') or not page.get('visual_description'):
         raise ValueError('Page needs exact text_units, layout and visual_description')
     restrictions = page.get('restrictions', '避免画面杂乱、文字过密、背景抢主体；避免数学关系、物体数量与人物设定错误。')
     visual = page['visual_description']
@@ -56,11 +58,11 @@ def page_prompt(page, data):
             f'场景、核心插画与教学画面：{visual}。'
             f'固定角色/地点/道具：{"；".join(character) if character else "本页无指定共享角色"}。'
             '按页面布局清晰呈现以下真实文案，逐字准确，不增删题目条件：\n' +
-            '\n'.join('「' + text + '」' for text in texts) + '\n' + LESS + '\n本页限制：' + restrictions)
+            ('\n'.join('「' + text + '」' for text in texts) if texts else '初始画面无上屏文字；保留待回答位置，不提前显示答案。') + '\n' + LESS + '\n本页限制：' + restrictions)
     if any(phrase in body for phrase in ('同上', '延续上一页风格')):
         raise ValueError('Prompts must expand every page independently')
     formatted = (f'【页面编号】{page["page_id"]}\n【页面名称】{page["title"]}\n'
-                 f'【生图提示词】\n{body}\n【画面核心文字】\n' + '\n'.join(texts) +
+                 f'【生图提示词】\n{body}\n【画面核心文字】\n' + ('\n'.join(texts) if texts else '初始画面无上屏文字') +
                  '\n【关键画面元素】\n' + visual + ('；' + '；'.join(character) if character else ''))
     return body, formatted
 
@@ -79,8 +81,10 @@ def render_pages(project):
     for page in pages:
         _, full = page_prompt(page, data)
         formatted.append(full)
+        at = visibility(page)
+        initial = [unit['text'] for unit in page['text_units'] if at[unit['unit_id']] == 'initial']
         visible.append(f'## {page["page_id"]} {page["title"]}\n\n' +
-                       '\n'.join(unit['text'] for unit in page['text_units']))
+                       ('\n'.join(initial) if initial else '初始画面无上屏文字'))
     used = set(workflow.basis_paths(project)) | {'_state/story.json'}
     versions = {path: state.sha256(state.resolve(project, path)) for path in sorted(used)}
     for relative, body in [('slides/image-prompts.md', '\n\n'.join(formatted)),
@@ -131,6 +135,8 @@ def prepare(project, selection):
         if purpose not in ('page', 'asset', 'cover', 'erase', 'repair', 'test'):
             raise ValueError('Unknown image task purpose')
         workflow.require_image(project, purpose)
+        from . import story_adoption
+        story_basis = story_adoption.require_image(project, purpose)
         version = task.get('version', 'v001')
         if not re.fullmatch(r'[A-Za-z0-9_-]+', target) or not re.fullmatch(r'v\d{3,}', version):
             raise ValueError('Unsafe task ID or version')
@@ -215,6 +221,7 @@ def prepare(project, selection):
             job['semantic_fingerprint'] = page_fingerprint(data, target)
         # Candidate permission is an execution constraint, not a provider input.
         job['input_digest'] = state.digest(job)
+        if story_basis: job['story_basis'] = story_basis
         if candidate:
             problems = store.issues(project, {r['path']: r['sha256'] for r in files})
             if problems: raise ValueError('; '.join(problems))
@@ -227,6 +234,8 @@ def prepare(project, selection):
                 ('semantic_fingerprint', 'prompt_sha256', 'references', 'route', 'image_api_input'))
             if old.get('input_digest') != job['input_digest'] and not equivalent:
                 raise ValueError('Task ID already has different inputs; create a new version')
+            if old.get('status') == 'pending':
+                story_adoption.check_job(project, old)
             if old.get('creative_candidate') and old.get('status') == 'pending':
                 grouped_gates.check_image_candidate(project, old)
         pending.append((job, prompt, directory))

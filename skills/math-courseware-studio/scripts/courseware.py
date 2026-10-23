@@ -82,7 +82,7 @@ def parser():
             p.add_argument('--report', required=True, type=Path)
     commands = ['init', 'status', 'validate', 'workflow-check', 'record-approval', 'impact', 'record-change',
                 'render-prompts', 'image-prepare', 'image-run', 'image-resume', 'image-register',
-                'export-slides', 'canva-handoff', 'canva-import', 'editable-build', 'export-documents', 'collect']
+                'export-slides', 'canva-handoff', 'canva-import', 'editable-build', 'editable-answers', 'export-documents', 'collect']
     for command in commands:
         p = sub.add_parser(command)
         p.add_argument('--project', required=True, type=Path)
@@ -97,7 +97,7 @@ def parser():
             p.add_argument('--video-id')
         filearg = {'record-approval': 'record', 'impact': 'change', 'record-change': 'change',
                    'image-prepare': 'selection', 'image-run': 'batch', 'image-resume': 'batch',
-                   'image-register': 'result', 'editable-build': 'plan', 'canva-handoff': 'selection'}.get(command)
+                   'image-register': 'result', 'editable-build': 'plan', 'editable-answers': 'plan', 'canva-handoff': 'selection'}.get(command)
         if filearg:
             p.add_argument('--' + filearg, required=True, type=Path)
         if command in ('image-run', 'image-resume'):
@@ -161,6 +161,34 @@ def execute(args):
         image_api.validate_batch(project, batch, resume=c == 'image-resume')
         key = image_api.read_key(project, args.key_file, args.key_stdin)
         return image_api.run_batch(project, batch, key, resume=c == 'image-resume')
+    if c == 'editable-answers':
+        from runtime import click_answers, editable_delivery
+        workflow.require(project, 'editable-build')
+        plan = state.read_json(args.plan)
+        pages = state.read_json(state.resolve(project, '_state/pages.json')).get('pages', [])
+        if set(plan.get('mapping', {})) != {p['page_id'] for p in pages}:
+            raise ValueError('Inline answer scan must cover every page in the current refill scope')
+        artifacts = state.load_project(project).get('artifacts', {})
+        base = artifacts.get('editable-base-pptx')
+        if base and (state.resolve(project, base['path']) != state.resolve(project, plan['source_deck'])
+                     or base['sha256'] != plan['source_sha256']):
+            raise ValueError('Inline answers must use the current faithful-restoration base')
+        result = click_answers.build(project, plan)
+        checked = click_answers.validate_final(project, {'path':result['manifest'], 'sha256':result['manifest_sha256']})
+        versions = {p:state.sha256(state.resolve(project, p)) for p in workflow.basis_paths(project)}
+        versions.update(checked['source_versions'])
+        versions[plan['source_deck']] = plan['source_sha256']
+        if not base:
+            base = state.register_artifact(project, 'editable-base-pptx', plan['source_deck'], list(versions),
+                {'source_versions':versions, 'intermediate':True, 'refill_stage':'base'})
+        if checked.get('ready_for_final'):
+            state.register_artifact(project, 'editable-pptx', checked['output'], list(versions), {
+                'source_versions':versions, 'refill_stage':'click_answers',
+                'base_ref':{'path':base['path'], 'sha256':base['sha256']},
+                'answer_manifest':{'path':result['manifest'], 'sha256':result['manifest_sha256']},
+                'review_status':'structure_checked_playback_pending'})
+            editable_delivery.current(project)
+        return result
     if c in ('canva-import', 'editable-build'):
         from runtime import pptx_editor
         workflow.require(project, 'editable-import' if c == 'canva-import' else 'editable-build')
@@ -172,21 +200,22 @@ def execute(args):
             return pptx_editor.import_deck(project, args.deck, mapping)
         plan = state.read_json(args.plan)
         validate_editable_authority(project, plan)
+        if 'delivery_override' in plan:
+            from runtime import editable_delivery
+            editable_delivery._override(project, plan['delivery_override'])
         result = pptx_editor.build_editable(project, plan)
-        if result.get('idempotent') and pptx_editor.legacy_refill_replay(project, plan):
+        if result.get('idempotent'):
             return result  # Historical output reuse must not refresh its original provenance.
-        versions = {path: state.sha256(state.resolve(project, path))
-                    for path in workflow.basis_paths(project)}
-        versions[plan['source_deck']] = plan['source_sha256']
-        authority = plan.get('authorization', plan.get('review'))
-        versions[authority['evidence']] = authority['sha256']
-        for page in state.read_json(state.resolve(project, '_state/pages.json'))['pages']:
-            if page['page_id'] in plan['mapping'] and page.get('image'):
-                versions[page['image']['path']] = page['image']['sha256']
-        state.register_artifact(project, 'editable-pptx', result['output'],
+        versions = result['source_versions']
+        base = state.register_artifact(project, 'editable-base-pptx', result['output'],
                                 [*versions, *plan['mapping']],
-                                {'source_versions': versions, 'review_status': 'text_refilled_graphics_pending'
+                                {'source_versions': versions, 'intermediate':True, 'refill_stage':'base',
+                                 'review_status': 'text_refilled_graphics_pending'
                                  if result.get('remaining_native_objects') else 'structure_checked_wps_pending'})
+        if plan.get('delivery_override'):
+            from runtime import editable_delivery
+            editable_delivery.register_override(project, base, plan['delivery_override'])
+        result['next_step'] = 'editable-answers' if not plan.get('delivery_override') else 'review-current-delivery'
         return result
     from runtime import exports
     if c == 'canva-handoff':

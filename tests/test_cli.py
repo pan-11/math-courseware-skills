@@ -135,7 +135,11 @@ class CliTests(unittest.TestCase):
         result = courseware.execute(argparse.Namespace(command='editable-build', project=self.root, plan=plan_path))
         self.assertTrue((self.root / result['output']).exists())
         self.assertFalse(result['full_editability_verified'])
-        artifact = state.load_project(self.root)['artifacts']['editable-pptx']
+        artifacts = state.load_project(self.root)['artifacts']
+        self.assertNotIn('editable-pptx', artifacts)
+        artifact = artifacts['editable-base-pptx']
+        self.assertTrue(artifact['intermediate'])
+        self.assertEqual(result['next_step'], 'editable-answers')
         self.assertEqual(artifact['source_versions']['_state/synthetic-direct.json'], state.sha256(evidence))
 
 

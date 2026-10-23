@@ -5,6 +5,8 @@ description: Independently review courseware analysis, teaching and math, images
 
 # 独立审核
 
+**每次用户可见回复**（含进度、等待、提问、恢复、交付和独立调用）先按[共同回复合同](../math-courseware-studio/references/reply-contract.md)填写唯一开头：真实课件/任务、步骤/状态，本步工作及产出、用户检查、用户操作、下一步；编号列项，无检查/操作写明无需，计划与完成分开，不新增批准节点。
+
 先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)识别课程根并展开packet里的逻辑路径，再只读检查实际文件；新课审核证据由主会话保存在中间文件/_state，审核者不初始化、迁移或修改课程。
 
 可以单独审一份产物，也可接收[自动推进](../math-courseware-autopilot/SKILL.md)已建立的packet。独立审核不启用自动模式，不写用户采用，不改变课程文件。先读课程AGENTS/HANDOFF与[审核协议](references/review-contract.md)，确认当前范围及实际源文件。

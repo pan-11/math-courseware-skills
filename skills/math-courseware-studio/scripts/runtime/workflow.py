@@ -241,6 +241,11 @@ class Inspection:
                 self.need(item in files.values(), 'images: each current page image must be in the reviewed deliverables')
                 self.visual({'files': {'image': item}}, 'images/' + str(page.get('page_id')))
         elif kind == 'editable':
+            from . import editable_delivery
+            try:
+                editable_delivery.current(self.project, files.get('pptx'))
+            except ValueError as exc:
+                self.need(False, 'editable: ' + str(exc))
             from pptx import Presentation
             path = self.file(files.get('pptx'), 'editable/pptx')
             if path:
@@ -250,7 +255,11 @@ class Inspection:
                 except Exception as exc:
                     self.need(False, 'editable: cannot read PPTX (' + type(exc).__name__ + ')')
         elif kind == 'documents':
-            for role in ('classroom-script', 'lesson-presentation', 'lesson-plan'):
+            from . import delivery_roles
+            self.issues.extend(delivery_roles.check(self.project, self.data)['issues'])
+            required = () if self.data.get('current_task', {}).get('mode') == 'full_course' else (
+                'classroom-script', 'lesson-presentation', 'lesson-plan')
+            for role in required:
                 path = self.file(files.get(role), 'documents/' + role)
                 if path:
                     try:
@@ -267,7 +276,10 @@ class Inspection:
                     except Exception as exc:
                         self.need(False, 'documents/' + role + ': unreadable document (' + type(exc).__name__ + ')')
         elif kind == 'delivery':
-            self.file(files.get('manifest'), 'delivery/manifest')
+            from . import editable_delivery
+            self.issues.extend(editable_delivery.delivery_issues(self.project, record))
+            from . import delivery_manifest
+            self.issues.extend(delivery_manifest.inspect(self.project, self.data)['issues'])
             self.playback(files.get('wps'), 'delivery/WPS', record.get('source_versions', {}))
             from . import grouped_gates
             if grouped_gates.active(self.project): grouped_gates.final_inspection(self, files.get('wps'))
@@ -375,6 +387,9 @@ class Inspection:
         route, video = self.video(video_id)
         from . import grouped_gates
         grouped = grouped_gates.active(self.project)
+        if step in ('video-assets', 'video-director', 'video-board', 'video-style'):
+            from . import story_adoption
+            self.issues.extend(story_adoption.inspect(self.project, video_id)['issues'])
         if route not in ('shots', 'talking'):
             return
         if route == 'talking' and step in ('video-director', 'video-board', 'video-style'):
@@ -389,6 +404,10 @@ class Inspection:
         if route == 'talking' and step == 'video-prompts':
             dependencies[step] = ['script', 'first-frame']
         products = video.get('products', {})
+        if step in ('video-prompts', 'video-upload') and (
+                'voice' in products or products.get('script', {}).get('complete') is True):
+            from . import story_adoption
+            self.issues.extend(story_adoption.inspect(self.project, video_id)['issues'])
         if grouped and step in ('video-director', 'video-board', 'video-style', 'video-prompts') and route == 'shots':
             grouped_gates.require_adopted(self, 'video-creative')
         if grouped and step == 'video-upload':
@@ -396,7 +415,7 @@ class Inspection:
         chains = {'preview': ('script',), 'voice': ('script',),
                   'director': ('script', 'voice', 'assets'), 'storyboard': ('director', 'assets'),
                   'style': ('assets', 'storyboard'), 'first-frame': ('script',),
-                  'prompts': ('script', 'first-frame') if route == 'talking'
+                  'prompts': ('script', 'voice', 'first-frame') if route == 'talking'
                              else ('script', 'voice', 'director', 'storyboard', 'style')}
         checked = set()
 
@@ -406,7 +425,7 @@ class Inspection:
             checked.add(name)
             record = products.get(name, {})
             self.evidence(record, str(video_id) + '/' + name,
-                          approved=not grouped and route != 'talking' and (
+                          approved=not grouped and route != 'talking' and not (step == 'video-assets' and name == 'preview') and (
                               name in ('script', 'preview', 'assets', 'style', 'first-frame')
                               or (name == 'storyboard' and step in ('video-style', 'video-prompts', 'video-upload'))))
             if name in ('preview', 'assets', 'first-frame', 'storyboard'):
@@ -427,6 +446,8 @@ class Inspection:
 
         for name in dependencies[step]:
             inspect(name)
+        if not grouped and route == 'shots' and step == 'video-director' and 'preview' in products:
+            inspect('preview')  # Preview and assets share the visual adoption after candidate production.
 
     def preparation(self):
         plan = self.blueprint()
@@ -506,6 +527,13 @@ def check(project, step, video_id=None, route=None):
                 # A local task cannot certify completion of its parent full course.
                 audit.need(data.get('project_mode') != 'full_course', 'complete: restore full-course scope to check whole-course completion')
                 audit.stage('delivery')
+                from . import delivery_roles, delivery_manifest
+                audit.issues.extend(delivery_roles.check(project, data)['issues'])
+                if data.get('stages', {}).get('delivery', {}).get('files'):
+                    audit.issues.extend(delivery_manifest.inspect(project, data)['issues'])
+                if 'editable' in modules:
+                    from . import editable_delivery
+                    audit.issues.extend(editable_delivery.delivery_issues(project, data.get('stages', {}).get('delivery', {})))
             else:
                 for module in modules:
                     audit.input(module)
@@ -536,6 +564,9 @@ def check(project, step, video_id=None, route=None):
                 for vid in data.get('stages', {}).get('blueprint', {}).get('video_ids', []):
                     _, video = audit.video(vid)
                     audit.final_video(video.get('final', {}), vid + '/actual-video')
+    if step in ('cover', 'asset'):
+        from . import story_adoption
+        audit.issues.extend(story_adoption.image_issues(project, step))
     return {'allowed': not audit.issues, 'step': step, 'mode': mode,
             'project_mode': data.get('project_mode'), 'issues': list(dict.fromkeys(audit.issues)),
             'completion_scope': 'whole_course' if mode == 'full_course' else 'selected_modules',
@@ -556,6 +587,8 @@ def require_image(project, purpose):
              'erase': 'editable-handoff', 'repair': 'page-image'}
     if purpose not in steps:
         raise ValueError('Unknown image task purpose')
+    from . import story_adoption
+    story_adoption.require_image(project, purpose)
     if purpose == 'repair':
         data = load(project)
         task = data.get('current_task', {})

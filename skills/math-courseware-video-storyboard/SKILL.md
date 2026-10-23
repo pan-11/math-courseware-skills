@@ -5,11 +5,11 @@ description: Use when an approved children's video shot list needs a black-and-w
 
 # 黑白故事板制作
 
-仅显式 `grouped_creative_v1` 的full_course自动run，按[D1分组协议](../math-courseware-autopilot/references/grouped-creative-review.md)从第一组已采用的真实资产和本轮导演候选制作正式黑白板，与全课全部运镜导演/完整词/实际准备在H08整组采用，不逐片再问。板仍是真实已检图片，不能用25格剧情预览替代；讲话不加导演板，其他模式保留下文原门槛。
+显式 `grouped_creative_v2` 或已有 `grouped_creative_v1` 的full_course自动run，按[D1分组协议](../math-courseware-autopilot/references/grouped-creative-review.md)从第一组已采用的真实资产和本轮导演候选制作正式黑白板，与全课全部运镜导演/完整词/实际准备在H08整组采用，不逐片再问。板仍是真实已检图片，不能用25格剧情预览替代；讲话不加导演板，其他模式保留下文原门槛。
 
 先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入中间文件，已有课不自动迁移。
 
-**每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
+**每次用户可见回复**（含进度、等待、提问、恢复、交付和独立调用）先按[共同回复合同](../math-courseware-studio/references/reply-contract.md)填写唯一开头：真实课件/任务、步骤/状态，本步工作及产出、用户检查、用户操作、下一步；编号列项，无检查/操作写明无需，计划与完成分开，不新增批准节点。
 
 依据已定文字分镜和真实参考图，制作镜号、构图、人物及空间对应的黑白板。默认交付可上传的完整故事板图片；逐格生图可以作为制作方法，不能把最终交付停在一串单格文件。把导演设计落实成图片，不在生图时重新创作剧情。
 

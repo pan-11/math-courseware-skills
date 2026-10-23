@@ -11,7 +11,7 @@ RUBRIC = {step: ('source' if step == 'analysis' else
                  'delivery' if step in ('image-export', 'editable-handoff', 'editable-import',
                                        'editable-build', 'collect', 'complete') else 'teaching')
           for step in workflow.STEPS}
-MEDIA_STEPS = {'cover', 'asset', 'page-image', 'video-script', 'video-assets',
+MEDIA_STEPS = {'cover', 'asset', 'page-image', 'video-assets',
                'video-board', 'video-upload', 'editable-handoff'}
 
 
@@ -158,6 +158,11 @@ def _gate(project, task, data=None, completing=False):
         gate = grouped_gates.final_dispatch(project)
     else:
         gate = workflow.check(project, spec['step'], video_id=spec.get('video_id'))
+    if spec.get('kind', 'produce') != 'human' and spec['step'] == 'video-script' and (
+            'image_count' in spec or 'image_requests' in spec or spec.get('side_effects') == 'external'):
+        from . import story_adoption
+        gate['issues'] += story_adoption.inspect(project, spec.get('video_id'))['issues']
+        gate['allowed'] = not gate['issues']
     if data is not None:
         gate['issues'] += preferences.task_issues(project, spec, data)
         gate['issues'] += image_budget.task_issues(project, spec, data)
@@ -286,7 +291,25 @@ def next_task(project, actor):
         for task in data['tasks']:
             if task['status'] == 'needs_revision' and not _external(task) and task['attempt'] < task['spec'].get('max_attempts', 2):
                 task['status'] = 'pending'
-            if task['status'] == 'pending' and set(task['spec'].get('depends_on', [])) <= done:
+            if task['status'] in ('pending', 'waiting_external') and set(task['spec'].get('depends_on', [])) <= done:
+                if (task['spec'].get('review_group') == 'video-story'
+                        and data.get('review_policy') == grouped_gates.STORY_POLICY):
+                    existing = grouped_gates.adopted(project, 'video-story', data)
+                    if existing['approved']:
+                        try:
+                            inputs = _sources(project, data, task)
+                            inputs.update(existing['source_versions'])
+                            outputs = {item['path']: item['sha256'] for item in existing['targets']}
+                            task.update(status='done', review_group=existing, input_versions=inputs,
+                                output_versions=outputs, bindings=store.bindings(project, inputs),
+                                reused_adoption=existing['approval_sources'], issues=[])
+                            done.add(task['spec']['id'])
+                            continue
+                        except (OSError, ValueError) as exc:
+                            task['issues'] = [str(exc)]
+                            continue
+                if task['status'] != 'pending':
+                    continue
                 gate = _gate(project, task, data)
                 task['issues'] = gate['issues']
                 if gate['allowed'] and task['spec'].get('kind', 'produce') == 'human':

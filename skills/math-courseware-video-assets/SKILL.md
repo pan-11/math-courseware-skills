@@ -5,11 +5,11 @@ description: 当视频需要准备或补齐角色三视图、场景多角度、�
 
 # 情景视频图片资产与固定风格
 
-仅显式 `grouped_creative_v1` 的full_course自动run，沿[D1分组协议](../math-courseware-autopilot/references/grouped-creative-review.md)先在现有video-assets/cover/asset入口制作待审实图，与全部剧本预览和讲话完整包合并H06/H07/H09；四封面只采用明确选中的实际图，已有有效母版复用。第5步风格与完整词/实际准备纳入全运镜第二组后才能正式提交，不因候选已生成冒称采用。其他模式保留下文原门槛。
+先核当前完整故事文字已实际采用，再做相关新资产、首帧或预览；独立无故事补图只核其实际范围。新grouped_creative_v2沿[分组协议](../math-courseware-autopilot/references/grouped-creative-review.md)把实图放视觉组；旧v1历史不改写，但新生成不能借候选豁免绕过文字采用。四封面只采用实际选中的方向，已有有效母版复用；实际制作、视觉采用和成片分清。
 
 先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入中间文件，已有课不自动迁移。
 
-**每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
+**每次用户可见回复**（含进度、等待、提问、恢复、交付和独立调用）先按[共同回复合同](../math-courseware-studio/references/reply-contract.md)填写唯一开头：真实课件/任务、步骤/状态，本步工作及产出、用户检查、用户操作、下一步；编号列项，无检查/操作写明无需，计划与完成分开，不新增批准节点。
 
 负责六步流程中的第2步“实际图片资产”和第5步“固定风格”。图片必须能打开、用途明确；只给提示词不算素材完成。
 

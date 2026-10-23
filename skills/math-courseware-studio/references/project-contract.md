@@ -1,6 +1,6 @@
 # 项目协议
 
-仅显式 `grouped_creative_v1` 的full_course自动run，另按[D1记录协议](../../math-courseware-autopilot/references/grouped-creative-review.md)保存两组实际文件、来源与同一次采用identity/decision事件链接；权威assets必须包含在真实采用范围。原preparation/pages/shared-assets批准与依赖绑定保留；C6登记实际editable.files.pptx/limitations，H23报告按同版完整清单实核。没有该策略的原项目记录不迁移。
+grouped_creative_v2整课自动run按[分组记录协议](../../math-courseware-autopilot/references/grouped-creative-review.md)保存先文字、后视觉、再运镜组的真实文件、来源及实际采用identity/decision事件。旧grouped_creative_v1的历史两组identity保持，不迁移旧记录；后续新图仍核全文采用。权威assets应在真实采用范围，preparation/pages/shared-assets绑定保留；C6记录实际PPT/限制，H23按当前完整清单核查。
 
 ## 执行与目录
 
@@ -86,7 +86,7 @@
 
 ## 确认与变更
 
-从头整课先完成可见原课/需求分析，再形成并实际采用`planning/whole-course-plan.md`或其当前版本，随后按蓝图的全部视频清单创作准备。故事方向选择不等于接受教学活动、页数或视频数量。共享图片资产在剧本/预览之后、导演之前准备，plan协同四张封面候选及风格选择。按[视频前置清单](video-integration.md#ppt开工前的视频方案检查)核全部计划视频，再交PPT逐页制作。
+从头整课先完成可见原课/需求分析，再实际采用完整whole-course-plan及原内容去向；故事方向不等于接受活动/页数/视频功能。按[完整故事文字先审](../../math-courseware-video-writer/references/story-text-review.md)展示全部逐场逐句故事并获采用后，才制作预览及共享资产。plan协同风格/封面，全部视频准备按[视频前置清单](video-integration.md#ppt开工前的视频方案检查)核齐后交逐页制作；同版已采用全文复用。
 
 流程索引只引用实际产物、来源版本、内部核查和必要采用依据，不复制故事/数学正文；生产完成、内部检查、用户采用各自记录。专业步骤开始前运行只读`workflow-check`，结束后登记真实成果并检查下一动作的前置；返回允许执行不能证明当前动作已完成、内容质量或用户已采用。`status`展示流程与记录状态，`validate`仍检查数据/引用；教学语义、真实图片、WPS显示与播放由实际检查补充。
 
@@ -114,7 +114,7 @@
 
 产物注册使用`state.register_artifact(project,id,path,dependencies,metadata)`：依赖填写实际使用的数学ID、页面ID及相关权威记录路径，metadata记录`source_versions`（路径到哈希）及审查状态。仅坐标改变不使故事和数学记录失效。不要在生成期间修改全局权威数据。
 
-真实回传核对后直接整套回填；制作授权独立记录，不以单页样页采用或坐标批准作为前置。`editable-build`的authorization绑定真实用户指令、源文件和全部页ID；按[默认组合与底层模式](../../math-courseware-editable/references/refill-modes.md)，先以faithful_restore恢复基础文字，再由宿主按独立原位答案计划实际补异色单击答案；明确纯复原/无答案版省略第二阶段。现有CLI的两个模式枚举不变，完整teaching_reveal另按明确范围，不虚构新参数。text-refill严格覆盖全页及底层模式要求的全文，延后文字原文保留，最终答案与其来源另映射，图形粒度缺口单列，不能将基础文字成功混同默认组合完成或全部图形/实际播放验收。旧成品不因默认值变化而迁移重建。
+真实回传核对后直接整套回填；制作授权独立记录，不以单页样页采用或坐标批准作为前置。`editable-build`的authorization绑定真实用户指令、源文件和全部页ID；按[默认组合与底层模式](../../math-courseware-editable/references/refill-modes.md)，先以faithful_restore恢复基础文字，再按[原位答案计划](../../math-courseware-editable/references/click-answer-plan.md)用`editable-answers`实际补异色单击答案；明确纯复原/无答案版省略第二阶段。两个底层复原模式枚举不变，完整teaching_reveal另按明确范围。新增答案阶段单独登记，基础稿不冒充最终点击版。text-refill严格覆盖全页及底层模式要求的全文，延后文字原文保留，最终答案与其来源另映射，图形粒度缺口单列，不能将基础文字成功混同默认组合完成或全部图形/实际播放验收。旧成品不因默认值变化而迁移重建。
 
 ## 命令接口
 
@@ -134,7 +134,8 @@
 | export-slides | 无额外参数 | 确认图片导出PPTX/PDF |
 | canva-handoff | --selection FILE | A按授权页交接；B全页有序去字PPTX/PDF交接，不改正式带字页 |
 | canva-import | --deck FILE --mapping FILE | 原样保存可画回传并列出对象 |
-| editable-build | --plan FILE | 校验正确文案后处理PPTX副本 |
+| editable-build | --plan FILE | 校验正确文案后处理PPTX副本，登记基础中间稿 |
+| editable-answers | --plan FILE | 按逐空来源和坐标计划制作原位可编辑单击答案，核真实动画后登记当前答案版 |
 | export-documents | 无额外参数 | 三种文稿DOCX/PDF |
 | collect | 无额外参数 | 复制当前有效课件产物；不包含视频，且依赖锁定页面 |
 

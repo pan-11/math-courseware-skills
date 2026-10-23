@@ -5,13 +5,13 @@ description: Prepare Canva layer-splitting handoffs and edit returned layered ma
 
 # 可画拆层与可编辑PPT
 
-仅显式 `grouped_creative_v1` 的full_course自动run，按[D1最终清单](../math-courseware-autopilot/references/grouped-creative-review.md)在C6展示整套真实可编辑结果与具体限制，不另排H19；H23再以同版实机报告检查独立文字/教学图形、视频区/分层、字体换行遮挡及全课使用效果。保留全部A/B选择、去字、可画往返、实际成片与播放门槛；其他模式不变。
+显式 `grouped_creative_v2` 或已有 `grouped_creative_v1` 的full_course自动run，按[D1最终清单](../math-courseware-autopilot/references/grouped-creative-review.md)在C6展示整套真实可编辑结果与具体限制，不另排H19；H23再以同版实机报告检查独立文字/教学图形、视频区/分层、字体换行遮挡及全课使用效果。保留全部A/B选择、去字、可画往返、实际成片与播放门槛；其他模式不变。
 
 先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入中间文件，已有课不自动迁移。
 
-**每次用户可见回复**（含进度、等待/提问和最终交付）都先在称呼后写“当前步骤”和“本步最终产物”，再写正文；按[回复说明规则](../math-courseware-studio/references/workflow.md#每次回复先说明步骤与产物)填写实际范围、子步骤和具体交付，不把预期写成已完成。
+**每次用户可见回复**（含进度、等待、提问、恢复、交付和独立调用）先按[共同回复合同](../math-courseware-studio/references/reply-contract.md)填写唯一开头：真实课件/任务、步骤/状态，本步工作及产出、用户检查、用户操作、下一步；编号列项，无检查/操作写明无需，计划与完成分开，不新增批准节点。
 
-读取[可画交接](references/canva-handoff.md)、[默认回填组合与底层模式](references/refill-modes.md)和[文字与几何](references/text-and-geometry.md)。控制器位于相邻`math-courseware-studio/scripts/courseware.py`；先运行`doctor`确认OfficeCLI。
+读取[原位答案计划](references/click-answer-plan.md)、[可画交接](references/canva-handoff.md)、[默认回填组合与底层模式](references/refill-modes.md)和[文字与几何](references/text-and-geometry.md)。控制器位于相邻`math-courseware-studio/scripts/courseware.py`；先运行`doctor`确认OfficeCLI。
 
 先读[共用流程](../math-courseware-studio/references/workflow.md)，分别保留项目目标与本次任务范围。交接、回传接收、文字加工开始前分别执行`workflow-check --project <目录> --step editable-handoff`、`--step editable-import`、`--step editable-build`；完成后登记真实产物、来源版本、检查和制作授权，再核下一动作：实际回传到位查`editable-import`，准备加工查`editable-build`，交付查`collect`或对应范围的`complete`。
 
@@ -43,7 +43,7 @@ description: Prepare Canva layer-splitting handoffs and edit returned layered ma
 
 ## 回传后直接整套回填
 
-默认交付**忠实复原＋原位填空答案逐个点击出现**：先以`faithful_restore`恢复原图初始文字与版式，再由AI给已有明确作答位补确定的可编辑答案，默认深红色、放映初始隐藏、每次单击出现一个且累计保留。复用题干和原空位，不新增答案底板；无需再问是否加答案或做样页。明确纯复原、保留空白或无答案学生版时只做基础复原；开放题/不确定答案逐项说明。完整`teaching_reveal`讲解及图示后显仍按明确范围执行。这个组合独立于A/B路线，当前底层执行器只处理文字，AI须继续实际完成动画并核验；新旧版本分开，已交版本不追溯重做。具体流程、字段和验收见[模式规范](references/refill-modes.md)。
+默认交付**忠实复原＋原位填空答案逐个点击出现**：先以`faithful_restore`恢复原图初始文字与版式，再由AI给已有明确作答位补确定的可编辑答案，默认深红色、放映初始隐藏、每次单击出现一个且累计保留。复用题干和原空位，不新增答案底板；无需再问是否加答案或做样页。明确纯复原、保留空白或无答案学生版时只做基础复原；开放题/不确定答案逐项说明。完整`teaching_reveal`讲解及图示后显仍按明确范围执行。这个组合独立于A/B路线：`editable-build`产出基础复原中间稿，随后按[原位答案计划](references/click-answer-plan.md)执行`editable-answers`，实际写入原生单击动画并回读核验；新旧版本分开，已交版本不追溯重做。具体流程、字段和验收见[模式规范](references/refill-modes.md)。
 
 核对真实回传页序后，直接规划并回填当前课件全部页面的文字，完成后统一逐页检查和交付。**不再设置单页原生文字试样、字体/坐标预览采用等前置确认节点，也不得做完一页就停下来等用户答复。** 已有样页或已通过坐标可直接复用；内部校准和分批执行不改变整套交付范围。只有用户主动要求先看样页或限制范围时才按其要求暂停。
 

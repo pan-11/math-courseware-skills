@@ -228,6 +228,20 @@ class RefillBuildTests(unittest.TestCase):
         state.write_json(plan_path, self.plan)
         return courseware.execute(argparse.Namespace(command='editable-build', project=self.root, plan=plan_path))
 
+    def test_explicit_student_override_is_usable_through_actual_cli(self):
+        from runtime import editable_delivery
+        request = '_state/student-request.json'
+        state.write_json(self.root / request, {'user_evidence':'Synthetic explicit no-answer student copy'})
+        self.plan['delivery_override'] = {'variant':'student_without_answers',
+            'user_instruction':'Synthetic explicit no-answer student copy',
+            'evidence_ref':{'path':request,'sha256':state.sha256(self.root / request)}}
+        self.authorize()
+        result = self.build()
+        final = editable_delivery.current(self.root)
+        self.assertEqual(final['path'], result['output'])
+        self.assertEqual(final['refill_stage'], 'explicit_no_answers')
+        self.assertEqual(result['next_step'], 'review-current-delivery')
+
     def test_actual_cli_builds_both_modes_and_preserves_the_restore_copy(self):
         self.authorize()
         restored = self.build()
@@ -270,6 +284,31 @@ class RefillBuildTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'reference image changed'):
             self.build()
         self.assertFalse((self.root / self.plan['output']).exists())
+
+    def test_replay_rejects_changed_reference_without_rebinding_old_output(self):
+        self.authorize()
+        result = self.build()
+        output = self.root / result['output']
+        saved = {p: p.read_bytes() for p in (output, output.with_suffix('.report.json'))}
+        image = self.root / 'inputs/reference-v2.png'
+        image.write_bytes((self.root / self.page['image']['path']).read_bytes() + b'new reference')
+        self.page['image'] = {'path': 'inputs/reference-v2.png', 'sha256': state.sha256(image)}
+        self.save_pages()
+        registry = (self.root / '_state/project.json').read_bytes()
+        with self.assertRaisesRegex(ValueError, 'source|reference'):
+            self.build()
+        self.assertEqual((self.root / '_state/project.json').read_bytes(), registry)
+        for path, content in saved.items():
+            self.assertEqual(path.read_bytes(), content)
+
+    def test_unchanged_replay_preserves_registry_and_build_sources(self):
+        self.authorize()
+        first = self.build()
+        registry = (self.root / '_state/project.json').read_bytes()
+        repeat = self.build()
+        self.assertTrue(repeat['idempotent'])
+        self.assertEqual((self.root / '_state/project.json').read_bytes(), registry)
+        self.assertEqual(first['source_versions']['_state/pages.json'], state.sha256(self.root / '_state/pages.json'))
 
     def test_exact_pre_mode_result_is_reused_without_reclassification(self):
         # Build a synthetic legacy-shaped result; no real report or adoption is edited.

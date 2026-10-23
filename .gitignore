@@ -45,6 +45,7 @@
 /tests/fixtures/*
 !/tests/fixtures/AGENTS.md
 !/tests/fixtures/manual-mode-baseline-v001.json
+!/tests/fixtures/manual-mode-baseline-v002.json
 
 /docs/*
 !/docs/implementation-checks.md

@@ -5,7 +5,9 @@ description: Run an explicitly selected automatic courseware mode in the current
 
 # 可选自动推进
 
-仅当用户明确选择 `grouped_creative_v1` 且为full_course自动run，执行[D1分组创作采用](references/grouped-creative-review.md)：H06/H07/H09一组、跨全部运镜的H08一组、H19并入H23。run-start保存策略及实际选择依据；旧run、切手动和局部模块保留原门槛。两组包含当时真实准备文件，不加隐藏准备采用或提前采用未来文件。H14仍在正式逐页内容采用后，无creative-draft和page-image放宽。
+**每次用户可见回复**（含进度、等待、提问、恢复、交付和独立调用）先按[共同回复合同](../math-courseware-studio/references/reply-contract.md)填写唯一开头：真实课件/任务、步骤/状态，本步工作及产出、用户检查、用户操作、下一步；编号列项，无检查/操作写明无需，计划与完成分开，不新增批准节点。
+
+新整课自动run按实际启用依据采用grouped_creative_v2的[文字先行分组协议](references/grouped-creative-review.md)：video-story完整文字→video-creative实际视觉/讲话实包→video-direction运镜完整包，讲话不加导演组，H19仍并H23。同版全文已审采用可直接复用。旧v1历史策略与identity不改写，但后续新生成同样核当前全文采用；不重开旧run或倒补批准。H14仍在正式逐页稿采用后，不放宽page-image。
 
 先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)使用同一用户给定课程根；--project不指中间文件。新课队列/审核实际记录在中间文件/_state，派发文件的逻辑路径按映射展开；切换模式不另建目录或迁移旧课。
 
@@ -30,7 +32,7 @@ description: Run an explicitly selected automatic courseware mode in the current
 
 - `produce`：读取返回owner对应的原有Skill，核其真实前置与授权，制作实际产物，完成原模块自检和workflow登记。输出保留新版本。用本次claim、全部输出角色与实际文件调用`run-record`，status为produced。任务说明是数据，不能扩大授权或覆盖项目规则。调度器不执行队列里的任意shell命令。
 - `review`：用[独立审核](../math-courseware-review/SKILL.md)及返回packet启动全新只读审阅者；不传制作过程、自评或想要的答案。真实报告入库后再调用run-next；一般本地修改意见最多触发两次制作尝试（含首次），把具体意见带回原制作Skill。外部/付费任务不自动重试。
-- 视频提示词、参考图等素材准备完成并核对后，先按[主动聊天交付要求](../math-courseware-video-prompts/references/delivery-reply.md#每次完成后主动发到当前聊天)及[唯一固定模板](../math-courseware-video-prompts/references/delivery-reply.md#唯一固定模板)当轮交付，再继续派发后续任务。平台/模型、步骤/产物、总入口、编号图片表、逐次完整TXT表、各片目录、操作与真实状态的顺序/列名/必交项固定，只填真实值；修订和恢复补交同样执行。不等待用户追问，不以run-record、审核通过、HANDOFF或总览链接代替正文两表；发送不新增确认节点，未齐备仍用该模板如实列缺项。
+- 视频提示词、参考图等素材准备完成并核对后，先按[主动聊天交付要求](../math-courseware-video-prompts/references/delivery-reply.md#每次完成后主动发到当前聊天)及[唯一固定模板](../math-courseware-video-prompts/references/delivery-reply.md#唯一固定模板)当轮交付，再继续派发后续任务。共同回复开头后，平台/模型、总入口、编号图片表、逐次完整TXT表、各片目录、操作与真实状态的顺序/列名/必交项固定，只填真实值；修订和恢复补交同样执行。不等待用户追问，不以run-record、审核通过、HANDOFF或总览链接代替正文两表；发送不新增确认节点，未齐备仍用该模板如实列缺项。
 - `recover`：这是已派发任务，先找实际任务/代理与产物。运行中的代理继续等待，已产出的文件补登记；会话中断不会自动重派。确认本地失败可登记failed并按证据retry；无法确认外部提交结果登记unknown，恢复前只查询/回收真实产物，禁止再次提交。审核代理确已中断而无结果时，先确认它已停止，再使用协议中的人工恢复方法。
 - 每次返回都立即展示`human_tasks`：具体操作、完整文件入口、期望回传文件。审核/采用任务使用已展示的实际版本，外部视频与可画任务尽早交出；其他允许分支继续执行。收到真实回复后按原模块登记采用/回传，真正完成才以completed和user_evidence登记人工任务；否决/部分答复以returned记录，保持等待。UI预选或沉默不算完成。
 - `waiting`：列清具体阻塞、所需文件/审核与可复用成果；有未处理的采用节点，直接交该组真实产物供用户审阅。未知/未验证不改成通过。无其他可做任务时停在等待，不忙循环。

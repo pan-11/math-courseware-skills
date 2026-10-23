@@ -1,8 +1,20 @@
-# D1：整课自动推进的两次创作采用与最终检查
+# 整课创作分组与最终检查
 
-本协议仅在新 run 明确选择 `review_policy: "grouped_creative_v1"`、保存实际 `review_policy_evidence`、自动模式且项目/当前任务均为 `full_course` 时生效。当前范围必须等于 run 的范围；真实范围改变先按原 `run-reconcile` 登记。旧 run 不静默升级，不新增迁移入口；无策略、无 run、切手动或 `selected_modules` 全沿原门槛。模式选择本身不是任何作品的采用。
+分组须有实际review_policy及review_policy_evidence、自动模式、项目/当前任务均为full_course且与run范围一致；范围变化沿run-reconcile。新顺序使用grouped_creative_v2；旧grouped_creative_v1历史定义和identity保留，不静默升级。无策略、手动和独立模块不套整课组，但后续新故事素材均执行[完整故事文字先审](../../math-courseware-video-writer/references/story-text-review.md)。策略不是作品采用。
 
-沿用 [队列协议](queue-contract.md) 的既有命令、图片授权/计数、版本化文件与独立审核。新增的是分组范围，不是工作流步骤；没有 `creative-draft`。以下规则只在上述条件生效时替代专业入口内相应的小节点，其余专业制作与验收要求继续适用。
+沿[队列协议](queue-contract.md)的既有命令、图片授权/计数、版本化文件与独立审核，不新增creative-draft，不取消实际准备/成片检查。新生成门槛独立于旧候选豁免；已提交API只查询/回收，不改旧输入或重复发起。
+
+## v2：先文字，再视觉，再运镜操作包
+
+1. video-story，kind:human、step:video-script：全课script/voice真实全文、内部核查及来源齐备，聊天逐场逐句展开并检查背景，再记录实际采用。无需图或图片预算。同版全文已随蓝图或其他实际决定采用时直接复用，不重复派发；核心story.json或梗概不算全文。
+2. video-creative，step:video-assets：全文采用后制作实际预览/风格/共享资产；讲话同组交首帧、完整TXT和操作包，全课都是讲话时同交preparation汇总。v2将已审script/voice作为来源，不在视觉targets重复要求文字采用。
+3. video-direction，step:video-board：全部适用运镜的导演/板/风格/完整词及逐片、全课preparation；讲话无此组，不强加导演/板。
+
+组任务不填单video_id，回执/独立审核沿下述协议。同源通过内容复用，文字变更会使相关采用失效；视觉改身份/条件/结局时只回查受影响故事。
+
+## v1历史兼容边界
+
+下面H06/H07/H09及H08原组合用于解释保存的v1身份/采用/回执，不能以候选豁免让未审全文生成新图。恢复先复用实际同版script/voice采用，没有则补真实文字审阅；不倒填历史或重开整课。v1视觉组保持原targets和fingerprint，呈现时注明已审文字沿用。
 
 ## 一次视频创作定调：H06＋H07＋H09
 
@@ -27,10 +39,11 @@
 
 ## 记录和宿主队列
 
-在 `run-start` 计划显式保存 policy 与选择原话。只有上述策略可使用两种 `kind:human` 任务：
+在 `run-start` 计划显式保存 policy 与选择原话。按实际策略使用下列 `kind:human` 组任务（v2三类，v1保留原两类）：
 
 | review_group | step | 范围 |
 |---|---|---|
+| `video-story`（v2） | `video-script` | 全课当前完整script/voice；同版已采用可复用 |
 | `video-creative` | `video-assets` | 当前全课视频＋真实共享视觉资产及适用准备 |
 | `video-direction` | `video-board` | 当前全部运镜导演/板/词/准备＋全课汇总 |
 
@@ -38,7 +51,7 @@
 
 分组与H23人工任务都继续执行原公共声明检查：显式 `requires_preferences`、图片数量/实际请求、授权与适用额度必须满足才派发。不为未声明的人工采用新增默认参数依赖；额度用尽仍可采用已完成的实际材料。
 
-`run-next` 的 `human_tasks[].review_group` 给出当前 `identity`、全部 `targets`、`source_versions` 和真实 `video_ids`；宿主必须把这些文件实际展示。第一组的待选封面也必须展示，不能只复制 JSON 标记。准备齐备后即可派发，不要求这个待办先采用自己。
+`run-next` 的 `human_tasks[].review_group` 给出当前 `identity`、全部 `targets`、`source_versions` 和真实 `video_ids`；宿主必须把这些文件实际展示。`video-creative`存在待选封面时也必须展示，不能只复制 JSON 标记。准备齐备后即可派发，不要求这个待办先采用自己。
 
 真实答复后，用既有 `record-approval` 保存原话、完整 targets 和原样 `review_group: <identity对象>`。identity 包含 `name/run_id/fingerprint`，由当前真实依赖得出；不能自己拼接。可附实际展示的 `review_packet(s)` 用于C校准。然后 `run-record` 的 completed/returned 回传包含同一 identity、同组 artifacts、原决定的 `decision_id` 与 `decision_event_id`；只有全组实际 approved 能 completed，拒绝用 returned 保持等待。两条记录链接同一事件，只计一票；旧泛化或逐项批准不能拼成新组采用。
 
@@ -68,7 +81,7 @@ H23是 `kind:human, step:complete` 的最终检查任务。默认人工操作是
 | all_video_playback_audio | 所有实际成片在最终课件中的完整音画；可采用用户对当前整课导出视频的完整检查确认，保存真实范围并使用user_report |
 | interactive_worksheet_blackboard | 实际互动、学习单及黑板贴的课堂使用效果；无某类互动时具体说明范围，默认学习单/黑板贴照常交 |
 
-source_versions覆盖当前 pages、editable、documents 中全部文件、全部最终视频以及 delivery.files 中实际交付成品；将实际学习单、黑板贴及本课选用互动入口/依赖放入文稿或交付的真实清单后逐项实查，不以三篇教师稿代替。delivery.files 的 wps/manifest 角色及其文件路径是本次检查报告/清单元数据，不进入待验实物输入，避免报告采用自己；其他交付文件在派发前须真实存在且版本匹配，完成时须被同版报告覆盖。结构/文件检查不能证明这些人机实测已经发生。每段final仍需实际media＋playback并绑定最终PPT。queue_complete一直不等于整课完成。
+source_versions覆盖当前 pages、editable、documents 中全部文件、全部最终视频以及 delivery.files 中实际交付成品；将实际学习单、黑板贴及本课选用互动入口/依赖放入文稿或交付的真实清单后逐项实查，不以三篇教师稿代替。delivery.files 的 wps 是本次检查报告，不把报告自身纳入输入；已完成的 manifest 和其中实际副本必须纳入检查版本。先形成交付包与清单，再出引用它们的检查报告，不形成自引用。派发时没有最终清单可先检查现有工作成果，但完成前须补核实际清单与副本并记录对应版本；已存在的清单或副本失效不能略过。结构/文件检查不能证明这些人机实测已经发生。每段final仍需实际media＋playback并绑定最终PPT。queue_complete一直不等于整课完成。
 
 ## 保持的节点和边界
 

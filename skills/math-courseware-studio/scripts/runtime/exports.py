@@ -1,5 +1,5 @@
 """Deterministic, versioned exports of approved images and canonical teaching text."""
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from collections import Counter
 import os
 import shutil
@@ -210,6 +210,11 @@ def _document(project, kind, pages, versions):
     _text(record.get('title'), 'title')
     locked = record.get('source_versions')
     _check_versions(project, locked)
+    data = workflow.load(project)
+    if data.get('current_task', {}).get('mode') == 'selected_modules':
+        from . import delivery_roles
+        delivery_roles._sources(project, locked, delivery_roles.current_inputs(project, data, 'documents'),
+                                'documents/' + kind)
     if any(locked.get(path) != digest for path, digest in versions.items()):
         raise ValueError('Document must lock the current required records and page images')
     ids = [p['page_id'] for p in pages]
@@ -471,6 +476,10 @@ def collect(project):
     """Collect explicit current artifacts, canonical media and verified prompt manifests."""
     project = Path(project).resolve()
     workflow.require(project, 'collect')
+    from . import delivery_roles
+    materials = delivery_roles.check(project)
+    if not materials['allowed']:
+        raise ValueError('; '.join(materials['issues']))
     scope = workflow.summary(project)
     scoped = scope['task_mode'] == 'selected_modules'
     modules = {name.removeprefix('math-courseware-') for name in scope['modules']}
@@ -486,9 +495,30 @@ def collect(project):
             source_paths.append('_state/assets.json')
     record = state.load_project(project)
     artifacts = record.get('artifacts', {})
+    current_editable = None
+    if not scoped or 'editable' in modules:
+        from . import editable_delivery
+        reference = None
+        if not scoped and 'editable-base-pptx' in artifacts:
+            reference = workflow.load(project).get('stages', {}).get('editable', {}).get('files', {}).get('pptx')
+            if not reference:
+                raise ValueError('Current editable stage PPT required for full-course collection')
+        current_editable = editable_delivery.current(project, reference=reference)
+    intermediate_paths = {state.resolve(project, item['path']) for key, item in artifacts.items()
+                          if item.get('intermediate') or key == 'editable-base-pptx'}
     selected = {}
     def add(key, artifact):
         path = state.resolve(project, artifact['path'])
+        delivery_roles._delivery_path(_relative(project, path))
+        destination = artifact.get('destination', artifact['path'])
+        delivery_roles._delivery_path(destination)
+        if PureWindowsPath(destination).parts[0].casefold() == 'manifest.json':
+            raise ValueError('Delivery manifest.json is reserved for the collection report')
+        explicit_current = (current_editable and current_editable.get('refill_stage') == 'explicit_no_answers'
+                            and path == state.resolve(project, current_editable['path'])
+                            and artifact.get('sha256') == current_editable['sha256'])
+        if path in intermediate_paths and not explicit_current:
+            raise ValueError('Registered intermediate file cannot enter final delivery: ' + artifact['path'])
         if key in record.get('stale_targets', []):
             raise ValueError('Stale artifact requires regeneration: ' + key)
         if not path.is_file() or state.sha256(path) != artifact['sha256']:
@@ -496,9 +526,27 @@ def collect(project):
         if not artifact.get('source_versions'):
             raise ValueError('Artifact has no verifiable source_versions: ' + key)
         _check_versions(project, artifact['source_versions'])
+        role = delivery_roles.artifact_role(key, artifact)
+        if scoped and role:
+            module = 'interactive' if role == 'interactive' else 'documents'
+            delivery_roles._sources(project, artifact['source_versions'],
+                delivery_roles.current_inputs(project, workflow.load(project), module), 'collect/' + role)
         selected[key] = artifact
 
+    for key, artifact in materials['artifacts'].items():
+        add('materials/' + key, artifact)
+    if current_editable and 'editable-base-pptx' in artifacts:
+        add('editable-pptx', {**current_editable,
+            'destination': _relative(project, state.resolve(project, current_editable['path']))})
+
     for key, artifact in artifacts.items():
+        if artifact.get('intermediate') or key == 'editable-base-pptx':
+            continue
+        if key == 'editable-pptx' and key in selected:
+            continue
+        role = delivery_roles.artifact_role(key, artifact)
+        if role and any(item.get('role') == role for item in materials['artifacts'].values()):
+            continue  # Explicit current role files replace historical export registrations.
         path = state.resolve(project, artifact['path'])
         relative = _relative(project, path)
         if scoped:
