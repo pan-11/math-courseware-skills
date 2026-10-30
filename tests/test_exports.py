@@ -77,6 +77,22 @@ def textless_selection(root):
 
 
 class ExportTests(unittest.TestCase):
+    def test_image_export_records_actual_result_and_legacy_states(self):
+        root = fixture()
+        data = state.read_json(root / '_state/pages.json')
+        data['pages'][0]['image']['render_state'] = 'review_complete'
+        state.write_json(root / '_state/pages.json', data)
+        state.record_approval(root, {'user_evidence': 'Synthetic result-preview approval',
+            'targets': [{'path': '_state/pages.json', 'sha256': state.sha256(root / '_state/pages.json')}]})
+        enable_modules(root)
+        result = exports.export_slides(root)
+        self.assertEqual(result['image_render_states'], {'page-1': 'unspecified', 'page-2': 'review_complete'})
+        deck = Presentation(root / result['artifacts']['image-slides-pptx']['path'])
+        self.assertEqual(len(deck.slides), 2)
+        expected = sorted(data['pages'], key=lambda p: p['order'])
+        for slide, page in zip(deck.slides, expected):
+            self.assertEqual(hashlib.sha256(slide.shapes[0].image.blob).hexdigest(), page['image']['sha256'])
+
     def test_collect_reserves_root_manifest_before_copying_dependencies(self):
         from test_delivery_roles import package, save_package, file_ref
         for destination in ('manifest.json', 'MANIFEST.JSON', './manifest.json', 'MANIFEST.JSON/data.json'):

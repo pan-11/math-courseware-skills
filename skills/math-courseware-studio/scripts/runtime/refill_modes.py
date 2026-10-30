@@ -74,6 +74,9 @@ def validate_content(pages, plan, legacy_replay=False):
             owners[(unit['page_id'], unit['unit_id'])] = unit['unit_id']
     for page_id, mode in modes.items():
         page = pages[page_id]
+        reference_state = page.get('image', {}).get('render_state', 'unspecified')
+        if reference_state not in ('review_complete', 'initial', 'unspecified'):
+            raise ValueError(page_id + ': unknown reference image render_state')
         at = visibility(page)
         included = [u for u in page.get('text_units', [])
                     if legacy_replay or mode == 'teaching_reveal' or at[u['unit_id']] == 'initial']
@@ -86,6 +89,7 @@ def validate_content(pages, plan, legacy_replay=False):
         for unit in deferred:
             unit['visible_at'] = at[unit['unit_id']]
         result['pages'][page_id] = {
+            'reference_render_state': reference_state,
             'initial_unit_ids': [unit_id for unit_id, when in at.items() if when == 'initial'],
             'included_unit_ids': list(expected), 'deferred_text_units': deferred,
             'unit_visibility': at}

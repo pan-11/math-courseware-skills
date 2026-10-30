@@ -2,9 +2,9 @@
 
 ## 三份规划
 
-1. `text-unit-plan.json`：按[回填模式](refill-modes.md)从pages.text_units逐个区分初始与后显，列标题、题干、答案、步骤、标签及本次写入范围。不可用OCR错字覆盖定稿或删除未写入的后显。
+1. `text-unit-plan.json`：按[回填模式](refill-modes.md)从pages.text_units逐个区分初始与后显，列标题、题干、答案、步骤、标签及本次写入范围。新`review_complete`参考图已展示完整结果，图上可见不等于课堂初显，仍按已采用`visible_at`/`reveal_steps`规划。不可用OCR错字覆盖定稿或删除未写入的后显。
 2. `text-ownership.json`：哪些必须原生，哪些非教学图片细节保留栅格。关键数学标签不能因嵌在插画内就自动归为栅格。
-3. `coordinate-plan.json`：回传页、原对象、文字框、实际字体字号、颜色、对齐、行距、边距、换行、独立数学对象映射与确认来源。
+3. `coordinate-plan.json`：回传页、原对象、文字框、实际字体字号、颜色、对齐、行距、边距、换行、独立数学对象映射与确认来源。结果图提供完整内容与版式坐标；审阅时分区并列的不同演示状态须映射到课堂各自步骤，不能仅按图上出现位置认定全部初显。
 
 默认交付还需按[组合流程](refill-modes.md#默认组合的执行)建立`inline-answer-plan.json`，核真实空位、答案来源/验算、独立对象、异色与逐个点击顺序。三份基础文字规划和`editable-build`成功不代表这个答案动画阶段已完成；明确无答案版时记录省略依据。
 
@@ -60,6 +60,8 @@
 整套文字回填计划指定`build_scope:"text-refill"`，必须覆盖当前全部页面及相应模式要求的文字。`refill_mode/page_modes`和授权中的`refill_modes`按[模式规范](refill-modes.md)填写；初始/后显取已核定稿，报告自动保留未写入后显的原文和归属。暂未满足适用独立对象要求的项目在`remaining_native_objects`逐项写`page_id/object_id/reason`。控制器核对缺口清单，报告为本次文字完成、图形粒度待处理；不得漏报或假写shape_id。省略build_scope仍为完整图层验收，必要独立对象缺失时拒绝完成。
 
 A路线为每单元补`target_shape_id`、`expected_text`和对象清单的`expected_geometry_sha256`；这些值来自回传原件。B不填target_shape_id，追加独立文本。必要数学对象按pages.native_objects的object_id逐个映射实际原生shape_id；缺少则先补，不假装自动恢复了图形。
+
+后显、移动、折叠或替换图示必须是可独立控制的对象，不能留在整页背景里再叠一份可编辑对象，导致初始态仍透出答案或后续图形。按采用逐页稿复原完整内容后设置各状态显示，原例题初显解答照常保留；缺少可控图层的具体页与对象登记为未完成，不用静态结果图证明演示已实现。
 
 ## 验收与修改
 

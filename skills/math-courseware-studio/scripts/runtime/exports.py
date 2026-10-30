@@ -128,7 +128,9 @@ def export_slides(project):
     output = _version_dir(project, 'slides')
     paths, rects = _render_images(project, pages, output, 'lesson-images')
     return _register(project, output, 'image-slides', paths, versions,
-                     [p['page_id'] for p in pages], {'image_layout': rects})
+                     [p['page_id'] for p in pages], {'image_layout': rects,
+                     'image_render_states': {p['page_id']: p['image'].get('render_state', 'unspecified')
+                                             for p in pages}})
 
 
 def export_handoff(project, selection):

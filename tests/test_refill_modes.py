@@ -65,6 +65,24 @@ class RefillModeTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 courseware.validate_editable_authority(self.root, plan)
 
+    def test_complete_reference_preserves_initial_and_click_authority(self):
+        from PIL import Image
+        reference = self.root / 'inputs/result-reference.png'
+        Image.new('RGB', (32, 18), 'white').save(reference)
+        self.page['image'] = {'path': 'inputs/result-reference.png', 'sha256': state.sha256(reference),
+                              'render_state': 'review_complete'}
+        self.save_pages()
+        before = (self.root / '_state/pages.json').read_bytes()
+        result = courseware.validate_editable_authority(self.root, self.plan)['pages']['P001']
+        self.assertEqual(result['reference_render_state'], 'review_complete')
+        self.assertEqual(result['initial_unit_ids'], ['question'])
+        self.assertEqual(result['unit_visibility']['answer'], 'R01')
+        self.teaching()
+        result = courseware.validate_editable_authority(self.root, self.plan)['pages']['P001']
+        self.assertEqual(result['included_unit_ids'], ['question', 'answer'])
+        self.assertEqual(result['initial_unit_ids'], ['question'])
+        self.assertEqual((self.root / '_state/pages.json').read_bytes(), before)
+
     def test_teaching_covers_all_adopted_units_and_native_requirements(self):
         self.teaching()
         result = courseware.validate_editable_authority(self.root, self.plan)

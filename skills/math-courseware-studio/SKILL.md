@@ -32,6 +32,8 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 整课页面制作及下游接收共用[制作路线与来源核查](../math-courseware-pages/references/page-production.md)。默认完整页生图，不因可编辑、赶进度或直接用OfficeCLI而改为原生卡片；本课AI未完成稿不能自行当作外部成品接入文稿。核采用逐页稿与真实生成/回传/复用来源，不能用PPT截图补造生图记录；代表性内容页纳入已有样页节点。用户明确改变路线或独立任务仍按其真实范围处理。
 
+新课带字预览默认且在正常流程中统一使用`review_complete`完整讲解结果画面，实际呈现本页题干、必要推理、已确认答案、数学标注与演示图，图库、图片PPTX和PDF使用同套结果图。课堂`visible_at`/`reveal_steps`沿用已采用顺序，不能因预览全部可见而改成全部初显。仅用户明确另要课堂初始态专项图时才使用`initial`，不得自行退回初始画面替代正常预览；查看与交接沿用[共同流程](references/workflow.md#带字图片版实物查看)，不新增采用节点。
+
 ## 按实际进度调用
 
 | 工作 | 相邻Skill入口 | 开始条件 |

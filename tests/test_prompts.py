@@ -57,7 +57,7 @@ class PromptTests(unittest.TestCase):
         state.write_json(self.root / '_state/pages.json', pages)
         before = state.sha256(self.root / '_state/pages.json')
         enable_modules(self.root)
-        result = prompts.render_pages(self.root)
+        result = prompts.render_pages(self.root, render_state='initial')
         for key in ('prompts', 'visible_text'):
             text = (self.root / result[key]).read_text(encoding='utf-8')
             self.assertNotIn('3×5＝15（个）', text)
@@ -70,9 +70,57 @@ class PromptTests(unittest.TestCase):
         data = prompts.records(self.root)
         page = data['pages']['pages'][1]
         page['reveal_steps'] = [{'step_id': 'summary', 'unit_ids': ['P001-T01']}]
-        body, formatted = prompts.page_prompt(page, data)
+        body, formatted = prompts.page_prompt(page, data, render_state='initial')
         self.assertNotIn('我学会了乘法', body + formatted)
         self.assertIn('初始画面无上屏文字', formatted)
+
+    def test_default_result_preview_includes_answer_and_diagram_without_changing_classroom(self):
+        pages = state.read_json(self.root / '_state/pages.json')
+        page = pages['pages'][0]
+        page['reveal_steps'] = [{'step_id': 'answer-1', 'unit_ids': ['P002-T02'],
+                                'action': '用括号圈出全部15个苹果。'}]
+        page['text_units'][1]['visible_at'] = 'answer-1'
+        page['review_complete'] = {'layout': '左图右完整解答',
+            'visual_description': '五组苹果和圈出全部15个的整体括号',
+            'restrictions': '完整显示已确认的算式。'}
+        page['restrictions'] = '初始不显示答案'
+        state.write_json(self.root / '_state/pages.json', pages)
+        before = state.sha256(self.root / '_state/pages.json')
+        self.approve()
+        result = prompts.render_pages(self.root)
+        for key in ('prompts', 'visible_text'):
+            text = (self.root / result[key]).read_text(encoding='utf-8')
+            self.assertIn('3×5＝15（个）', text)
+            self.assertIn('5组，每组3个', text)
+        body = (self.root / result['prompts']).read_text(encoding='utf-8')
+        self.assertIn('五组苹果和圈出全部15个的整体括号', body)
+        self.assertNotIn('初始不显示答案', body)
+        batch = prompts.prepare(self.root, {'tasks': [{'purpose': 'page', 'target_id': 'P002'}]})
+        job = state.read_json(self.root / batch['jobs'][0])
+        self.assertEqual(job['render_state'], 'review_complete')
+        self.assertIn('3×5＝15（个）', (self.root / job['prompt_path']).read_text(encoding='utf-8'))
+        self.assertEqual(state.sha256(self.root / '_state/pages.json'), before)
+
+    def test_result_preview_cannot_drop_duplicate_or_invent_authoritative_units(self):
+        data = prompts.records(self.root)
+        page = data['pages']['pages'][0]
+        for ids in (['P002-T01'], ['P002-T01', 'P002-T01'], ['P002-T01', 'new']):
+            page['review_complete'] = {'unit_ids': ids}
+            with self.subTest(ids=ids), self.assertRaisesRegex(ValueError, 'unit_ids'):
+                prompts.page_prompt(page, data)
+        page['review_complete'] = {'unit_ids': ['P002-T02', 'P002-T01']}
+        body, _ = prompts.page_prompt(page, data)
+        self.assertLess(body.index('「3×5＝15（个）」'), body.index('「5组，每组3个」'))
+
+    def test_render_state_is_validated_and_same_job_cannot_change_state(self):
+        self.approve()
+        selection = {'tasks': [{'purpose': 'page', 'target_id': 'P002'}]}
+        prompts.prepare(self.root, selection)
+        selection['tasks'][0]['render_state'] = 'initial'
+        with self.assertRaisesRegex(ValueError, 'different inputs'):
+            prompts.prepare(self.root, selection)
+        with self.assertRaisesRegex(ValueError, 'render_state'):
+            prompts.render_pages(self.root, render_state='unknown')
 
     def test_invalid_visibility_cannot_silently_become_initial_text(self):
         data = prompts.records(self.root)

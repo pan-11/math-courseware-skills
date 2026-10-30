@@ -31,7 +31,33 @@ def page_fingerprint(data, target):
         'events': [e for e in data['story'].get('events', []) if e['event_id'] in page.get('story_ids', [])]})
 
 
-def page_prompt(page, data):
+def page_view(page, render_state='review_complete'):
+    """Choose review content without rewriting classroom visibility or source text."""
+    if render_state not in ('review_complete', 'initial'):
+        raise ValueError('Unknown render_state')
+    at = visibility(page)
+    units = page.get('text_units', [])
+    overrides = page.get('review_complete', {}) if render_state == 'review_complete' else {}
+    if not isinstance(overrides, dict) or set(overrides) - {'layout', 'visual_description', 'restrictions', 'unit_ids'}:
+        raise ValueError('Invalid review_complete fields')
+    by_id = {unit['unit_id']: unit for unit in units}
+    ids = overrides.get('unit_ids', list(by_id))
+    if (not isinstance(ids, list) or any(not isinstance(uid, str) for uid in ids)
+            or len(ids) != len(by_id) or set(ids) != set(by_id)):
+        raise ValueError('review_complete.unit_ids must cover every text unit exactly once')
+    texts = [by_id[uid]['text'] for uid in ids
+             if render_state == 'review_complete' or at[uid] == 'initial']
+    view = {key: overrides.get(key, page.get(key, ''))
+            for key in ('layout', 'visual_description', 'restrictions')}
+    if any(not isinstance(value, str) for value in view.values()):
+        raise ValueError('Page view descriptions must be strings')
+    if not units or not view['layout'].strip() or not view['visual_description'].strip():
+        raise ValueError('Page needs exact text_units, layout and visual_description')
+    view['texts'] = texts
+    return view
+
+
+def page_prompt(page, data, render_state='review_complete'):
     style = data['story'].get('visual_style', '')
     if not isinstance(style, str) or not style.strip():
         raise ValueError('A complete visual_style string is required in story.json')
@@ -45,16 +71,25 @@ def page_prompt(page, data):
         if not fixed:
             raise ValueError('Asset needs fixed_features: ' + ref['asset_id'])
         character.append(fixed if isinstance(fixed, str) else json.dumps(fixed, ensure_ascii=False))
-    at = visibility(page)
-    texts = [unit['text'] for unit in page.get('text_units', []) if at[unit['unit_id']] == 'initial']
-    if not page.get('text_units') or not page.get('layout') or not page.get('visual_description'):
-        raise ValueError('Page needs exact text_units, layout and visual_description')
-    restrictions = page.get('restrictions', '避免画面杂乱、文字过密、背景抢主体；避免数学关系、物体数量与人物设定错误。')
-    visual = page['visual_description']
+    view = page_view(page, render_state)
+    texts = view['texts']
+    restrictions = view['restrictions'] or '避免画面杂乱、文字过密、背景抢主体；避免数学关系、物体数量与人物设定错误。'
+    visual = view['visual_description']
     if page.get('visual_requirements'):
         visual += '；必须准确满足：' + json.dumps(page['visual_requirements'], ensure_ascii=False)
+    if render_state == 'review_complete':
+        actions = [step['action'] for step in page.get('reveal_steps', []) if step.get('action')]
+        if actions:
+            visual += '；以下为本页已定教学过程，须画出对应结果和理解所需的有序分步示意（动作说明不上屏）：' + '；'.join(actions)
+        state_instruction = ('本图用于完整讲解结果审阅：题干、必要推导、已确认答案、标注和实际数学图示完整可见。'
+            '课堂初始隐藏和点击说明仅约束以后放映，不用于隐藏本次审阅内容。'
+            '拼摆、剪拼、折叠须画出过程证据与结果；互相替换的状态用有序分步小图，不叠压。'
+            '原位填空将已确认答案填入对应空位，题干、运算符与单位只显示一次；独立答案单元不另排重复算式。'
+            '只用本页已确认内容，不借后页答案，不为开放题编造唯一答案，不新增讲稿文字。')
+    else:
+        state_instruction = '本图是明确要求的课堂初始状态；仅显示初始文字和图形，后显内容暂不显示。'
     body = (f'16:9横版PPT最终完整静态成品页，包含真实文字，不是单独背景图。{style}。'
-            f'页面名称：{page["title"]}。构图与版式：{page["layout"]}。'
+            f'{state_instruction}页面名称：{page["title"]}。构图与版式：{view["layout"]}。'
             f'场景、核心插画与教学画面：{visual}。'
             f'固定角色/地点/道具：{"；".join(character) if character else "本页无指定共享角色"}。'
             '按页面布局清晰呈现以下真实文案，逐字准确，不增删题目条件：\n' +
@@ -67,7 +102,7 @@ def page_prompt(page, data):
     return body, formatted
 
 
-def render_pages(project):
+def render_pages(project, render_state='review_complete'):
     workflow.require(project, 'pages')
     checked = checks.validate(project)
     if not checked['ok']:
@@ -79,12 +114,11 @@ def render_pages(project):
     formatted = []
     visible = []
     for page in pages:
-        _, full = page_prompt(page, data)
+        _, full = page_prompt(page, data, render_state)
         formatted.append(full)
-        at = visibility(page)
-        initial = [unit['text'] for unit in page['text_units'] if at[unit['unit_id']] == 'initial']
+        texts = page_view(page, render_state)['texts']
         visible.append(f'## {page["page_id"]} {page["title"]}\n\n' +
-                       ('\n'.join(initial) if initial else '初始画面无上屏文字'))
+                       ('\n'.join(texts) if texts else '初始画面无上屏文字'))
     used = set(workflow.basis_paths(project)) | {'_state/story.json'}
     versions = {path: state.sha256(state.resolve(project, path)) for path in sorted(used)}
     for relative, body in [('slides/image-prompts.md', '\n\n'.join(formatted)),
@@ -99,10 +133,11 @@ def render_pages(project):
                 target = state.resolve(project, file['path'])
                 if target.is_file() and state.sha256(target) == file['sha256']:
                     retained.append(file)
-    state.write_json(manifest_path, {'source_versions': versions, 'files': retained + [
+    state.write_json(manifest_path, {'source_versions': versions, 'render_state': render_state, 'files': retained + [
         {'path': relative, 'sha256': state.sha256(state.resolve(project, relative))}
         for relative in ('slides/image-prompts.md', 'planning/visible-text.md')]})
-    return {'prompts': 'slides/image-prompts.md', 'visible_text': 'planning/visible-text.md', 'pages': len(pages)}
+    return {'prompts': 'slides/image-prompts.md', 'visible_text': 'planning/visible-text.md',
+            'pages': len(pages), 'render_state': render_state}
 
 
 def image_ref(project, file):
@@ -194,7 +229,8 @@ def prepare(project, selection):
                 raise ValueError('Asset size must be a pixel width x height')
             size = task['size']
         if purpose == 'page':
-            prompt, _ = page_prompt(page, data)
+            render_state = task.get('render_state', 'review_complete')
+            prompt, _ = page_prompt(page, data, render_state)
         elif purpose == 'erase':
             if not task.get('remove_texts') or not task.get('preserve_elements'):
                 raise ValueError('Erase requires explicit remove_texts and preserve_elements')
@@ -219,6 +255,7 @@ def prepare(project, selection):
                'status': 'pending', 'output_path': f'{directory}/image.png'}
         if purpose == 'page':
             job['semantic_fingerprint'] = page_fingerprint(data, target)
+            job['render_state'] = render_state
         # Candidate permission is an execution constraint, not a provider input.
         job['input_digest'] = state.digest(job)
         if story_basis: job['story_basis'] = story_basis
@@ -231,7 +268,7 @@ def prepare(project, selection):
         if path.exists():
             old = state.read_json(path)
             equivalent = purpose == 'page' and all(old.get(k) == job.get(k) for k in
-                ('semantic_fingerprint', 'prompt_sha256', 'references', 'route', 'image_api_input'))
+                ('semantic_fingerprint', 'prompt_sha256', 'references', 'route', 'image_api_input', 'render_state'))
             if old.get('input_digest') != job['input_digest'] and not equivalent:
                 raise ValueError('Task ID already has different inputs; create a new version')
             if old.get('status') == 'pending':

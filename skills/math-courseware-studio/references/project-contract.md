@@ -80,9 +80,24 @@ grouped_creative_v2整课自动run按[分组记录协议](../../math-courseware-
 
 示例不指定首课课题。算式顺序按实际教材。所有真正显示的标题、按钮、标签都进入`text_units`，辅助教师提示不自动上屏。需要分别操作的数学对象逐个给ID，不能用一个含糊“全部物体”代替。
 
+新带字页图默认生成`review_complete`完整讲解结果预览，包含本页全部`text_units`及必要实际图示；`visible_at`/`reveal_steps`仍只定义课堂显示顺序，不能为生图把后显单元改成`initial`。页面可选`review_complete`对象：`layout`、`visual_description`、`restrictions`仅覆盖审阅绘图说明，不改课堂方案；`unit_ids`可指定审阅文字顺序，但必须恰好覆盖本页全部`text_units`，不得漏项、重复或引用未知单元。未提供覆盖字段时沿用相应页面字段，未提供`unit_ids`时按全部单元原顺序展开。
+
+```json
+{
+  "review_complete": {
+    "layout": "左侧按操作顺序展示分组图，右侧呈现题干、算式和结论",
+    "visual_description": "五组苹果，每组三个；保留组界，结果图与算式明确对应",
+    "restrictions": "审阅时呈现完整结果；不同操作阶段分区示意，不互相遮盖",
+    "unit_ids": ["P007-T01", "P007-T02", "P007-T03"]
+  }
+}
+```
+
+有初始态专用描述（如“不要画结果”“只留空位”）时，必须在当前结果预览说明中明确改为完整过程和结果，不能仅放开文字筛选却沿用冲突的图示指令。新页面生图任务记录`render_state:"review_complete"`；新生成`render_state:"initial"`专项图仅限用户明确另行要求并留存依据，不因旧稿或历史兼容自行采用，也不覆盖权威课堂可见性。旧任务、旧图未声明状态时保留原语义和证据，不补造历史状态，不自动重建旧课。结果预览不证明后显对象、原生动画或实际放映已完成。
+
 视频页使用同一页面结构：video_ids引用实际计划视频，layout/visual_description明确独立播放区域、画幅和外围文字，native_objects登记`video-frame-<video_id>`等必需对象。播放前观察任务写入student_activity/teacher_question，片尾接话与前后页关联写planning/video-handoff.md。视频页计入pages.order和课件总页数，具体见[页面规范](../../math-courseware-pages/references/page-design.md#视频播放页)；不新增虚构媒体字段或把计划ID当成真实PPT对象。
 
-实际图生成后补`image:{path,sha256}`，先核对实际图片再将它作为正式采用版。图片文件及当前页面记录的批准可以随整套图片确认一起登记，不重复要求相同用户意图。
+实际图生成后补`image:{path,sha256,render_state}`，`render_state`按真实任务及画面记录为`review_complete`或`initial`，先核对实际图片再将它作为正式采用版。旧图缺少该字段时保持未声明，不能从当前默认值反推历史语义；导出清单的`image_render_states`逐页记录真实值，未声明记`unspecified`。回填覆盖报告的`reference_render_state`只说明参考图用途，不修改课堂可见性。图片文件及当前页面记录的批准可以随整套图片确认一起登记，不重复要求相同用户意图。
 
 ## 确认与变更
 
@@ -127,7 +142,7 @@ grouped_creative_v2整课自动run按[分组记录协议](../../math-courseware-
 | workflow-check | --step STEP [--video-id ID] | 只读检查本次范围的实际依赖，返回允许项、缺失/过期产物及可继续步骤；步骤名见共用流程 |
 | record-approval | --record FILE | 记录实际用户批准 |
 | impact / record-change | --change FILE | 预览/应用授权变更 |
-| render-prompts | 无额外参数 | 从页面数据展开五段提示词与可见文字 |
+| render-prompts | [--render-state review_complete/initial] | 默认review_complete，展开完整讲解结果预览的五段提示词与全部审阅文字；initial仅供用户明确另要的初始态专项图，课堂显示顺序保持原记录 |
 | image-prepare | --selection FILE | 派发任务，不生图 |
 | image-run / image-resume | --batch FILE [--key-file FILE或--key-stdin] | Grsai执行/恢复 |
 | image-register | --result FILE | 登记内置工具真实输出 |

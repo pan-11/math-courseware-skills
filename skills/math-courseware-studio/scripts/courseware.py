@@ -95,6 +95,8 @@ def parser():
         if command == 'workflow-check':
             p.add_argument('--step', required=True)
             p.add_argument('--video-id')
+        if command == 'render-prompts':
+            p.add_argument('--render-state', choices=('review_complete', 'initial'), default='review_complete')
         filearg = {'record-approval': 'record', 'impact': 'change', 'record-change': 'change',
                    'image-prepare': 'selection', 'image-run': 'batch', 'image-resume': 'batch',
                    'image-register': 'result', 'editable-build': 'plan', 'editable-answers': 'plan', 'canva-handoff': 'selection'}.get(command)
@@ -150,7 +152,7 @@ def execute(args):
     if c in ('impact', 'record-change'):
         return getattr(state, c.replace('-', '_'))(project, state.read_json(args.change))
     if c == 'render-prompts':
-        return prompts.render_pages(project)
+        return prompts.render_pages(project, getattr(args, 'render_state', 'review_complete'))
     if c == 'image-prepare':
         return prompts.prepare(project, state.read_json(args.selection))
     if c in ('image-run', 'image-resume', 'image-register'):
