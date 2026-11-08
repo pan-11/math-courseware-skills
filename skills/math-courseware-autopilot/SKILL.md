@@ -17,7 +17,7 @@ description: Run an explicitly selected automatic courseware mode in the current
 
 1. 先读课程AGENTS/HANDOFF，核真实输入、已采用版本与当前范围。调用现有`status`、`validate`和`run-status`；旧模式不建队列、不补造上游完成记录。
 2. 读[队列协议](references/queue-contract.md)，按实际范围生成具体任务JSON。不要让用户手写JSON。初始可只排已确定的分析/蓝图；蓝图采用并得到真实视频清单后，用`run-extend`补后续任务。已有合格产物先核对复用，不为填队列重做整课。
-3. 启动前复用本课项目/会话已有真实设置，一次集中补问余下三组：H05生图线路、具体用途/范围和是否包含付费生成；H10视频平台/模型/声音；H16可编辑A/B及full整套交接或returned已回传接入。已有选择不重问，不继承其他课，不将路线选择写成费用授权。按队列协议把具体值和真实依据写入plan.preferences；仍未知的保留缺项，分析/蓝图及无关任务继续。
+3. 启动前复用本课项目/会话已有真实设置，只集中补充实际缺少的H05生图线路/用途/范围/费用授权及H16可编辑A/B与full/returned入口。不主动询问H10视频平台/模型；视频素材按[通用制作包](../math-courseware-video-prompts/references/prompt-assembly.md#通用素材包与平台适配边界)完成，声音沿已采用稿件。用户主动提供视频设置或明确要求具体平台适配/代操作时才记录实际值与依据。已有选择不重问，不继承其他课，不把路线选择当费用授权，不用虚构video值消除缺项；未知设置只阻挡真实依赖它的具体平台操作。
 4. 将真实启用原话写入`activation_evidence`，运行非交互`run-start --plan`。队列已有时直接恢复；后续有真实补充或改选，用`run-configure --settings`部分更新，省略字段保留。切换模式用`run-mode`，保留当前文件、采用、偏好与待办。`project_mode/current_task.mode`继续表示整课/局部范围，不用它表示自动模式。
 
 ## 连续工作循环

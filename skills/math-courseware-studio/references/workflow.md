@@ -195,7 +195,7 @@ workflow.final: 共同依据格式
 
 已登记视频产品之间须绑定当前依赖：preview/voice绑定script，director绑定script/voice/assets，storyboard绑定director/assets，style绑定assets/storyboard；运镜prompts绑定script/voice/director/storyboard/style，讲话first-frame绑定script、prompts绑定script/first-frame。整课script还绑定当前蓝图。直接接入后期时只核实际提供的上游产品，不凭空补完整制作史；但已登记的当前产品不能被忽略。只修改上传表仍需复核完整词所引用的当前版本。导演与正式板成组审阅，同一采用记录targets同时覆盖两者的当前实际文件（或复用各自已有采用），不增加导演单独审批；仅把导演哈希写进内部核查不等于用户采用导演。
 
-preparation.files必须含script、voice、frame_plan、prompts、production、classroom；运镜另含director、board_plan。classroom由课程模块写，视频专业模块不承担教师接话。missing_assets逐项含asset_id/reason/acquire/blocks，明确取得办法及影响，不能用笼统“以后再做”代替。平台未知可以如实写在操作包，不能宣称可直接提交。
+preparation.files必须含script、voice、frame_plan、prompts、production、classroom；运镜另含director、board_plan。classroom由课程模块写，视频专业模块不承担教师接话。missing_assets逐项含asset_id/reason/acquire/blocks，明确取得办法及影响，不能用笼统“以后再做”代替。视频素材默认按[通用制作包](../../math-courseware-video-prompts/references/prompt-assembly.md#通用素材包与平台适配边界)完成全部已满足前置的图片、逐次完整TXT、镜号/文件映射和建议上传顺序；不主动询问平台/模型，不将未提供平台视为内容缺失或新增采用条件。平台由用户自行选择，兼容性未核实如实标注，不宣称已验证可提交；用户主动要求具体适配/代操作时才核实该范围，原有内容采用与实际成片门槛不变。
 
 final.files必须引用实际media和playback检查，另有真实采用。media核对受支持MP4/M4V/MOV、WebM/MKV或AVI的扩展名与容器标记；这仅能拒绝文字方案、错格式文件，不能证明编码完整、内容或声音正确。playback是验收JSON，含passed、inspection（actual或user_report）、basis和source_versions，绑定当前media与最终可编辑PPTX；只有图片/剧本/估时不能登记实际成片。用户按[WPS视频交接规范](wps-export-review.md)检查确认当前整课视频无误并回传后，可记录其实际覆盖的片段为user_report，不要求AI再次审片或建立时间映射；media仍是原情景视频，其他未确认项保持原状态。没有课程JSON的单视频，原manifest.workflow可直接放项目范围、inputs及products；检查当前V ID时读取同一manifest，无需自哈希。
 
