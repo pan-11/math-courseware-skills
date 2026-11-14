@@ -54,6 +54,19 @@ def parser():
     top = argparse.ArgumentParser(description='小学数学AI赋能课件：本地记录、生成任务、可编辑处理和导出')
     sub = top.add_subparsers(dest='command', required=True)
     sub.add_parser('doctor', help='Read-only environment check')
+    for command in ('animation-inspect', 'animation-check', 'animation-build',
+                    'animation-validate', 'animation-snapshot'):
+        p = sub.add_parser(command)
+        p.add_argument('--project', required=True, type=Path)
+        if command == 'animation-inspect':
+            p.add_argument('--deck', required=True)
+        elif command in ('animation-check', 'animation-build'):
+            p.add_argument('--plan', required=True, type=Path)
+        else:
+            p.add_argument('--manifest', required=True)
+        if command == 'animation-snapshot':
+            p.add_argument('--output', required=True)
+            p.add_argument('--stage', choices=('initial', 'final'), required=True)
     automation_commands = ('run-start', 'run-configure', 'run-extend', 'run-next', 'run-status', 'run-record',
                            'run-mode', 'run-pause', 'run-resume', 'run-retry', 'run-reconcile', 'run-recheck',
                            'review-prepare', 'review-record', 'review-status')
@@ -117,6 +130,17 @@ def execute(args):
     if c == 'doctor':
         return checks.doctor()
     project = args.project.resolve()
+    if c.startswith('animation-'):
+        from runtime import classroom_animation, pptx_editor
+        if c == 'animation-inspect':
+            return classroom_animation.inspect(pptx_editor._inside(project, args.deck))
+        if c == 'animation-check':
+            return classroom_animation.check(project, state.read_json(args.plan))
+        if c == 'animation-build':
+            return classroom_animation.build(project, state.read_json(args.plan))
+        if c == 'animation-validate':
+            return classroom_animation.validate_final(project, args.manifest)
+        return classroom_animation.snapshot(project, args.manifest, args.output, stage=args.stage)
     if c.startswith(('run-', 'review-')):
         from runtime import autopilot, review
         if c == 'run-start': return autopilot.start(project, state.read_json(args.plan))

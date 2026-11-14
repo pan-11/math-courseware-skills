@@ -1,6 +1,6 @@
 ---
 name: math-courseware-editable
-description: Prepare Canva layer-splitting handoffs and edit returned layered math PPTX files. Default to faithful reference restoration with inline, colored, click-to-reveal blank answers while preserving original layers.
+description: Prepare Canva layer-splitting handoffs and edit returned layered math PPTX files. Default to faithful restoration with inline click-to-reveal answers; plan and bind broader classroom animations when requested.
 ---
 
 # 可画拆层与可编辑PPT
@@ -12,6 +12,8 @@ description: Prepare Canva layer-splitting handoffs and edit returned layered ma
 **每次用户可见回复**（含进度、等待、提问、恢复、交付和独立调用）先按[共同回复合同](../math-courseware-studio/references/reply-contract.md)填写唯一开头：真实课件/任务、步骤/状态，本步工作及产出、用户检查、用户操作、下一步；编号列项，无检查/操作写明无需，计划与完成分开，不新增批准节点。
 
 读取[原位答案计划](references/click-answer-plan.md)、[可画交接](references/canva-handoff.md)、[默认回填组合与底层模式](references/refill-modes.md)和[文字与几何](references/text-and-geometry.md)。控制器位于相邻`math-courseware-studio/scripts/courseware.py`；先运行`doctor`确认OfficeCLI。
+
+用户明确要求新课教学动画、逐步讲解或完整课堂点击设计时，再读[课堂动画计划](references/classroom-animation-plan.md)。由AI依据教学目标、页稿与上下页关系安排初始状态、逻辑单元和课堂停顿，绑定实际对象后编译；无需用户逐页指定怎么点。该能力独立于底层文字模式，不改变默认原位答案组合，也不自动改已有交付。
 
 先读[共用流程](../math-courseware-studio/references/workflow.md)，分别保留项目目标与本次任务范围。交接、回传接收、文字加工开始前分别执行`workflow-check --project <目录> --step editable-handoff`、`--step editable-import`、`--step editable-build`；完成后登记真实产物、来源版本、检查和制作授权，再核下一动作：实际回传到位查`editable-import`，准备加工查`editable-build`，交付查`collect`或对应范围的`complete`。
 
@@ -52,6 +54,12 @@ description: Prepare Canva layer-splitting handoffs and edit returned layered ma
 编辑器只处理回传副本，不清空课件、不以整页图片覆盖图层。不支持的对象先记录具体限制，不能静默扁平化。
 
 回读每个文字单元和原图层；检查答案、原生动画目标/顺序及WPS显示。当前本地结构验证、静态步骤和真实单击播放分开记录。文案或题目有改动需同步上游及文稿，纯动画不改文稿。
+
+## 按需制作完整课堂动画
+
+沿本次已明确范围完成教学草案、真实对象绑定、计划检查与原生时序生成，执行[课堂动画计划](references/classroom-animation-plan.md)的`animation-inspect`、`animation-check`、`animation-build`与`animation-validate`。先判断学生每一步观察、推理或作答的任务，再选同步、自动接续、强调或退出；允许整页静态，分数写法教学允许有依据地拆分组件。完整计划已覆盖的填空不再另叠原位答案动画。
+
+只修改保留副本的目标时序；实际目标仍烧在图片中、对象缺失、段落不符或与已有动画冲突时逐项登记并处理，不能猜对象ID、清空原时间线或把复杂运动改成淡入就称完成。常规页按计划连续完成，真实教学歧义集中提出；关键页纳入既有审阅。教学语义、XML/原生结构、静态输出和目标软件播放分别记录，`ready_for_review`只表示候选可审，不代表用户采用或实播通过。
 
 ## 视频页与成片回填
 
