@@ -73,7 +73,7 @@ C3具体内容完整且已列明缺图、取得办法及受影响工作时，可
 
 ## 成品后的商品图与笔记素材
 
-本课课件及C7配套真实完成，并完成当前适用的C8成品/播放/版本核对后，默认继续[courseware-xhs-studio](../../courseware-xhs-studio/SKILL.md)：**先商品主图与详情图，再笔记素材**。商品图执行[专门规则](../../courseware-xhs-studio/references/product-images.md)：三张参考版式主图生图、真实PPT/PDF/电子版黑板贴导出拼版成详情，默认无水印；第三主图的数量省略和名称要求由该规则统一维护。已有同版合格商品图直接复用，不能跳过商品图就开始一组新笔记。
+本课课件及C7配套真实完成，并完成当前适用的C8成品/播放/版本核对后，默认继续[courseware-xhs-studio](../../courseware-xhs-studio/SKILL.md)：**先商品主图与详情图，再笔记素材**。商品图执行[专门规则](../../courseware-xhs-studio/references/product-images.md)：三张参考版式主图生图、真实PPT/配套DOCX/电子版黑板贴导出拼版成详情，默认无水印；第三主图的数量省略和名称要求由该规则统一维护。已有同版合格商品图直接复用，不能跳过商品图就开始一组新笔记。
 
 完成后主动展示商品图和预览入口，再按笔记规则继续；不新增逐张采用节点或把素材完成说成已发布。用户明确只做教学产品、商品图、笔记、单篇或局部维护时服从其范围。独立接入已有成品只核实际来源，不要求重跑或伪造C1—C8。尚未完成的教学产品不能因开始宣传图而改记完成。
 
@@ -155,9 +155,9 @@ approval: {path: 必要时指向真实用户采用记录JSON, sha256: 实际哈�
 - **shared-assets**：files包含实际采用风格/资产图，style_choice记录kind为existing（复用既有采用图）或candidates（新选四封面）；selected为采用图的文件引用且包含在files中。新选四封面另记candidates四份真实且不同的图片引用，selected必须在其中。候选的实质设计差异由视觉检查，不因凑四个文件就通过。
 - **images**：files覆盖权威pages.json每页的实际image引用，图像可解码、覆盖全部页；采用与核查绑定当前pages及shared-assets。图片导出仍生成PPTX/PDF并核对页序。
 - **editable**：files中的pptx指向实际可读取且页数符合蓝图的PPTX；图层、文字和视觉效果另有真实逐页检查，不用“可打开”代替可编辑性验收。
-- **documents**：files中的classroom-script、lesson-presentation、lesson-plan分别指向真实三文稿，可以是MD/DOCX/PDF；full_course另核worksheet、blackboard和已承诺interactive，绑定当前pages与可编辑PPT。多格式/离线依赖可用[实际材料清单](../../math-courseware-documents/references/delivery-materials.md)，不能用三文稿成功代替齐套。独立任务只核所选范围，真实省略须当前用户证据。
+- **documents**：files中的classroom-script、lesson-presentation、lesson-plan分别指向真实三文稿，默认交可编辑DOCX，内部核查PDF留在中间文件；检查器兼容历史MD/PDF，不代表默认要生成或交付这些格式；full_course另核worksheet、blackboard和已承诺interactive，绑定当前pages与可编辑PPT。多格式/离线依赖可用[实际材料清单](../../math-courseware-documents/references/delivery-materials.md)，不能用三文稿成功代替齐套。独立任务只核所选范围，真实省略须当前用户证据。
 - **学习单配套**：整课默认交[学生课堂学习单](../../math-courseware-documents/references/student-worksheet.md)，独立任务按指定范围。保存来源页/任务对应、实际DOCX、内容及分页检查、交付manifest；C8另核真实文件与同文件夹副本。现有export-documents仍只导出三份教师文稿，没有worksheet步骤/命令；控制器documents或complete通过不代表学习单已完成，不能只登记源稿。
-- **黑板贴配套**：按[专门规范](../../math-courseware-documents/references/blackboard-stickers.md)保存独立spec/content/layout/manifest及实际视觉核查。整课默认必交，单模块按指定范围。现有控制器没有单独blackboard制作步骤；collect/complete会核必交角色、实际文件格式与来源绑定。C8仍须核内容、PPT独立对象、视觉、打印尺寸及中文普通目录的交付副本。不能用三文稿通过代替，也不能把单做黑板贴冒充三文稿完成。
+- **黑板贴配套**：按[专门规范](../../math-courseware-documents/references/blackboard-stickers.md)保存独立spec/content/layout/manifest及实际视觉核查。整课默认必交，单模块按指定范围。现有控制器没有单独blackboard制作步骤；collect/complete会核必交角色、实际文件格式与来源绑定。C8仍须核内容、PNG/PPT独立对象、预览、使用依赖、视觉及中文普通目录的交付副本；默认无布局或打印PDF，只有明确另要打印版时才核对应打印尺寸与文件。不能用三文稿通过代替，也不能把单做黑板贴冒充三文稿完成。
 - **delivery**：files含manifest及wps，后者指向显示/播放验收JSON。默认接收用户自行检查确认后提供的整课视频地址，按[交接规范](wps-export-review.md)登记`inspection:user_report`、确认依据与当前PPT/视频/覆盖的媒体版本，不重复看听或生成审片报告。JSON沿用passed、inspection、basis及source_versions；已有“检查后交接”约定与实际回传可合记，不重问确认。未覆盖的操作/交付项目保持实际状态，仅视频确认不充当全课已通过汇总。
 
 ## 第一阶段的可见报告及source-review摘要

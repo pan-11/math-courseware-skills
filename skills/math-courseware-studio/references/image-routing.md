@@ -2,11 +2,11 @@
 
 ## 项目线路
 
-`builtin`使用当次真实可用Codex生图工具；`openai_image_api`使用Grsai。新课首次选择一次，已明确指定则直接登记。所有角色、地点、道具、封面、试样、整页图、去字和返工继承当前项目线路，不静默改用另一条。
+`builtin`使用当次真实可用Codex生图工具；`openai_image_api` 新任务默认使用 ToAPIs，`gpt-image-2-vip`、`quality:low`、`resolution:1k`。参数与凭据来源见 [ToAPIs 生图配置](toapis.md)。新课首次选择一次，已明确指定则直接登记。所有角色、地点、道具、封面、试样、整页图、去字和返工继承当前项目线路，不静默改用另一条。
 
-切换线路修改项目记录并说明范围，不重做已经确认的图片。内置与Grsai的参数、额度和证据分开处理。
+切换线路修改项目记录并说明范围，不重做已经确认的图片。内置与API的参数、额度和证据分开处理。新任务保存provider及请求配置快照；已有Grsai任务按原服务商查询下载，不迁移或重复提交。
 
-## Grsai协议
+## Grsai旧任务协议（仅保留历史恢复）
 
 依据服务商[旧接口文档](https://grsai.ai/dashboard/documents/gpt-image)和用户明确覆盖，2026-09-09核对：
 
@@ -40,7 +40,7 @@ erase必须传`source_image:{path,sha256}`、`remove_texts:[文字]`、`preserve
 
 ## 执行与密钥
 
-CLI读取已有`GRSAI_API_KEY`环境变量，或显式`--key-file`指向项目外本机secret，或`--key-stdin`。不把密钥作为命令行值，不写项目、提示词、任务、报告、日志或聊天。运行时不提供自动配置/修改密钥功能。需要新配置时遵守用户的独立授权边界。
+ToAPIs 执行支持显式 `--key-file` 或 `--key-stdin`，也可从可选工作区配置指定的项目外文件读取，未指定文件时用 `TOAPIS_API_KEY`。旧 Grsai 任务仍使用 `GRSAI_API_KEY` 或显式凭据来源。详见 [ToAPIs 生图配置](toapis.md)。不把密钥作为命令行值，不写项目、提示词、任务、报告、日志或聊天。运行时不提供自动配置/修改密钥功能。需要新配置时遵守用户的独立授权边界。
 
 运行`image-run --batch FILE`；已有任务运行`image-resume --batch FILE`。每批最多6路，默认单任务500秒；长批次让工具返回后台会话并持续向用户汇报，不能让同一任务重复提交。
 

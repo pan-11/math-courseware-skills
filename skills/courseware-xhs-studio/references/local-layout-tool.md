@@ -1,6 +1,6 @@
 # 本地排版工具自动调用
 
-图文笔记中的课件实页展示图复用用户已配置的本地 [xiaohongshu-ppt-layout-tool](https://github.com/pan-11/xiaohongshu-ppt-layout-tool)，支持原工具排版1—4。默认整组的第1篇用排版1，第2篇由AI按内容从2/3/4中选一种，第3篇用原图文说明卡，见[整组分配与选版标准](note-planning.md)。艺术封面、第三篇说明卡和两篇视频资料沿各自规范。原模板不复制、不改写，加载后直接调用其现有`xhsLayoutAutomation.render`。
+图文笔记中的课件实页展示图复用用户已配置的本地 [xiaohongshu-ppt-layout-tool](https://github.com/pan-11/xiaohongshu-ppt-layout-tool)，支持原工具排版1—4。默认整组的第1篇用排版1，第2篇由AI按内容从2/3/4中选一种，第3—5篇只做视频封面文案，见[整组分配与选版标准](note-planning.md)。艺术封面、三篇视频封面文案和第6篇逐字稿正文沿各自规范。原模板不复制、不改写，加载后直接调用其现有`xhsLayoutAutomation.render`。
 
 ## 模板与真实分组
 
@@ -77,7 +77,7 @@ python <Skill目录>/scripts/render_layout_tool.py <任务JSON> --settings <本�
 
 ## 图文交付清单
 
-原PNG内容卡仍用字符串路径；四种工具内容图使用显式对象。独立笔记可按需要混排，默认六篇整组的前三篇仍按已确认的三种图片路线分别交付。封面继续用原PNG、3:4规则。工具图片类型必须匹配已支持模板的成功渲染记录中的某张输出，检查真实JPEG编码、尺寸和SHA256；复制或改名后也可核原字节。下面是单篇字段示例：
+原PNG内容卡仍用字符串路径；四种工具内容图使用显式对象。独立笔记可按需要混排，默认六篇整组的前两篇按已确认的两种图片路线分别交付，第3—5篇不含内容图。封面继续用原PNG、3:4规则。工具图片类型必须匹配已支持模板的成功渲染记录中的某张输出，检查真实JPEG编码、尺寸和SHA256；复制或改名后也可核原字节。下面是单篇字段示例：
 
 ```json
 {
@@ -94,6 +94,6 @@ python <Skill目录>/scripts/render_layout_tool.py <任务JSON> --settings <本�
 }
 ```
 
-此例的`delivery.json`位于`笔记素材/v001`，任务与输出位于`中间文件/notes/v001`；实际沿本课目录调整引用。新默认整组另在顶层写`"series_profile": "three-image-two-video-plus-script"`，按原五篇顺序追加第6篇：第1篇课件主体匹配`watermark`，第2篇主体匹配`product/direct-133-33/direct-1222-3-3`其中同一种，第3篇为原PNG卡；三篇可加入多张显式`teaching-companion`组合图，同一成品组合图可跨篇复用，不需要改本工具。第4/5篇为`video-cover-copy`（封面、标题、正文和话题；视频由用户制作）。第6篇是独立排版的[逐字稿图解](illustrated-script.md)，主体标记`script-illustrated`，不是本工具新增模板。旧五篇`three-image-two-video`和历史或明确另需的`video-edit-kit`保持兼容。不同素材完整性规则见[文案与交付检查](copy-and-review.md)。
+此例的`delivery.json`位于`笔记素材/v001`，任务与输出位于`中间文件/notes/v001`；实际沿本课目录调整引用。新默认整组另在顶层写`"series_profile": "two-image-three-video-plus-script"`：第1篇课件主体匹配`watermark`，第2篇主体匹配`product/direct-133-33/direct-1222-3-3`其中同一种，前两篇可加入多张显式`teaching-companion`组合图，同一成品组合图可跨篇复用，不需要改本工具。第3—5篇为`video-cover-copy`（封面、标题、正文和话题；视频由用户制作）。第6篇是独立排版的[逐字稿图解](illustrated-script.md)，主体标记`script-illustrated`，不是本工具新增模板。旧profile `three-image-two-video`、`three-image-two-video-plus-script`保持兼容；历史或明确另需的`video-edit-kit`按实际范围校验，不套新默认整组profile。不同素材完整性规则见[文案与交付检查](copy-and-review.md)。
 
 使用`check_delivery.py`检查整篇或整组，同时执行逐图目视与文案核查。交付当轮在聊天展示实际图、编号文件名、顺序和整包目录，并说明第2篇实际选用的版式和理由，不只保存文件或给总览链接。

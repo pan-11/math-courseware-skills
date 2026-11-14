@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'skills/math-courseware-studio/scripts'))
 import courseware
 from runtime import state, prompts, image_api, pptx_editor
+from test_image_api import as_legacy_grsai_batch
 
 
 class ErrorTests(unittest.TestCase):
@@ -48,9 +49,10 @@ class ErrorTests(unittest.TestCase):
         return json.loads(err)
 
     def batch(self, suffix='1'):
-        return prompts.prepare(self.root, {'tasks': [
+        batch = prompts.prepare(self.root, {'tasks': [
             {'purpose': 'test', 'target_id': 'P0-' + suffix, 'prompt': 'Synthetic diagnostics, no live API'}],
             'authorization_evidence': 'Synthetic fixture, not real user authorization'})
+        return as_legacy_grsai_batch(self.root, batch)
 
     def job(self, batch):
         return state.read_json(self.root / batch['jobs'][0])
@@ -184,15 +186,17 @@ class ErrorTests(unittest.TestCase):
 
     def test_cli_and_office_output_redact_environment_credentials(self):
         key = 'fake-environment-credential'
-        with patch.dict(os.environ, {'GRSAI_API_KEY': key}):
-            result = self.exception_output(ValueError('Synthetic failure ' + key))
+        toapis_key = 'fake-toapis-environment-credential'
+        with patch.dict(os.environ, {'GRSAI_API_KEY': key, 'TOAPIS_API_KEY': toapis_key}):
+            result = self.exception_output(ValueError(f'Synthetic failure {key} {toapis_key}'))
             self.assertNotIn(key, json.dumps(result))
-            completed = subprocess.CompletedProcess([], 3, key, 'Authorization: Bearer fake-office-token')
+            self.assertNotIn(toapis_key, json.dumps(result))
+            completed = subprocess.CompletedProcess([], 3, toapis_key, 'Authorization: Bearer fake-office-token')
             with patch.object(pptx_editor.shutil, 'which', return_value='synthetic-officecli'), \
                     patch.object(pptx_editor.subprocess, 'run', return_value=completed):
                 with self.assertRaises(RuntimeError) as caught:
                     pptx_editor._office([])
-            self.assertNotIn(key, str(caught.exception))
+            self.assertNotIn(toapis_key, str(caught.exception))
             self.assertNotIn('fake-office-token', str(caught.exception))
 
     def test_http_status_and_message_do_not_change_unknown_submission(self):

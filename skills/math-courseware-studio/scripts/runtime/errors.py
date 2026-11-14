@@ -12,7 +12,7 @@ DIAGNOSTIC_FIELDS = ('error_detail', 'http_status', 'provider_message')
 
 
 def _secret_forms(secrets):
-    values = [*secrets, os.environ.get('GRSAI_API_KEY', '')]
+    values = [*secrets, os.environ.get('GRSAI_API_KEY', ''), os.environ.get('TOAPIS_API_KEY', '')]
     forms = set()
     for value in values:
         if isinstance(value, str) and value:

@@ -3,11 +3,13 @@ from pathlib import Path
 import hashlib
 import importlib.util
 import json
+import re
 import tempfile
 import unittest
 from contextlib import contextmanager
 from unittest.mock import patch
 from PIL import Image, ImageChops, ImageFilter
+from reportlab.pdfgen.canvas import Canvas
 
 ROOT=Path(__file__).resolve().parents[1]
 MODULE=ROOT/'skills/math-courseware-studio/scripts/runtime/blackboard.py'
@@ -160,6 +162,57 @@ class BlackboardTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'denominator|分母'):
                 engine.render(path,out)
             self.assertFalse(out.exists())
+
+
+    def test_electronic_package_exports_objects_and_no_pdf(self):
+        engine = self.engine()
+        with preserved_case() as folder:
+            spec, _ = self.fixture(folder)
+            destination = folder / 'electronic'
+            engine.render(spec, destination)
+            result = engine.export(destination)
+            self.assertEqual(result['pictures'], 2)
+            self.assertNotIn('pdf', result)
+            self.assertTrue(engine.verify(destination)['passed'])
+            output = destination / 'output'
+            self.assertFalse(list(output.glob('*.pdf')))
+            manifest = engine.load_json(destination / 'manifest.json')
+            self.assertFalse(any(row['file'].endswith('.pdf') for row in manifest['files']))
+            html = (output / '素材总览.html').read_text(encoding='utf-8')
+            for link in re.findall(r'(?:href|src)="([^"]+)"', html):
+                self.assertTrue((output / link).is_file(), link)
+            with self.assertRaises(FileExistsError):
+                engine.export(destination)
+
+    def test_historical_pdf_package_still_verifies(self):
+        engine = self.engine()
+        with preserved_case() as folder:
+            spec, _ = self.fixture(folder)
+            destination = folder / 'legacy'
+            engine.render(spec, destination)
+            engine.export(destination)
+            pdf = destination / 'output' / '平均分_板书布局参考.pdf'
+            canvas = Canvas(str(pdf))
+            canvas.drawString(20, 20, 'Synthetic legacy layout')
+            canvas.showPage()
+            canvas.save()
+            manifest = engine.load_json(destination / 'manifest.json')
+            manifest['files'].append({'file': pdf.name, 'sha256': engine.digest(pdf)})
+            engine.write_json(destination / 'manifest.json', manifest)
+            self.assertTrue(engine.verify(destination)['passed'])
+
+    def test_verified_package_rejects_changed_image(self):
+        engine = self.engine()
+        with preserved_case() as folder:
+            spec, _ = self.fixture(folder)
+            destination = folder / 'tampered'
+            result = engine.render(spec, destination)
+            engine.export(destination)
+            image = destination / 'output' / result['assets'][0]['file']
+            with image.open('ab') as stream:
+                stream.write(b'changed')
+            with self.assertRaisesRegex(ValueError, 'failed'):
+                engine.verify(destination)
 
 
 if __name__=='__main__':unittest.main()

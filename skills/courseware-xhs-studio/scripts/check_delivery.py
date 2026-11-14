@@ -227,20 +227,26 @@ def check(manifest: dict, base: Path, expected_count: int | None) -> dict:
     profile = manifest.get("series_profile")
     if profile is not None:
         formats = [note.get("format") if isinstance(note, dict) else None for note in notes]
-        with_script = profile == "three-image-two-video-plus-script"
-        if profile not in ("three-image-two-video", "three-image-two-video-plus-script"):
+        new_default = profile == "two-image-three-video-plus-script"
+        with_script = profile in ("three-image-two-video-plus-script", "two-image-three-video-plus-script")
+        leading_images = 2 if new_default else 3
+        video_formats = ("video-cover-copy",) if new_default else ("video-cover-copy", "video-edit-kit")
+        if profile not in ("three-image-two-video", "three-image-two-video-plus-script", "two-image-three-video-plus-script"):
             errors.append("unsupported series_profile")
-        elif (len(formats) != (6 if with_script else 5) or formats[:3] != ["image"] * 3
-                or any(fmt not in ("video-cover-copy", "video-edit-kit") for fmt in formats[3:5])
+        elif (len(formats) != (6 if with_script else 5) or formats[:leading_images] != ["image"] * leading_images
+                or any(fmt not in video_formats for fmt in formats[leading_images:5])
                 or (with_script and formats[5] != "image")):
-            errors.append("series requires three image posts followed by two video notes (cover-copy or explicit editing kits)"
+            errors.append("series requires two image posts, three cover-copy-only video notes and a sixth illustrated-script image post"
+                          if new_default else
+                          "series requires three image posts followed by two video notes (cover-copy or explicit editing kits)"
                           + (" and a sixth illustrated-script image post" if with_script else ""))
-        elif (len(image_styles) != (4 if with_script else 3) or image_styles[0] - {"teaching-companion"} != {"watermark"}
+        elif (len(image_styles) != leading_images + int(with_script) or image_styles[0] - {"teaching-companion"} != {"watermark"}
                 or len(image_styles[1] - {"teaching-companion"}) != 1
                 or not image_styles[1] - {"teaching-companion"} <= {"product", "direct-133-33", "direct-1222-3-3"}
-                or not image_styles[2] <= {"legacy", "teaching-companion"}):
-            errors.append("series image styles must be layout1, one of layout2/3/4, then original explanatory cards")
-        elif with_script and "script-illustrated" not in image_styles[3]:
+                or (not new_default and not image_styles[2] <= {"legacy", "teaching-companion"})):
+            errors.append("series image styles must be layout1, then one of layout2/3/4"
+                          + ("" if new_default else ", then original explanatory cards"))
+        elif with_script and "script-illustrated" not in image_styles[leading_images]:
             errors.append("sixth post needs script-illustrated cards with matched courseware and script sources")
     return {"status": "PASS" if not errors else "FAIL", "notes": len(notes), "errors": errors}
 

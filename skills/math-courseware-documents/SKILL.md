@@ -1,11 +1,11 @@
 ---
 name: math-courseware-documents
-description: Create teaching documents, student worksheets and blackboard stickers from a locked primary-school math courseware deck. Use for classroom scripts, lesson plans, presentation scripts, editable Word activity sheets, board lettering, movable sticker PPTX and actual-size printable sticker PDFs, including standalone requests.
+description: Create teaching documents, student worksheets and blackboard stickers from a locked primary-school math courseware deck. Use for classroom scripts, lesson plans, presentation scripts, editable Word activity sheets, board lettering, movable sticker PPTX and transparent PNGs, including standalone requests. Teaching documents default to editable DOCX; printable PDFs are only produced when explicitly requested.
 ---
 
 # 配套教学文稿、学习单与黑板贴
 
-**用户交付文件必须使用中文文件名**：三份教师文稿、学习任务单、电子板书/黑板贴、打印PDF、尺寸表和使用说明均适用，不能仅把入口标签写成中文而保留英文成品名。采用“《课题》＋资料名称＋必要规格”的名称，具体命名、引用同步及核验见[交付命名规则](references/delivery-materials.md#中文成品文件名)。内部脚本、角色键、源稿和状态记录仍可用英文；不因此重命名内部历史或其他课程。
+**用户交付文件必须使用中文文件名**：三份教师文稿、学习任务单、电子板书/黑板贴和使用说明均适用；明确另做的打印PDF、尺寸表也遵守此规则，不能仅把入口标签写成中文而保留英文成品名。采用“《课题》＋资料名称＋必要规格”的名称，具体命名、引用同步及核验见[交付命名规则](references/delivery-materials.md#中文成品文件名)。内部脚本、角色键、源稿和状态记录仍可用英文；不因此重命名内部历史或其他课程。
 
 接入PPT先按[页面制作路线与来源核查](../math-courseware-pages/references/page-production.md)辨明范围。本课整课推进中，已知未完成C5的AI候选不能自行当作外部已完成PPT制作最终配套；回到实际缺口，不能改模式绕过。用户明确指定外部成品、独立资料或提前草稿时保留原接入规则，不要求重做上游。
 
@@ -13,7 +13,7 @@ description: Create teaching documents, student worksheets and blackboard sticke
 
 **每次用户可见回复**（含进度、等待、提问、恢复、交付和独立调用）先按[共同回复合同](../math-courseware-studio/references/reply-contract.md)填写唯一开头：真实课件/任务、步骤/状态，本步工作及产出、用户检查、用户操作、下一步；编号列项，无检查/操作写明无需，计划与完成分开，不新增批准节点。
 
-先按真实任务选择分支：整课C7默认制作三份教师文稿、学生课堂学习单和黑板贴（电子版＋同款实尺寸打印版）；独立任务只做用户指定部分。用户明确省略某配套或只要电子版时记录依据，不另问要不要做打印版。
+先按真实任务选择分支：整课C7默认制作三份教师文稿、学生课堂学习单和电子版黑板贴；四类文稿只交可编辑DOCX，黑板贴不交布局PDF或A3/A4实尺寸打印PDF。独立任务只做用户指定部分；只有用户明确要求打印版或PDF时才增加，不把缺少PDF当作缺项，也不再询问是否需要默认已取消的版本。
 
 四类文档先读[结构与篇幅基准](references/teaching-pack-profile.md)：默认沿用户已验证样本的栏目顺序，教学设计约5000字（以Word/WPS字数统计为准）、说课稿和逐字稿各约5000—6500字符；学习单1—3页均合理，按年龄、任务和作答空间确定。用户最新要求优先；不把教案扩成逐字稿，不把说课稿和逐字稿压成提纲，不机械凑字数。
 
@@ -23,7 +23,7 @@ description: Create teaching documents, student worksheets and blackboard sticke
 
 学习单读取[学生版制作规范](references/student-worksheet.md)，依据有效课件与教案自主选核心任务，留足书写/画图空间，默认无答案学生版，交实际可编辑中文DOCX并检查分页。学习单与教师稿分开，不用教案练习摘录代替，也不把视频未给的数据当作观看所得。
 
-黑板贴读取[稳定制作规范](references/blackboard-stickers.md)，由AI决定素材清单和板书组织；新制作默认楷体黑字、白衬、彩色圆润外轮廓，中文统一楷体，数学保持清晰的数字与上下分数。程序绘制并检查真实字形、描边和安全区；整套默认一起交电子素材和可直接打印的实尺寸PDF、打印说明与尺寸表，明确A3推荐版和同成品尺寸A4备选、实际页数及100%打印设置，不只交提示词或布局缩略图。用户明确的其他样式或仅电子范围优先，不批量重做旧成品；不固定数量、课题或板数，也不改原课件。
+黑板贴读取[稳定制作规范](references/blackboard-stickers.md)，由AI决定素材清单和板书组织；新制作默认楷体黑字、白衬、彩色圆润外轮廓，中文统一楷体，数学保持清晰的数字与上下分数。程序绘制并检查真实字形、描边和安全区；默认交独立透明PNG、逐件可移动PPTX、整板预览、离线素材总览、使用说明和文字源清单，不只交提示词或布局缩略图。实尺寸打印文件只在用户明确要求时按专门规范制作；用户明确的其他样式优先，不批量重做旧成品；不固定数量、课题或板数，也不改原课件。
 
 教师文稿分支读取[课堂逐字稿](references/classroom-script.md)、[说课稿](references/lesson-presentation.md)、[教学设计](references/lesson-plan.md)及[项目协议](../math-courseware-studio/references/project-contract.md)。控制器在相邻总入口`scripts/courseware.py`。以下教师文稿规则按实际范围执行，单做学习单或黑板贴不要求补三份文稿。
 
@@ -37,8 +37,8 @@ description: Create teaching documents, student worksheets and blackboard sticke
 
 已有视频时按[课程衔接](../math-courseware-studio/references/video-integration.md)读取视频交来的实际采用版、最终声音稿及结束状态，由本模块撰写或沿用课程侧教师接话；不要求视频编剧/导演为此加台词。对白/旁白引用与教师现场口语分开，三种文稿按当前页面及相同视频内容同步。视频改了数学或事件含义，先修共同记录再更新稿；只有文件名不视为已检查。视频先行而页面未定时，用户明确要求才写相关教学段落草稿，不编页码或交付逐页最终稿。
 
-先完成同源的完整正文，再以可用DOCX工具按本基准生成真实可编辑Word和同源核查PDF。`export-documents`的旧版结构限制见[接口说明](references/teaching-pack-profile.md#导出格式服从正文用途)，只在其格式符合本次要求时使用，不让接口反向限制教学文稿。来源索引只登记实际输入，不伪造空故事/数学的采用来满足接口。检查内容、版式、跨页表格和教师正文清洁度；普通质量问题直接修订，不增加独立最终审批。
+先完成同源的完整正文，再以可用DOCX工具按本基准生成真实可编辑Word。为实际排版检查生成的同源PDF留在中间文件，仅作核查证据，不登记为默认交付物。`export-documents`的旧版结构限制见[接口说明](references/teaching-pack-profile.md#导出格式服从正文用途)，只在其格式符合本次要求时使用，不让接口反向限制教学文稿。来源索引只登记实际输入，不伪造空故事/数学的采用来满足接口。检查内容、版式、跨页表格和教师正文清洁度；普通质量问题直接修订，不增加独立最终审批。
 
-整课三种教师文稿、学生学习单和黑板贴完成后整理交付；学习单与黑板贴分别按实际manifest核对，黑板贴含电子版及实尺寸打印版，或有用户明确省略依据，不能只用教案里的练习或板书文字代替。学习单DOCX与本套课件配套放同一交付文件夹，中文命名。独立任务完成其指定范围；教学设计中的简明板书方案仍属于教案内容。
+整课三种教师文稿、学生学习单和黑板贴完成后整理交付；学习单与电子版黑板贴分别按实际manifest核对，不能只用教案里的练习或板书文字代替；PDF和打印版不属于默认必交内容，无需为其另写豁免。学习单DOCX与本套课件配套放同一交付文件夹，中文命名。独立任务完成其指定范围；教学设计中的简明板书方案仍属于教案内容。
 
 整课交付前按[实际材料清单](references/delivery-materials.md)登记三教师稿、学习单、黑板贴及已承诺互动的真实文件和当前课件来源；`collect`与最终检查拒绝缺项或过期材料。独立任务范围及有真实证据的省略沿用，不补造用户决定。

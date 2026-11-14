@@ -185,7 +185,7 @@ def execute(args):
             return image_api.register_builtin(project, state.read_json(args.result))
         batch = state.read_json(args.batch)
         image_api.validate_batch(project, batch, resume=c == 'image-resume')
-        key = image_api.read_key(project, args.key_file, args.key_stdin)
+        key = image_api.read_key(project, args.key_file, args.key_stdin, provider=batch.get('provider', 'grsai'))
         return image_api.run_batch(project, batch, key, resume=c == 'image-resume')
     if c == 'editable-answers':
         from runtime import click_answers, editable_delivery

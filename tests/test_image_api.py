@@ -42,6 +42,21 @@ class Transport:
         return out.getvalue()
 
 
+def as_legacy_grsai_batch(project, batch):
+    batch = {key: value for key, value in batch.items() if key != 'provider'}
+    for relative in batch['jobs']:
+        path = state.resolve(project, relative)
+        job = state.read_json(path)
+        job.update(provider='grsai', image_api_input={
+            'endpoint': image_api.ENDPOINT, 'model': 'gpt-image-2.5',
+            'aspectRatio': '1672x941', 'size': '1672x941', 'shutProgress': True})
+        job.pop('input_digest')
+        job['input_digest'] = state.digest(job)
+        state.write_json(path, job)
+    state.write_json(state.resolve(project, batch['path']), batch)
+    return batch
+
+
 class ImageApiTests(unittest.TestCase):
     def setUp(self):
         self.assertIsNotNone(image_api, 'image API runtime must exist')
@@ -49,6 +64,7 @@ class ImageApiTests(unittest.TestCase):
         state.init_project(self.root, 'Synthetic test only', 'openai_image_api')
         self.batch = prompts.prepare(self.root, {'tasks': [{'purpose': 'test', 'target_id': 'TEST001',
             'prompt': 'Synthetic complex image test, no live API'}], 'authorization_evidence': 'Synthetic fixture only'})
+        self.batch = as_legacy_grsai_batch(self.root, self.batch)
         self.path = self.root / self.batch['jobs'][0]
 
     def run_job(self, transport, resume=False):
@@ -66,6 +82,14 @@ class ImageApiTests(unittest.TestCase):
         self.assertIs(payload['shutProgress'], True)
         self.assertNotIn('size', payload)
         self.assertTrue(payload['urls'][0].startswith('data:image/png;base64,'))
+
+    def test_reprepare_legacy_job_preserves_provider_and_bytes(self):
+        before = self.path.read_bytes()
+        selection = {'tasks': [{'purpose': 'test', 'target_id': 'TEST001',
+                     'prompt': 'Synthetic complex image test, no live API'}],
+                     'authorization_evidence': 'Synthetic fixture only'}
+        self.assertEqual(prompts.prepare(self.root, selection), self.batch)
+        self.assertEqual(self.path.read_bytes(), before)
 
     def test_task_id_resumes_without_second_generation(self):
         t = Transport()

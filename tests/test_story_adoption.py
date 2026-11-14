@@ -4,7 +4,8 @@ import subprocess
 import types
 
 import test_grouped_gates as group_fixtures
-from test_image_api import Transport
+from test_image_api import Transport, as_legacy_grsai_batch
+from test_toapis import FakeTransport
 from workflow_fixture import enable_modules
 from runtime import state, workflow, prompts, image_api, autopilot, grouped_gates, story_adoption, automation_store as store
 
@@ -205,24 +206,34 @@ class StoryAdoptionTests(unittest.TestCase):
                             for issue in item['issues']))
 
     def test_submitted_api_results_remain_recoverable_without_new_generation(self):
-        for status in ('running', 'result_ready', 'download_failed', 'submission_unknown'):
-            with self.subTest(status=status):
-                self.setUp()
-                self.image_setup('openai_image_api')
-                self.approve_stories()
-                batch = self.f.prepare_image()
-                path = state.resolve(self.root, batch['jobs'][0])
-                job = state.read_json(path)
-                job.pop('story_basis', None)  # A genuinely pre-policy submitted job has no new binding.
-                job.update(status=status, task_id='provider-test-id',
-                           provider_image_url='https://example.com/synthetic.png')
-                state.write_json(path, job)
-                self.reject_story()
-                transport = Transport()
-                result = image_api.run_job(self.root, batch['jobs'][0], transport,
-                    resume=True, timeout=1, poll_interval=0)
-                self.assertEqual(result['status'], 'submission_unknown' if status == 'submission_unknown' else 'downloaded')
-                self.assertFalse(any(endpoint == image_api.ENDPOINT for endpoint, _ in transport.posts))
+        for provider in ('grsai', 'toapis'):
+            for status in ('running', 'result_ready', 'download_failed', 'submission_unknown'):
+                with self.subTest(provider=provider, status=status):
+                    self.setUp()
+                    self.image_setup('openai_image_api')
+                    self.approve_stories()
+                    batch = self.f.prepare_image()
+                    if provider == 'grsai':
+                        batch = as_legacy_grsai_batch(self.root, batch)
+                    path = state.resolve(self.root, batch['jobs'][0])
+                    job = state.read_json(path)
+                    if provider == 'grsai':
+                        job.pop('story_basis', None)  # Pre-policy jobs have no story binding.
+                    job.update(status=status, task_id='provider-test-id',
+                               provider_image_url='https://example.com/synthetic.png')
+                    state.write_json(path, job)
+                    self.reject_story()
+                    transport = Transport() if provider == 'grsai' else FakeTransport()
+                    result = image_api.run_job(self.root, batch['jobs'][0], transport,
+                        resume=True, timeout=1, poll_interval=0)
+                    expected_status = 'submission_unknown' if status == 'submission_unknown' else 'downloaded'
+                    self.assertEqual(result['status'], expected_status)
+                    expected_posts = [(image_api.RESULT_ENDPOINT, {'id': 'provider-test-id'})] if (
+                        provider == 'grsai' and status == 'running') else []
+                    self.assertEqual(transport.posts, expected_posts)
+                    if provider == 'toapis':
+                        self.assertEqual(transport.uploads, [])
+                        self.assertEqual(transport.queries, ['provider-test-id'] if status == 'running' else [])
 
     def test_independent_asset_module_does_not_need_unrelated_story(self):
         self.f.fixture()

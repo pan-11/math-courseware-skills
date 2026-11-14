@@ -21,6 +21,8 @@ description: Use when starting, continuing, or revising a children's scenario vi
 
 运镜路线最终默认交付并上传本次片段对应的完整故事板，必要设定参考另列；逐格制作文件不能直接充当最终上传方案。已有单格时由AI完成必要合板并同步完整词/上传表，这属于当前材料缺口；清楚长板复用、限制分板及单镜情形按[整板上传规则](../math-courseware-video-prompts/references/prompt-assembly.md#整板上传默认必须执行)。固定讲话仍用实际彩色首帧。
 
+上传或交付操作包前，按[逐张宽高比与兼容检查](../math-courseware-video-prompts/references/prompt-assembly.md#上传图片宽高比与兼容检查)读取实际上传文件，覆盖复用资产、精确刻度/接点参考和首尾帧。不能用成片画幅或生图请求尺寸替代文件实测；超限项修正并同步引用后再交付。
+
 ## 先分两路
 
 | 内容 | 执行路线 | 实际交付 |

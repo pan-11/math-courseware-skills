@@ -15,7 +15,7 @@ Date: 2026-09-10
 本次交付两份可分别完整复制的提示词：
 
 - [Codex版](install-codex-prompt.md)：项目级安装到.agents/skills，识别后使用$math-courseware-studio，也提供文件路径入口。
-- [WorkBuddy版](install-workbuddy-prompt.md)：项目级安装到.codebuddy/skills，通过当前客户端的技能选择或文件路径入口使用；按Grsai执行器说明后续生图，不假定Codex专用工具可用。
+- [WorkBuddy版](install-workbuddy-prompt.md)：项目级安装到.codebuddy/skills，通过当前客户端的技能选择或文件路径入口使用；按ToAPIs执行器说明后续生图，不假定Codex专用工具可用。
 
 两者都将原仓库保存于工作空间tools/math-courseware-skills，再将六个完整目录成套同步到宿主的项目级路径。安装记录和旧文件哈希保留于tools，课程后续单独放在projects。更新预检同时检查源仓库和实际安装副本；不删除或覆盖已有用户内容。ZIP可离线安装，但不能把未知commit或离线版本称为GitHub最新版。
 

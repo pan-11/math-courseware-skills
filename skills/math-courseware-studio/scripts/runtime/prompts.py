@@ -244,6 +244,9 @@ def prepare(project, selection):
         job_id = f'{target}-{purpose}-{version}'
         directory = f'_state/jobs/{job_id}'
         prompt_path = f'{directory}/prompt.txt'
+        path = state.resolve(project, directory + '/job.json')
+        old = state.read_json(path) if path.exists() else None
+        legacy = old and old.get('route') == 'openai_image_api' and old.get('provider', 'grsai') == 'grsai'
         job = {'job_id': job_id, 'target_id': target, 'purpose': purpose, 'version': version,
                'route': route, 'provider': 'grsai' if route == 'openai_image_api' else 'codex',
                'prompt_path': prompt_path, 'prompt_sha256': hashlib.sha256(prompt.encode('utf-8')).hexdigest(),
@@ -253,6 +256,10 @@ def prepare(project, selection):
                                    'model': 'gpt-image-2-vip' if high else 'gpt-image-2.5',
                                    'aspectRatio': size, 'size': size, 'shutProgress': True},
                'status': 'pending', 'output_path': f'{directory}/image.png'}
+        if route == 'openai_image_api' and not legacy:
+            from . import image_toapis
+            job['provider'] = 'toapis'
+            job['image_api_input'] = image_toapis.job_options(selection, task, size)
         if purpose == 'page':
             job['semantic_fingerprint'] = page_fingerprint(data, target)
             job['render_state'] = render_state
@@ -264,9 +271,7 @@ def prepare(project, selection):
             if problems: raise ValueError('; '.join(problems))
             job['creative_candidate'] = candidate
         if run: job['run_id'] = run['run_id']
-        path = state.resolve(project, directory + '/job.json')
-        if path.exists():
-            old = state.read_json(path)
+        if old is not None:
             equivalent = purpose == 'page' and all(old.get(k) == job.get(k) for k in
                 ('semantic_fingerprint', 'prompt_sha256', 'references', 'route', 'image_api_input', 'render_state'))
             if old.get('input_digest') != job['input_digest'] and not equivalent:
@@ -279,6 +284,9 @@ def prepare(project, selection):
     # Validate whole selection before creating any jobs.
     if len({j['job_id'] for j, _, _ in pending}) != len(pending):
         raise ValueError('Duplicate tasks in selection')
+    providers = {job['provider'] for job, _, _ in pending}
+    if len(providers) != 1:
+        raise ValueError('Prepare separate batches for existing Grsai and new ToAPIs tasks')
     jobs = []
     for job, prompt, directory in pending:
         path = state.resolve(project, directory + '/job.json')
@@ -292,6 +300,8 @@ def prepare(project, selection):
     batch = {'batch_id': batch_id, 'jobs': jobs, 'route': route,
              'authorization_evidence': selection.get('authorization_evidence', ''),
              'concurrency': min(6, len(jobs)), 'timeout_seconds': 500}
+    if providers == {'toapis'}:
+        batch['provider'] = 'toapis'
     batch['path'] = f'_state/jobs/batch-{batch_id}.json'
     state.write_json(state.resolve(project, batch['path']), batch)
     return batch

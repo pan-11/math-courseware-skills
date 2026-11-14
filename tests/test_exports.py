@@ -392,9 +392,13 @@ class ExportTests(unittest.TestCase):
         for kind, expected in [('classroom-script', '同学们，请观察第1组图形，比较大小。'),
                                ('lesson-presentation', '通过观察与表达建立数学关系。'),
                                ('lesson-plan', '第089步：引导学生比较并解释，保留符号 3 < 5 & 8 > 6。')]:
-            artifacts = report['documents'][kind]['artifacts']
+            document_report = report['documents'][kind]
+            artifacts = document_report['artifacts']
+            self.assertEqual(set(artifacts), {kind + '-docx', kind + '-md'})
             docx = root / artifacts[kind + '-docx']['path']
-            pdf = root / artifacts[kind + '-pdf']['path']
+            pdf = root / document_report['qa_pdf']
+            self.assertEqual(pdf.parent, docx.parent / '_qa')
+            self.assertFalse(list(docx.parent.glob('*.pdf')))
             markdown = root / artifacts[kind + '-md']['path']
             markdown_text = html.unescape(markdown.read_text(encoding='utf-8').replace('<br/>', '\n'))
             self.assertIn(normalize(expected), normalize(markdown_text))
@@ -403,6 +407,7 @@ class ExportTests(unittest.TestCase):
             text += '\n'.join(c.text for t in document.tables for r in t.rows for c in r.cells)
             self.assertIn(normalize(expected), normalize(text))
             reader = PdfReader(pdf)
+            self.assertEqual(len(reader.pages), document_report['qa_pdf_pages'])
             pdf_text = '\n'.join(p.extract_text() for p in reader.pages)
             self.assertIn(normalize(expected), normalize(pdf_text))
             self.assertAlmostEqual(float(reader.pages[0].mediabox.width), 595.2756, places=3)

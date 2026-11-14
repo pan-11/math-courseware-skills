@@ -12,9 +12,9 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'skills/math-courseware-studio/scripts'))
 import courseware
-from runtime import state, autopilot, prompts, image_api, review, automation_store as store
+from runtime import state, autopilot, prompts, image_api, image_toapis, review, automation_store as store
 from workflow_fixture import enable_modules
-from test_image_api import Transport
+from test_toapis import FakeTransport as Transport
 
 
 class ImageBudgetTests(unittest.TestCase):
@@ -56,7 +56,7 @@ class ImageBudgetTests(unittest.TestCase):
 
     def execute(self, batch, transport=None, resume=False):
         transport = transport or Transport()
-        with patch.object(image_api, 'HttpTransport', lambda key: transport):
+        with patch.object(image_toapis, 'HttpTransport', lambda key, origin: transport):
             result = image_api.run_batch(self.root, batch, 'synthetic-key', resume=resume)
         return result, transport
 
@@ -125,7 +125,7 @@ class ImageBudgetTests(unittest.TestCase):
         self.execute(batch, transport)
         self.execute(batch, transport, resume=True)
         self.assertEqual(self.summary()['used'], 4)
-        self.assertEqual(sum(p[0] == image_api.ENDPOINT for p in transport.posts), 4)
+        self.assertEqual(sum(p[0] == image_toapis.ENDPOINT for p in transport.posts), 4)
 
     def test_entire_batch_local_validation_precedes_any_charge_or_submission(self):
         self.start(4)
@@ -142,7 +142,7 @@ class ImageBudgetTests(unittest.TestCase):
         started, release = threading.Event(), threading.Event()
         class Slow(Transport):
             def post(inner, endpoint, payload, timeout):
-                if endpoint == image_api.ENDPOINT:
+                if endpoint == image_toapis.ENDPOINT:
                     started.set()
                     release.wait(5)
                 return super().post(endpoint, payload, timeout)
@@ -170,7 +170,7 @@ class ImageBudgetTests(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             outcomes = list(pool.map(execute, range(2)))
         self.assertEqual(outcomes.count('downloaded'), 1)
-        self.assertEqual(sum(p[0] == image_api.ENDPOINT for t in transports for p in t.posts), 1)
+        self.assertEqual(sum(p[0] == image_toapis.ENDPOINT for t in transports for p in t.posts), 1)
         self.assertEqual(self.summary()['used'], 1)
 
     def test_capacity_rechecked_under_lock_after_preflight_race(self):
@@ -194,7 +194,7 @@ class ImageBudgetTests(unittest.TestCase):
         self.direct(unknown, transport)
         self.direct(unknown, transport, resume=True)
         failed = self.prepare('FAILED')
-        self.assertEqual(self.direct(failed, Transport({'code': 500}))['status'], 'failed')
+        self.assertEqual(self.direct(failed, Transport({'status': 'failed'}))['status'], 'failed')
         self.assertEqual(len(transport.posts), 1)
         self.assertEqual(self.summary()['used'], 2)
         with self.assertRaises(ValueError): self.direct(self.prepare('EXTRA'))
@@ -219,7 +219,8 @@ class ImageBudgetTests(unittest.TestCase):
         job.update(status='running', task_id='provider-test-id')
         state.write_json(job_path, job)
         self.assertEqual(self.direct(batch, transport, resume=True)['status'], 'downloaded')
-        self.assertEqual([p[0] for p in transport.posts], [image_api.RESULT_ENDPOINT])
+        self.assertEqual(transport.posts, [])
+        self.assertEqual(transport.queries, ['provider-test-id'])
         self.assertEqual(self.summary()['used'], 1)
 
     def test_download_recovery_at_cap_does_not_recount_or_resubmit(self):
@@ -228,7 +229,7 @@ class ImageBudgetTests(unittest.TestCase):
         self.assertEqual(self.direct(batch, transport)['status'], 'download_failed')
         transport.fail_download = False
         self.assertEqual(self.direct(batch, transport, resume=True)['status'], 'downloaded')
-        self.assertEqual(sum(p[0] == image_api.ENDPOINT for p in transport.posts), 1)
+        self.assertEqual(sum(p[0] == image_toapis.ENDPOINT for p in transport.posts), 1)
         self.assertEqual(self.summary()['used'], 1)
 
     def test_rework_new_jobs_extensions_modes_and_start_do_not_reset(self):
@@ -330,7 +331,8 @@ class ImageBudgetTests(unittest.TestCase):
         before = self.run_path().read_bytes()
         result, transport = self.execute(batch, resume=True)
         self.assertEqual(result['results'][0]['status'], 'downloaded')
-        self.assertEqual([p[0] for p in transport.posts], [image_api.RESULT_ENDPOINT])
+        self.assertEqual(transport.posts, [])
+        self.assertEqual(transport.queries, ['provider-test-id'])
         self.assertEqual(self.run_path().read_bytes(), before)
 
     def test_no_run_manual_execution_and_registration_create_no_budget(self):

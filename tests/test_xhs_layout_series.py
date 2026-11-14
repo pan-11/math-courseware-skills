@@ -535,6 +535,94 @@ class SeriesDeliveryTests(Fixture):
                 self.assertTrue(any("note 1.card 1:" in error and "unsupported" not in error
                                     for error in result["errors"]), result)
 
+    def current_series(self, second="product"):
+        value = self.six_note_series(second)
+        value["series_profile"] = "two-image-three-video-plus-script"
+        value["notes"][2].pop("cards")
+        value["notes"][2]["format"] = "video-cover-copy"
+        return value
+
+    def test_current_series_needs_only_covers_and_copy_for_notes_three_to_five(self):
+        for template in ("product", "direct-133-33", "direct-1222-3-3"):
+            with self.subTest(template=template):
+                value = self.current_series(template)
+                result = self.checker.check(value, self.root, 6)
+                self.assertEqual(result["status"], "PASS", result)
+                for note in value["notes"][2:5]:
+                    self.assertEqual(set(note), {"id", "topic", "format", "cover", "copy"})
+
+    def test_current_profile_rejects_old_distribution_missing_and_reordered_posts(self):
+        for change in ("third-image", "missing", "reordered", "sixth-video", "extra"):
+            with self.subTest(change=change):
+                value = self.current_series()
+                if change == "third-image":
+                    value["notes"][2].update(format="image", cards=["cover.png"])
+                elif change == "missing":
+                    value["notes"].pop()
+                elif change == "reordered":
+                    value["notes"][1], value["notes"][2] = value["notes"][2], value["notes"][1]
+                elif change == "sixth-video":
+                    value["notes"][5] = dict(value["notes"][4], id="6", topic="Sixth video")
+                else:
+                    value["notes"].append(dict(value["notes"][5], id="7", topic="Extra note"))
+                result = self.result(value)
+                self.assertEqual(result["status"], "FAIL", result)
+                self.assertTrue(any("series requires" in error for error in result["errors"]), result)
+
+    def test_current_video_posts_reject_content_images_and_editing_fields(self):
+        for index in (2, 3, 4):
+            for field, data in (("cards", ["cover.png"]), ("edit_list", "copy.md"),
+                                ("clips", [{"source": "cover.png", "hold_seconds": 3}])):
+                with self.subTest(index=index, field=field):
+                    value = self.current_series()
+                    value["notes"][index][field] = data
+                    result = self.result(value)
+                    self.assertEqual(result["status"], "FAIL", result)
+                    self.assertTrue(any("cover/copy-only scope" in error for error in result["errors"]), result)
+
+    def test_valid_editing_kit_is_rejected_only_by_the_new_default_profile(self):
+        for index in (2, 3, 4):
+            with self.subTest(index=index):
+                value = self.current_series()
+                note = value["notes"][index]
+                note.update(format="video-edit-kit", edit_list="copy.md", asset_list="copy.md",
+                            clips=[{"source": "cover.png", "hold_seconds": 3}])
+                self.assertEqual(self.result({"notes": [note]})["status"], "PASS")
+                result = self.result(value)
+                self.assertEqual(result["status"], "FAIL", result)
+                self.assertTrue(any("series requires" in error for error in result["errors"]), result)
+
+    def test_current_series_keeps_first_two_layout_requirements(self):
+        for index, cards in ((0, [self.card("product")]),
+                             (1, [self.card("product"), self.card("direct-133-33")])):
+            with self.subTest(index=index):
+                value = self.current_series()
+                value["notes"][index]["cards"] = cards
+                result = self.result(value)
+                self.assertEqual(result["status"], "FAIL", result)
+                self.assertTrue(any("series image styles" in error for error in result["errors"]), result)
+
+    def test_current_sixth_post_requires_script_content_and_both_sources(self):
+        for change in ("plain-image", "generic-companion", "courseware_source", "script_source"):
+            with self.subTest(change=change):
+                value = self.current_series()
+                if change == "plain-image":
+                    value["notes"][5]["cards"] = ["cover.png"]
+                elif change == "generic-companion":
+                    value["notes"][5]["cards"] = [self.companion("verbatim-script")]
+                else:
+                    value["notes"][5]["cards"][0].pop(change)
+                result = self.result(value)
+                self.assertEqual(result["status"], "FAIL", result)
+
+    def test_current_series_allows_actual_companions_and_script_overviews(self):
+        value = self.current_series()
+        value["notes"][0]["cards"].append(self.companion("teaching-design"))
+        value["notes"][1]["cards"].append(self.companion("verbatim-script"))
+        value["notes"][5]["cards"].extend([self.script_card(), self.card("direct-1222-3-3")])
+        result = self.result(value)
+        self.assertEqual(result["status"], "PASS", result)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,13 +2,13 @@
 
 ## 中文成品文件名
 
-- 交给用户直接打开、编辑、打印的配套文件必须中文命名，包括Word/PDF、电子板书PPTX、单件PNG、打印版、尺寸表和使用说明；中文网页标签不能代替实际中文文件名。
-- 文稿使用`《课题》教学设计.docx`、`《课题》教学逐字稿.docx`、`《课题》说课稿.docx`、`《课题》学习任务单.docx`，同源PDF使用同名；板书用`《课题》电子板书.pptx`、`《课题》板书打印版（A3）.pdf`等明确名称。贴片可保留顺序号，如`01_课题.png`；规格A3/A4、扩展名及必要编号可保留。用户明确指定其他名称时按其最新要求。
+- 交给用户直接打开、编辑、打印的配套文件必须中文命名，包括Word、电子板书PPTX、单件PNG和使用说明；明确另做的PDF、打印版和尺寸表也适用；中文网页标签不能代替实际中文文件名。
+- 文稿使用`《课题》教学设计.docx`、`《课题》教学逐字稿.docx`、`《课题》说课稿.docx`、`《课题》学习任务单.docx`；板书用`《课题》电子板书.pptx`。默认不交文稿PDF、布局PDF或A3/A4打印PDF；只有用户明确另要时才使用对应中文名称，例如`《课题》板书打印版（A3）.pdf`。贴片可保留顺序号，如`01_课题.png`；扩展名及必要编号可保留。用户明确指定其他名称时按其最新要求。
 - 内部逻辑角色、脚本、制作源稿、版本目录及状态/审核记录仍可英文；`AGENTS.md`等工具固定名称不受此成品要求影响，不把内部文件作为用户主交付。
 - 改名或生成中文交付副本时，同步HTML相对引用、下载属性、说明文字、清单路径与实际哈希；内部源路径与历史审核仍指向原件，不全局替换旧记录。旧版本保留，交接和当前入口指向中文版，不产生内容不同的两套“最新版”。
 - 交付前核实际文件名、所有本地链接、下载名称及文档/图片的内容一致性；仅改名时通过同哈希证明正文与版式未变，无需重写或重新生图。
 
-整课默认必交三教师稿（classroom-script、lesson-presentation、lesson-plan）、学生学习单（worksheet）、黑板贴（blackboard）及当前已承诺的互动（interactive）。同课实际资料仍按各专业规范制作与审核，程序检查文件存在、可读取及来源绑定，不证明教学质量或课堂时长。独立文稿/回填任务不因此扩成整课。
+整课默认必交三教师稿（classroom-script、lesson-presentation、lesson-plan）、学生学习单（worksheet）、黑板贴（blackboard）及当前已承诺的互动（interactive）。默认格式为四类文稿DOCX及黑板贴PNG/PPTX、预览和使用依赖，PDF不属于默认必交内容。内部排版核查PDF留在中间文件，不加入materials-manifest或最终产品；不因少交PDF而要求豁免。同课实际资料仍按各专业规范制作与审核，程序检查文件存在、可读取及来源绑定，不证明教学质量或课堂时长。独立文稿/回填任务不因此扩成整课。
 
 现有`workflow.stages.documents.files`或`delivery.files`可直接用角色名保存`{path,sha256}`；对应stage.source_versions须绑定当前`_state/pages.json`及存在的`stages.editable.files.pptx`。旧版本保留，但不能指向已过期课件的材料。互动承诺来自当前蓝图interactive_ids，或已采用story.interactive_nodes / pages[].interactive_ids；没有承诺不凭空加互动。
 
@@ -20,17 +20,17 @@
   "source_versions": {"_state/pages.json": "actual-sha256", "editable/output/current.pptx": "actual-sha256"},
   "roles": {
     "worksheet": [{"path": "documents/worksheet-v001/student.docx", "sha256": "actual-sha256"}],
-    "blackboard": [{"path": "assets/blackboard-v001/electronic.pptx", "sha256": "actual-sha256"}, {"path": "assets/blackboard-v001/print.pdf", "sha256": "actual-sha256"}],
+    "blackboard": [{"path": "assets/blackboard-v001/electronic.pptx", "sha256": "actual-sha256"}, {"path": "assets/blackboard-v001/01_课题.png", "sha256": "actual-sha256"}],
     "interactive": [{"path": "interactive/H001/index.html", "sha256": "actual-sha256"}, {"path": "interactive/H001/app.js", "sha256": "actual-sha256"}]
   }
 }
 ```
 
-完整包要把实际需要的JS/CSS、字体、图片和媒体都按原相对关系列入，collect只收明确清单，不扫描整课或浏览器profile。至少一份角色主文件须能读取：教师文本MD/DOCX/PDF，学习单DOCX/PDF，黑板贴实际PPTX/PDF/图片，互动实际HTML。其他格式仍须按专业规范补齐；一个有效文件不证明所有承诺格式已交，也不证明离线交互已实测。
+完整包要把实际需要的JS/CSS、字体、图片和媒体都按原相对关系列入，collect只收明确清单，不扫描整课或浏览器profile。至少一份角色主文件须能读取：教师文稿和学习单默认DOCX，黑板贴实际PPTX/图片，互动实际HTML。检查器兼容历史MD/PDF或明确追加的PDF，不代表新任务要生成或交付这些格式。其他实际承诺格式仍须按专业规范补齐；一个有效文件不证明所有承诺格式已交，也不证明离线交互已实测。
 
 只有用户真实省略时可设`waivers:{角色:{reason,evidence:{path,sha256}}}`；证据JSON含实际`user_evidence`、`waived_roles`及绑定当前课件的`source_versions`。助手不能以“还没做”填豁免，也不能把旧课指令借到新课。不为默认必交内容再问许可。
 
-`collect`和整课最终检查同时核必交角色；当前缺项应继续制作，不把收集失败当成重新征求范围的理由。收集后的包仍需核链接、字体、打印尺寸、课堂任务一致性与真实适用放映。正式文稿的PPT完成门槛、视频未回传的草稿标识保持原规则。
+`collect`和整课最终检查同时核必交角色；当前缺项应继续制作，不把收集失败当成重新征求范围的理由。收集后的包仍需核链接、字体、课堂任务一致性与真实适用放映；只有明确制作打印版时才核打印尺寸。正式文稿的PPT完成门槛、视频未回传的草稿标识保持原规则。
 
 独立文稿以当前`inputs.documents.files`为必需来源；更换输入路径也需要重新核对文稿，旧输入仍存在不代表当前有效。已明确选择的角色文件（包括清单列出的多个格式）优先于历史export登记，旧稿保留但不混入新包，也不因未选中的旧登记过期而阻塞交付。
 

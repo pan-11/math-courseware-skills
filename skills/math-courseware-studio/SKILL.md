@@ -5,6 +5,8 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 # 小学数学AI赋能课件总入口
 
+API 生图使用 ToAPIs：新任务默认 `gpt-image-2-vip`、`low`、`1k`，横版课件用 16:9。内置路线仍可选。先读 [ToAPIs 生图配置](references/toapis.md)，准备任务无需凭据；已有 Grsai 任务按原协议恢复。
+
 **每次用户可见回复**（含进度、等待、提问、恢复、交付和独立调用）先按[共同回复合同](references/reply-contract.md)填写唯一开头：真实课件/任务、步骤/状态，本步工作及产出、用户检查、用户操作、下一步；编号列项，无检查/操作写明无需，计划与完成分开，不新增批准节点。
 
 把原课件转为教学一致、视觉连续、能继续修改的一套课件。整套含十二个Skill：课程总入口、分析/方案/页面/可编辑/文稿、视频总入口及其五个专业Skill。本入口管理课程流程、版本和衔接，不代替专业创作。
@@ -82,9 +84,9 @@ C2情境选择默认按[原课情境对照](../math-courseware-plan/references/s
 
 按[目录与版本规则](references/workspace-layout.md#交付与版本)归位：控制器collect含制作资料，留中间文件/deliveries暂存；另将实际教学产品与使用依赖按清单核验复制到最终产品/vNNN，笔记按篇放笔记素材/vNNN，商品主图及详情放商品详情/vNNN。各区README标当前版本和真实状态；待审候选/过程阅读版/审核记录留中间文件，不增加采用节点。JSON继续用逻辑路径，用户点击链接必须展开为实际文件位置。
 
-整课C7四类文档先按[已验证的结构与篇幅基准](../math-courseware-documents/references/teaching-pack-profile.md)区分教案、说课、师生逐字稿与学习单；逐字稿按环节展开，逐页核对而不强制每页单设标题。默认制作[学生课堂学习单](../math-courseware-documents/references/student-worksheet.md)，依据定稿课件与教学设计选核心任务，默认学生版，提供足够作答空间和实际可编辑中文DOCX；与其他配套放同一交付文件夹。用户明确省略除外，独立任务不扩范围。C8核真实文件与来源、内容、分页及交付副本，不能用三文稿导出成功代替学习单完成。
+整课C7四类文档默认只交可编辑DOCX，同源排版核查PDF留在中间文件，不列为默认交付物。先按[已验证的结构与篇幅基准](../math-courseware-documents/references/teaching-pack-profile.md)区分教案、说课、师生逐字稿与学习单；逐字稿按环节展开，逐页核对而不强制每页单设标题。默认制作[学生课堂学习单](../math-courseware-documents/references/student-worksheet.md)，依据定稿课件与教学设计选核心任务，默认学生版，提供足够作答空间和实际可编辑中文DOCX；与其他配套放同一交付文件夹。用户明确省略除外，独立任务不扩范围。C8核真实文件与来源、内容、分页及交付副本，不能用三文稿导出成功代替学习单完成。
 
-整课C7默认随三份文稿制作[电子黑板贴](../math-courseware-documents/references/blackboard-stickers.md)，除非用户明确省略；已有课件单独制作也可走此分支。AI从有效课件决定清单、内容与整板，固定字体分工/描边/字形安全区，交独立透明素材、可移动PPT、布局PDF与预览。C8按其manifest另行收集并核查实际交付；collect/complete会核必交角色、实际文件格式与来源绑定；黑板贴内容、PPT独立对象、视觉与打印尺寸仍须实际核查。普通检查问题直接修，不增加逐件审批。
+整课C7默认随三份文稿制作[电子黑板贴](../math-courseware-documents/references/blackboard-stickers.md)，除非用户明确省略；已有课件单独制作也可走此分支。AI从有效课件决定清单、内容与整板，固定字体分工/描边/字形安全区，交独立透明素材、可移动PPT、整板预览、离线总览、使用说明和文字源清单，默认不交布局PDF或A3/A4打印PDF。C8按其manifest另行收集并核查实际交付；collect/complete会核必交角色、实际文件格式与来源绑定；黑板贴内容、PPT独立对象、视觉与依赖仍须实际核查，只有用户明确另要打印版时才核打印尺寸与文件。普通检查问题直接修，不增加逐件审批。
 
 课堂观看任务、教师接话、预留页、成片回填和播放由本入口协调plan/pages/documents/editable，统一按[视频与整课衔接](references/video-integration.md)执行；不要求视频编剧或导演为此新增课堂活动段落。
 

@@ -396,7 +396,9 @@ def _render_document(output, kind, record, family, font):
                                       ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                                       ('LEFTPADDING', (0, 0), (-1, -1), 3),
                                       ('RIGHTPADDING', (0, 0), (-1, -1), 3)])))
-    docx_path, pdf_path = output / (kind + '.docx'), output / (kind + '.pdf')
+    qa_output = output / '_qa'
+    qa_output.mkdir()
+    docx_path, pdf_path = output / (kind + '.docx'), qa_output / (kind + '.pdf')
     doc.save(docx_path)
     def page_marks(canvas, document):
         canvas.saveState()
@@ -427,7 +429,7 @@ def _render_document(output, kind, record, family, font):
             raise ValueError('PDF paragraph readback mismatch: ' + text[:30])
     markdown_path = output / (kind + '.md')
     markdown_path.write_text(_markdown(blocks), encoding='utf-8')
-    return [docx_path, pdf_path, markdown_path], len(reader.pages)
+    return [docx_path, markdown_path], len(reader.pages)
 
 
 def _markdown(blocks):
@@ -466,7 +468,9 @@ def export_documents(project):
         paths, count = _render_document(folder, kind, record, family, font)
         reports[kind] = _register(project, folder, kind, paths, sources,
                                  [p['page_id'] for p in pages],
-                                 {'pdf_pages': count, 'font_family': family,
+                                 {'qa_pdf_pages': count,
+                                  'qa_pdf': _relative(project, folder / '_qa' / (kind + '.pdf')),
+                                  'font_family': family,
                                   'font_file_name': font_path.name,
                                   'canonical_sha256': sources[f'_state/documents/{kind}.json']})
     result = {'documents': reports, 'output': _relative(project, output)}
@@ -551,6 +555,8 @@ def collect(project):
             continue  # Explicit current role files replace historical export registrations.
         path = state.resolve(project, artifact['path'])
         relative = _relative(project, path)
+        if role in (*delivery_roles.TEACHERS, 'worksheet', 'blackboard') and path.suffix.lower() == '.pdf':
+            continue  # Historical PDFs require explicit selection in the current materials manifest.
         if scoped:
             owner = ('pages' if relative.startswith('slides/export-v') else
                      'documents' if relative.startswith('documents/export-v') else

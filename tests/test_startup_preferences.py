@@ -8,9 +8,9 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'skills/math-courseware-studio/scripts'))
 import courseware
-from runtime import state, autopilot, prompts, image_api, workflow
+from runtime import state, autopilot, prompts, image_api, image_toapis, workflow
 from workflow_fixture import enable_modules
-from test_image_api import Transport
+from test_toapis import FakeTransport as Transport
 
 
 class StartupPreferencesTests(unittest.TestCase):
@@ -47,7 +47,7 @@ class StartupPreferencesTests(unittest.TestCase):
 
     def run_batch(self, batch, resume=False):
         transport = Transport()
-        with patch.object(image_api, 'HttpTransport', lambda key: transport):
+        with patch.object(image_toapis, 'HttpTransport', lambda key, origin: transport):
             result = image_api.run_batch(self.root, batch, 'synthetic-key', resume=resume)
         return result, transport
 
@@ -193,14 +193,14 @@ class StartupPreferencesTests(unittest.TestCase):
         self.assertFalse(batch['authorization_evidence'])
         result, transport = self.run_batch(batch)
         self.assertEqual(result['results'][0]['status'], 'downloaded')
-        self.assertEqual(len([p for p in transport.posts if p[0].endswith('completions')]), 1)
+        self.assertEqual(len([p for p in transport.posts if p[0] == image_toapis.ENDPOINT]), 1)
 
     def test_cli_accepts_applicable_run_consent_before_reading_key(self):
         self.start({'image': self.image()})
         batch = self.prepare()
         args = courseware.parser().parse_args(['image-run', '--project', str(self.root), '--batch', str(self.root / batch['path'])])
         transport = Transport()
-        with patch.object(image_api, 'read_key', return_value='synthetic-key'), patch.object(image_api, 'HttpTransport', lambda key: transport):
+        with patch.object(image_api, 'read_key', return_value='synthetic-key'), patch.object(image_toapis, 'HttpTransport', lambda key, origin: transport):
             self.assertEqual(courseware.execute(args)['results'][0]['status'], 'downloaded')
 
     def test_run_configure_cli_is_noninteractive_partial_update(self):
@@ -252,7 +252,8 @@ class StartupPreferencesTests(unittest.TestCase):
         result, transport = self.run_batch(batch, resume=True)
         self.assertEqual(result['results'][0]['status'], 'downloaded')
         self.assertEqual(state.read_json(path)['route'], 'openai_image_api')
-        self.assertEqual([p[0] for p in transport.posts], ['/v1/draw/result'])
+        self.assertEqual(transport.posts, [])
+        self.assertEqual(transport.queries, ['provider-test-id'])
 
     def test_direct_api_job_cannot_bypass_run_authorization(self):
         self.start({'image': self.image(paid_generation=False)})
@@ -285,7 +286,7 @@ class StartupPreferencesTests(unittest.TestCase):
         self.assertEqual(path.read_bytes(), before)
         result, transport = self.run_batch(reused)
         self.assertEqual(result['results'][0]['status'], 'downloaded')
-        self.assertEqual(len([p for p in transport.posts if p[0].endswith('completions')]), 1)
+        self.assertEqual(len([p for p in transport.posts if p[0] == image_toapis.ENDPOINT]), 1)
         self.assertEqual(len(list((self.root / '_state/jobs').glob('*/job.json'))), 1)
 
     def test_manual_prepare_submitted_job_is_preserved_for_original_recovery(self):
@@ -304,7 +305,8 @@ class StartupPreferencesTests(unittest.TestCase):
         self.assertFalse(autopilot.status(self.root).get('image_job_bindings'))
         result, transport = self.run_batch(reused, resume=True)
         self.assertEqual(result['results'][0]['status'], 'downloaded')
-        self.assertEqual([p[0] for p in transport.posts], ['/v1/draw/result'])
+        self.assertEqual(transport.posts, [])
+        self.assertEqual(transport.queries, ['provider-test-id'])
 
 
 if __name__ == '__main__': unittest.main()

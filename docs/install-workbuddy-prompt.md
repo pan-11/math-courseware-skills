@@ -69,9 +69,9 @@ math-courseware-documents
 - 十二个 Skill 放在 R/.codebuddy/skills/<skill-name>/SKILL.md。根据当前WorkBuddy版本检查项目技能是否被识别、是否需在对话中选择或启用；不得在没有实际列表证据时声称已经识别。
 - 若当前版本未识别项目目录，保留已安装文件，报告具体情况并提供按绝对路径读取SKILL.md的入口；不要悄悄改为全局安装，不保证 $math-courseware-studio 或 /skills 在WorkBuddy可用。
 - 原包面向Codex编写。本次保留源文件；把宿主差异、实际运行时路径及可用工具记录到安装说明。教学规则沿用，Codex专用步骤必须按本机实际能力处理，不能假装工具调用成功。
-- 本份WorkBuddy使用说明选择Grsai线路（openai_image_api）供后续生图使用。当前 builtin 适配针对Codex，不把WorkBuddy自己的图片功能直接冒充同一适配；使用其他生图方式需另行适配验证。
-- Grsai默认gpt-image-2.5、1672x941；明确高清请求使用gpt-image-2-vip、3840x2160。需要现有环境或项目外secret文件提供密钥，首次制作时另做单张实际测试。
-- 不能用WorkBuddy订阅额度抵扣Grsai费用；本次不读取或配置密钥、不发起付费生成。
+- 本份WorkBuddy使用说明选择ToAPIs线路（openai_image_api）供后续生图使用。当前 builtin 适配针对Codex，不把WorkBuddy自己的图片功能直接冒充同一适配；使用其他生图方式需另行适配验证。
+- ToAPIs默认gpt-image-2-vip、low、1K。明确4K时使用4K档。通过已有TOAPIS_API_KEY、标准输入或项目外密钥文件提供凭据，首次实际制作时单独确认服务可用性。
+- 不能用WorkBuddy订阅额度抵扣ToAPIs费用；本次不读取或配置密钥、不发起付费生成。
 - 当前版本尚未在WorkBuddy完成真实课件验证，安装报告必须明确这一点。
 
 【完成后】
@@ -88,6 +88,6 @@ math-courseware-documents
 - 不照搬原Skill的 $ppt-skill-v2、/canva、/可画、/文件整理、/整理；本套未注册这些专用命令，用真实入口或自然语言。
 
 最后给我这类新课指令，并替换成实际路径：
-“请读取本项目 tools/math-courseware-installation.md 和 .codebuddy/skills/math-courseware-studio/SKILL.md，使用这套Skill制作我上传的小学数学AI赋能课件。使用WorkBuddy实际可用工具，本课生图选择Grsai；先检查环境与分析原课件，在 projects/<英文课件名> 保存进度，按流程确认后继续。需要密钥时只向我索取安全存放方式或文件路径，不让我把密钥发到聊天里。”
+“请读取本项目 tools/math-courseware-installation.md 和 .codebuddy/skills/math-courseware-studio/SKILL.md，使用这套Skill制作我上传的小学数学AI赋能课件。使用WorkBuddy实际可用工具，本课生图选择ToAPIs；先检查环境与分析原课件，在 projects/<英文课件名> 保存进度，按流程确认后继续。需要密钥时只向我索取安全存放方式或文件路径，不让我把密钥发到聊天里。”
 
 不要现在执行这条新课指令。先完成安装报告与使用说明。

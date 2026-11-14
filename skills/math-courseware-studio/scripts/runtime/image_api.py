@@ -1,4 +1,4 @@
-"""Grsai old API transport and resumable jobs; credentials never enter job records."""
+"""Resumable image jobs for ToAPIs and existing Grsai batches."""
 import base64
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, ExitStack
@@ -22,9 +22,12 @@ ENDPOINT = '/v1/draw/completions'
 RESULT_ENDPOINT = '/v1/draw/result'
 
 
-def read_key(project, key_file=None, stdin=False):
+def read_key(project, key_file=None, stdin=False, provider='grsai'):
     if key_file and stdin:
         raise ValueError('Choose one credential source')
+    if provider == 'toapis' and not key_file and not stdin:
+        from . import image_toapis
+        key_file = image_toapis.settings().get('key_file')
     if stdin:
         import sys
         value = sys.stdin.read().strip()
@@ -32,11 +35,11 @@ def read_key(project, key_file=None, stdin=False):
         path = Path(key_file).resolve()
         if path.is_relative_to(Path(project).resolve()):
             raise ValueError('Secret file must be outside the project')
-        value = path.read_text(encoding='utf-8').strip()
+        value = path.read_text(encoding='utf-8-sig').strip()
     else:
-        value = os.environ.get('GRSAI_API_KEY', '').strip()
+        value = os.environ.get('TOAPIS_API_KEY' if provider == 'toapis' else 'GRSAI_API_KEY', '').strip()
     if not value:
-        raise ValueError('No Grsai credential available; use environment, stdin or an external secret file')
+        raise ValueError('No provider credential available; use environment, stdin or an external secret file')
     return value
 
 
@@ -76,6 +79,9 @@ class HttpTransport:
 
 
 def build_payload(project, job):
+    if job.get('provider') == 'toapis':
+        from . import image_toapis
+        return image_toapis.build_payload(project, job)
     options = job['image_api_input']
     if options.get('endpoint') != ENDPOINT or options.get('shutProgress') is not True:
         raise ValueError('Invalid endpoint or shutProgress')
@@ -225,6 +231,10 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
         return job
     if job['status'] == 'pending' and resume:
         return job
+    toapis = job.get('provider') == 'toapis'
+    if toapis:
+        from . import image_toapis
+    parse = image_toapis.parse_response if toapis else parse_response
     # Already-paid work must remain downloadable even if later project versions change.
     job['stale_inputs'] = _checked_inputs(project, job, authorization_evidence)
     started = time.monotonic()
@@ -241,11 +251,22 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
             image_budget.reserve_api(project, [relative], authorization_evidence)
         elif image_budget._key(job) not in reserved:
             raise ValueError('Pending image has no bound batch reservation')
-        job.update(status='submitting', api_base_url=BASE_URL, api_endpoint=ENDPOINT,
-                   model=body['model'], aspectRatio=body['aspectRatio'], size=body['aspectRatio'])
+        endpoint = image_toapis.ENDPOINT if toapis else ENDPOINT
+        job.update(status='submitting', api_base_url=job['image_api_input']['base_url'] if toapis else BASE_URL,
+                   api_endpoint=endpoint, model=body['model'],
+                   aspectRatio=body['size'] if toapis else body['aspectRatio'],
+                   size=body['size'] if toapis else body['aspectRatio'])
         save()
         try:
-            parsed = parse_response(transport.post(ENDPOINT, body, remaining()))
+            if toapis and job.get('references'):
+                uploaded = []
+                for ref in job['references']:
+                    url = transport.upload(state.resolve(project, ref['path']), remaining())
+                    uploaded.append({'path': ref['path'], 'sha256': ref['sha256'], 'url': url})
+                    job['uploaded_references'] = uploaded
+                    save()
+                body['reference_images'] = [ref['url'] for ref in uploaded]
+            parsed = parse(transport.post(endpoint, body, remaining()))
             job.update({k: v for k, v in parsed.items() if v is not None})
         except Exception as exc:
             # A timeout/connection/parse failure cannot establish whether billing occurred.
@@ -254,7 +275,9 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
         save()
     while job['status'] == 'running' and time.monotonic() < deadline:
         try:
-            parsed = parse_response(transport.post(RESULT_ENDPOINT, {'id': job['task_id']}, remaining()))
+            response = (transport.query(job['task_id'], remaining()) if toapis else
+                        transport.post(RESULT_ENDPOINT, {'id': job['task_id']}, remaining()))
+            parsed = parse(response)
             if parsed.get('task_id') not in (None, job['task_id']):
                 raise ValueError('Provider returned a different task ID')
             job.update({k: v for k, v in parsed.items() if v is not None})
@@ -282,8 +305,14 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
             output.write_bytes(raw)
             job.update(output_path=state.relative_path(project, output),
                        status='downloaded', width_px=width, height_px=height, sha256=state.sha256(output),
-                       size_matches_request=job['image_api_input']['size'] == f'{width}x{height}',
+                       size_matches_request=(None if toapis else
+                           job['image_api_input']['size'] == f'{width}x{height}'),
                        review_status='pending_visual_review')
+            if toapis:
+                requested_width, requested_height = map(int, job['image_api_input']['size'].split(':'))
+                job['aspect_ratio_matches_request'] = abs(width / height - requested_width / requested_height) < 0.02
+                job['requested_resolution'] = job['image_api_input']['resolution']
+                job['requested_quality'] = job['image_api_input']['quality']
             job['api_evidence_path'] = str(Path(relative).with_name('evidence.json')).replace('\\', '/')
             save()
             state.write_json(state.resolve(project, job['api_evidence_path']), job)
@@ -297,7 +326,9 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
 def validate_batch(project, batch, resume=False):
     """Before reading a key or submitting, use actual batch consent or applicable run consent."""
     if batch.get('route') != 'openai_image_api':
-        raise ValueError('Only Grsai batches use the HTTP executor')
+        raise ValueError('Only API batches use the HTTP executor')
+    if batch.get('provider', 'grsai') not in ('grsai', 'toapis'):
+        raise ValueError('Unknown API provider')
     data = store.load_run(project)
     evidence = batch.get('authorization_evidence', '')
     if not data:
@@ -310,6 +341,10 @@ def validate_batch(project, batch, resume=False):
     for relative in batch['jobs']:
         job = state.read_json(state.resolve(project, relative))
         if job.get('route') != batch['route']: raise ValueError('Job route differs from batch route')
+        if job.get('provider', 'grsai') != batch.get('provider', 'grsai'):
+            raise ValueError('Job provider differs from batch provider')
+        if job.get('provider') == 'toapis' and job['image_api_input']['base_url'] not in ('https://toapis.cn', 'https://toapis.com'):
+            raise ValueError('Unsupported ToAPIs job origin')
         if not resume and job.get('status') == 'pending':
             preferences.require_image_job(project, job, evidence)
             if data:
@@ -321,7 +356,14 @@ def validate_batch(project, batch, resume=False):
 def run_batch(project, batch, key, resume=False):
     validate_batch(project, batch, resume)
     concurrency = min(6, max(1, int(batch.get('concurrency', 6))), len(batch['jobs']))
-    transport = HttpTransport(key)
+    if batch.get('provider') == 'toapis':
+        from . import image_toapis
+        origins = {state.read_json(state.resolve(project, path))['image_api_input']['base_url'] for path in batch['jobs']}
+        if len(origins) != 1:
+            raise ValueError('Batch jobs must use the same ToAPIs origin')
+        transport = image_toapis.HttpTransport(key, origins.pop())
+    else:
+        transport = HttpTransport(key)
     with ExitStack() as locks:
         execute = run_job
         extra = {}

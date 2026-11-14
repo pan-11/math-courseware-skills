@@ -19,7 +19,7 @@ grouped_creative_v2整课自动run按[分组记录协议](../../math-courseware-
 | inputs | 原课件、教材及补充材料的原样副本 |
 | planning | 教学分析、数学核查、故事、页面方案、可见文字稿 |
 | assets/characters、scenes、props | 实际设定图、版本与提示词 |
-| assets/blackboard-plan-vNNN、blackboard-vNNN | 按[黑板贴规范](../../math-courseware-documents/references/blackboard-stickers.md)先存来源/设计/spec，再存全新版本的透明素材、整板、PPT/PDF及检查；内部版本不覆盖，对外交付用中文普通文件夹 |
+| assets/blackboard-plan-vNNN、blackboard-vNNN | 按[黑板贴规范](../../math-courseware-documents/references/blackboard-stickers.md)先存来源/设计/spec，再存全新版本的透明素材、整板、PPT及检查，默认不交布局/打印PDF；内部版本不覆盖，对外交付用中文普通文件夹 |
 | slides | 页面提示词、图及版本化图片课件 |
 | editable/handoff、returned、output | 可画交接、原始回传副本、修改结果 |
 | documents | 三类教师文稿的版本化输出；worksheet-vNNN保存[学生学习单](../../math-courseware-documents/references/student-worksheet.md)来源/任务对应、源稿、实际DOCX、分页检查和manifest，旧版本不覆盖 |
@@ -144,14 +144,14 @@ grouped_creative_v2整课自动run按[分组记录协议](../../math-courseware-
 | impact / record-change | --change FILE | 预览/应用授权变更 |
 | render-prompts | [--render-state review_complete/initial] | 默认review_complete，展开完整讲解结果预览的五段提示词与全部审阅文字；initial仅供用户明确另要的初始态专项图，课堂显示顺序保持原记录 |
 | image-prepare | --selection FILE | 派发任务，不生图 |
-| image-run / image-resume | --batch FILE [--key-file FILE或--key-stdin] | Grsai执行/恢复 |
+| image-run / image-resume | --batch FILE [--key-file FILE或--key-stdin] | ToAPIs新任务执行/恢复；旧Grsai任务按原协议恢复 |
 | image-register | --result FILE | 登记内置工具真实输出 |
 | export-slides | 无额外参数 | 确认图片导出PPTX/PDF |
 | canva-handoff | --selection FILE | A按授权页交接；B全页有序去字PPTX/PDF交接，不改正式带字页 |
 | canva-import | --deck FILE --mapping FILE | 原样保存可画回传并列出对象 |
 | editable-build | --plan FILE | 校验正确文案后处理PPTX副本，登记基础中间稿 |
 | editable-answers | --plan FILE | 按逐空来源和坐标计划制作原位可编辑单击答案，核真实动画后登记当前答案版 |
-| export-documents | 无额外参数 | 三种文稿DOCX/PDF |
+| export-documents | 无额外参数 | 三种文稿DOCX；同源PDF仅作中间核查，不默认收集交付 |
 | collect | 无额外参数 | 复制当前有效课件产物；不包含视频，且依赖锁定页面 |
 
 `validate`检查通过不表示教学、视觉和WPS都通过。原材料图文冲突、生成画面计数、课程推理与实际投屏仍由Codex/教师检查。

@@ -7,8 +7,8 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'skills/math-courseware-studio/scripts'))
-from runtime import state, workflow, autopilot, review, prompts, image_api, automation_store as store
-import test_image_api as api_fixtures
+from runtime import state, workflow, autopilot, review, prompts, image_api, image_toapis, automation_store as store
+from test_toapis import FakeTransport
 try:
     from runtime import grouped_gates as groups
 except ImportError:
@@ -274,7 +274,7 @@ class GroupedGateTests(unittest.TestCase):
     def test_candidate_cover_uses_real_prepare_and_fake_api(self):
         self.image_setup('openai_image_api')
         batch = self.prepare_image('cover', 'COVER01')
-        transport = api_fixtures.Transport()
+        transport = FakeTransport()
         result = image_api.run_job(self.root, batch['jobs'][0], transport, timeout=1, poll_interval=0)
         self.assertEqual(result['status'], 'downloaded')
         self.assertEqual(len(transport.gets), 1)
@@ -289,7 +289,7 @@ class GroupedGateTests(unittest.TestCase):
         self.image_setup('openai_image_api')
         batch = self.prepare_image()
         autopilot.control(self.root, mode='manual', evidence='Synthetic stop automatic mode')
-        transport = api_fixtures.Transport()
+        transport = FakeTransport()
         with self.assertRaises(ValueError):
             image_api.run_job(self.root, batch['jobs'][0], transport, timeout=1, poll_interval=0)
         self.assertEqual(transport.posts, [])
@@ -586,14 +586,14 @@ class GroupedGateTests(unittest.TestCase):
                     self.text('_state/assets.json', '{"assets":[]}')
                 else:
                     self.data['current_task']['mode'] = 'selected_modules'; self.save()
-                transport = api_fixtures.Transport()
+                transport = FakeTransport()
                 with self.assertRaises(ValueError):
                     image_api.run_job(self.root, batch['jobs'][0], transport, timeout=1, poll_interval=0)
                 self.assertEqual(transport.posts, [])
 
     def test_candidate_unknown_submission_is_not_retried_after_manual_switch(self):
         self.image_setup('openai_image_api'); batch = self.prepare_image()
-        transport = api_fixtures.Transport(TimeoutError('Synthetic uncertain provider'))
+        transport = FakeTransport(TimeoutError('Synthetic uncertain provider'))
         first = image_api.run_job(self.root, batch['jobs'][0], transport, timeout=1, poll_interval=0)
         self.assertEqual(first['status'], 'submission_unknown')
         autopilot.control(self.root, mode='manual', evidence='Synthetic stop')
@@ -805,14 +805,14 @@ class GroupedGateTests(unittest.TestCase):
                     self.assertEqual(reused['jobs'], original['jobs'])
                     self.assertEqual(path.read_bytes(), before)
                     self.assertEqual(image_api.build_payload(self.root, state.read_json(path)), payload)
-                    transport = api_fixtures.Transport()
-                    with patch.object(image_api, 'HttpTransport', lambda key: transport):
+                    transport = FakeTransport()
+                    with patch.object(image_toapis, 'HttpTransport', lambda key, origin: transport):
                         result = image_api.run_batch(self.root, reused, 'synthetic-key', resume=status != 'pending')
                     self.assertEqual(result['results'][0]['status'],
                                      'submission_unknown' if status == 'submission_unknown' else 'downloaded')
                     self.assertEqual([p[0] for p in transport.posts],
-                        [image_api.ENDPOINT, image_api.RESULT_ENDPOINT] if status == 'pending' else
-                        [image_api.RESULT_ENDPOINT] if status == 'running' else [])
+                                     [image_toapis.ENDPOINT] if status == 'pending' else [])
+                    self.assertEqual(transport.queries, ['provider-test-id'] if status == 'running' else [])
                     self.assertEqual(image_budget.summary(store.load_run(self.root))['used'], int(status == 'pending'))
                     after = path.read_bytes()
                     self.assertEqual(self.prepare_image(purpose, target)['jobs'], original['jobs'])
@@ -831,7 +831,7 @@ class GroupedGateTests(unittest.TestCase):
                     user_evidence='Synthetic later adoption of unchanged canonical assets'))
                 self.assertEqual(self.prepare_image(purpose, target)['jobs'], batch['jobs'])
                 self.assertEqual(path.read_bytes(), before)
-                transport = api_fixtures.Transport()
+                transport = FakeTransport()
                 self.assertEqual(image_api.run_job(self.root, batch['jobs'][0], transport,
                     timeout=1, poll_interval=0)['status'], 'downloaded')
                 self.assertEqual(image_budget.summary(store.load_run(self.root))['used'], 1)
@@ -861,7 +861,7 @@ class GroupedGateTests(unittest.TestCase):
                         coverage=sorted(workflow.BLUEPRINT_COVERAGE))
                     self.save()
                 with self.assertRaises(ValueError): self.prepare_image()
-                transport = api_fixtures.Transport()
+                transport = FakeTransport()
                 with self.assertRaises(ValueError):
                     image_api.run_job(self.root, batch['jobs'][0], transport, timeout=1, poll_interval=0)
                 self.assertEqual(transport.posts, [])
@@ -926,7 +926,7 @@ class GroupedGateTests(unittest.TestCase):
         self.image_setup('openai_image_api')
         autopilot.configure(self.root, {'limits': {'max_images': 1, 'evidence': 'Synthetic one-image limit'}})
         batch = self.prepare_image()
-        image_api.run_job(self.root, batch['jobs'][0], api_fixtures.Transport(), timeout=1, poll_interval=0)
+        image_api.run_job(self.root, batch['jobs'][0], FakeTransport(), timeout=1, poll_interval=0)
         self.assertEqual(image_budget.summary(store.load_run(self.root))['remaining'], 0)
         packet = self.independent(self.snapshot())
         autopilot.extend(self.root, [self.group_task(packet=packet)], 'Synthetic ordinary adoption without new generation')

@@ -161,8 +161,9 @@ class PromptTests(unittest.TestCase):
         batch = prompts.prepare(self.root, selection)
         job = state.read_json(self.root / batch['jobs'][0])
         self.assertEqual(job['references'][0]['sha256'], state.sha256(self.root / 'assets/characters/ref.png'))
-        self.assertEqual(job['image_api_input']['model'], 'gpt-image-2.5')
-        self.assertTrue(job['image_api_input']['shutProgress'])
+        self.assertEqual(job['provider'], 'toapis')
+        self.assertEqual(job['image_api_input']['model'], 'gpt-image-2-vip')
+        self.assertEqual(job['image_api_input']['size'], '16:9')
 
     def test_missing_reference_or_unknown_page_cannot_dispatch(self):
         self.approve()
@@ -190,7 +191,7 @@ class PromptTests(unittest.TestCase):
 
     def test_reorder_reuses_same_pending_page_task(self):
         from runtime import image_api
-        from test_image_api import Transport
+        from test_toapis import FakeTransport
         self.approve()
         selection = {'tasks': [{'purpose': 'page', 'target_id': 'P002'}]}
         original = prompts.prepare(self.root, selection)
@@ -201,7 +202,7 @@ class PromptTests(unittest.TestCase):
         self.approve()
         again = prompts.prepare(self.root, selection)
         self.assertEqual(original['jobs'], again['jobs'])
-        transport = Transport()
+        transport = FakeTransport()
         result = image_api.run_job(self.root, again['jobs'][0], transport, timeout=1, poll_interval=0)
         self.assertEqual(result['status'], 'downloaded')
 

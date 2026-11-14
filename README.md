@@ -1,6 +1,6 @@
 # 小学数学 AI 赋能课件 Skills
 
-当前整课制作链包含十二个Skill：课程总入口、五个课程专业模块，以及视频总入口＋五个视频专业Skill，共用现有执行脚本。另有可独立调用的课件商品图与小红书笔记Skill：课件和配套资料完成后，先生成商品主图与详情图，再默认制作6篇笔记——保留原3篇图文和2篇视频封面文案，第6篇追加“逐字稿＋对应课件截图”图文；视频内容由用户自行制作。整课链支持从原课件或大致教学情境开始，形成共享故事与资产，再制作课堂视频、完整页面图、可画拆层后的可编辑PPT及配套文稿。
+当前整课制作链包含十二个Skill：课程总入口、五个课程专业模块，以及视频总入口＋五个视频专业Skill，共用现有执行脚本。另有可独立调用的课件商品图与小红书笔记Skill：课件和配套资料完成后，先生成商品主图与详情图，再默认制作6篇笔记——第1、2篇图文，第3至5篇视频封面与文案，第6篇在连续逐字稿中插入对应课件截图；视频内容由用户自行制作。整课链支持从原课件或大致教学情境开始，形成共享故事与资产，再制作课堂视频、完整页面图、可画拆层后的可编辑PPT及配套文稿。
 
 新增两个可选入口：[自动推进](skills/math-courseware-autopilot/SKILL.md)与[独立审核](skills/math-courseware-review/SKILL.md)。原十二模块制作方式仍默认可用；明确启用后，Codex在当前会话按持久队列调用原模块、独立审核、有限修正并处理人工回传。独立审核也能单用。它们不自动批准、不在关闭会话后后台运行，队列结束不等于整课完成。当前源码共十五个Skill入口；旧发行包和其他安装副本不自动更新。用法见[模式切换与审核说明](docs/autopilot-review-usage.md)。
 
@@ -24,7 +24,7 @@
 
 > 继续 projects/我的课件项目，先读取AGENTS和HANDOFF，核对状态后从未完成的步骤继续。
 
-首次生图选Codex内置或Grsai一次。默认PPT楷体、WPS检查。不要把密钥粘贴进聊天；Grsai执行器可读取已有环境变量、stdin或项目外secret文件。
+首次生图选择当次可用的Codex内置工具或ToAPIs。ToAPIs默认使用gpt-image-2-vip、low、1K。通过已有的 TOAPIS_API_KEY、标准输入或项目外密钥文件提供凭据。默认PPT楷体并使用WPS检查。
 
 可直接转发的安装提示词与整课、独立回填、两路视频使用示例见[朋友安装与使用说明](docs/friend-install-and-use.md)，另附[离线阅读版](docs/friend-install-and-use.html)。
 
@@ -47,8 +47,8 @@
 | [视频提示词](skills/math-courseware-video-prompts/SKILL.md) | 每段完整五部分视频词、真实上传映射与数字人用法 |
 | [页面](skills/math-courseware-pages/SKILL.md) | 逐页内容、准确文字、完整成品页提示词和图片 |
 | [可编辑](skills/math-courseware-editable/SKILL.md) | 可画交接、已有PPTX文字校正/回填、图层检查 |
-| [配套资料](skills/math-courseware-documents/SKILL.md) | 教师课堂逐字稿、公开课说课稿、教学设计、学生课堂学习单及电子黑板贴 |
-| [商品图与小红书笔记](skills/courseware-xhs-studio/SKILL.md) | 成品后先3张商品主图＋真实文件详情，再默认6篇笔记：原3图文＋2视频封面文案不变，第6篇为逐字稿图解；也可独立或按局部范围调用 |
+| [配套资料](skills/math-courseware-documents/SKILL.md) | 教师课堂逐字稿、公开课说课稿、教学设计和学生课堂学习单默认交可编辑DOCX，附电子黑板贴 |
+| [商品图与小红书笔记](skills/courseware-xhs-studio/SKILL.md) | 成品后先3张商品主图＋真实文件详情，再默认6篇笔记：第1、2、6篇图文，第3至5篇视频封面与文案；也可独立或按局部范围调用 |
 
 视频先完整交付全部计划视频的剧本、逐字声音、素材方案、分镜、各片段提示词和生成/声音/必要剪辑步骤及课程侧回填安排，按[前置清单](skills/math-courseware-studio/references/video-integration.md#ppt开工前的视频方案检查)检查并确认后再继续PPT制作。只写视频简述或一个小样包不满足前置。实际成片可以随后与PPT并行制作；缺工具时先交具体人工操作包，必做待办保留。
 
@@ -71,6 +71,8 @@
 已有无字分层PPT与准确文字，可以直接调用可编辑模块整套回填；已有带字分层PPT可以直接校正；独立视频或文稿只核对当前需要的输入。不要求补跑原课分析、整课蓝图或其他交付物，也不把外部成果登记成虚构的上游制作记录。明确要求“这份无字分层PPT直接回填”已给出B回填方向，不再重复选择路线。
 
 文字回填默认[忠实复原＋填空答案逐个点击出现](skills/math-courseware-editable/references/refill-modes.md)：恢复原带字图的文字和版式，给已有明确空位补可编辑的确定答案，默认深红色、放映初始隐藏、每次单击出现一个。AI连续完成文字和原生动画，不另问是否补答案；明确纯复原、保留空白或无答案学生版优先，开放提问不强填。完整讲解/图示后显按明确范围执行，A/B拆层路线独立。`editable-build`先登记基础中间稿，`editable-answers`制作并核真实答案动画，当前最终入口和配套必须绑定同版PPT。新版另存，旧课件不批量重做；静态步骤图与实际播放分别核验。
+
+明确要求分步讲解时，可启用[原生课堂动画](skills/math-courseware-editable/references/classroom-animation-plan.md)，基于教案和页稿绑定实际对象或段落，并区分结构核验、静态预览和WPS/PowerPoint实播。
 
 执行器在正式制作入口核对范围、前置产物、版本和必要采用。`validate`检查数据有效性，`workflow-check`检查能否进入指定步骤；`status`列出已登记阶段，但不把登记当作完成。旧项目缺少流程记录时仍可只读检查，由AI依据真实历史补齐记录，保留已有成果。整课最终完成还须核对实际成片与播放证据，导出或归档成功只代表相应操作完成。
 
@@ -102,7 +104,7 @@
 
 整课配套默认制作[学生课堂学习单](skills/math-courseware-documents/references/student-worksheet.md)，与定稿课件/教案一致、默认无答案学生版、A4纵向、按任务和作答空间安排1—3页。交实际可编辑的“课题_课堂学习单.docx”，中文文件名，与其他配套放同一交付文件夹。也可单独要求制作学习单；三份教师文稿导出器不自动包含学习单，需按专门规则实际制作并查看分页。
 
-整课配套默认增加[电子黑板贴](skills/math-courseware-documents/references/blackboard-stickers.md)：AI读定稿课件决定内容与布局，沿用短词/说明/读作的固定字体分工，程序绘制并检查真实字形安全区。交透明PNG、逐件可移动PPT、布局PDF、整板和离线总览，中文普通文件夹，不自动ZIP；独立也可直接说“按这份课件制作电子黑板贴”。已有成品不覆盖，素材数量按本课决定。
+整课配套默认增加[电子黑板贴](skills/math-courseware-documents/references/blackboard-stickers.md)：AI读定稿课件决定内容与布局，沿用短词/说明/读作的固定字体分工，程序绘制并检查真实字形安全区。交透明PNG、逐件可移动PPT、整板预览、离线总览和使用说明，打印PDF按需追加；独立也可直接说“按这份课件制作电子黑板贴”。已有成品不覆盖，素材数量按本课决定。
 
 Python 3.12+，Pillow、python-pptx、python-docx、pypdf、ReportLab及OfficeCLI；黑板贴渲染另用fontTools核缺字。Windows中文PDF使用实际已安装字体，系统字体不随包分发；黑板贴包内仅包含三款已核许可的开源字体。建议优先使用Codex已提供的文档运行时，渲染和文档导出可以用各自已有的环境。
 
@@ -136,6 +138,6 @@ $controller = (Resolve-Path 'skills/math-courseware-studio/scripts/courseware.py
 
 参考[原PPT Skill固定版本](https://github.com/yinsheng508-byte/ppt-skill-v3-codex-editable/tree/ca7ae6de097be9b99b50033857e22cfa023cfd67)的成熟流程、文字拆分、字体与坐标校准、试样复用和执行证据方法，并结合用户提供的课件聊天、逐页生图模板及教学文稿规范重新适配。新增共享故事资产、版本影响分析、可画已有PPTX保层处理及三种文稿分工。
 
-Grsai按用户指定的[旧接口](https://grsai.ai/dashboard/documents/gpt-image)接入，默认模型覆盖为gpt-image-2.5。没有调用或改动被禁用的k12-courseware系列Skills。
+API新任务采用[ToAPIs](skills/math-courseware-studio/references/toapis.md)，历史Grsai任务按其服务商和任务ID恢复。
 
 视频流程根据用户历史反馈与指定故事板资料重新编写，参考[create-storyboard-skill固定版本](https://github.com/TateZhouSiu/create-storyboard-skill/tree/4b8662e2fee51b37488c77952bbfa302bfeaf36c)的镜头连续性和制作交接思路，以及[seedance-storyboard固定版本](https://github.com/zcx960/seedance-storyboard/tree/f87fc97e52e28520d6d59ca77725aa5a30ca5ed0)的分段表达方式。未打包外部Skill或执行参考脚本，未把宣传的稳定出片效果当成已验证事实。
