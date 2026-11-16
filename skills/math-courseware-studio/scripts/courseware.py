@@ -54,6 +54,30 @@ def parser():
     top = argparse.ArgumentParser(description='小学数学AI赋能课件：本地记录、生成任务、可编辑处理和导出')
     sub = top.add_subparsers(dest='command', required=True)
     sub.add_parser('doctor', help='Read-only environment check')
+    for operation in ('components', 'check', 'build', 'register', 'current', 'collect'):
+        p = sub.add_parser('classroom-trial-' + operation)
+        p.add_argument('--project', required=True, type=Path)
+        p.add_argument('--activation', required=True, choices=('课堂动画试用V1',))
+        if operation in ('components', 'check', 'build'):
+            p.add_argument('--plan', required=True, type=Path)
+        if operation in ('check', 'build'):
+            p.add_argument('--components-manifest', required=True)
+        if operation == 'register':
+            p.add_argument('--manifest', required=True)
+            p.add_argument('--checks', type=Path)
+    for command in ('animation-inspect', 'animation-check', 'animation-build',
+                    'animation-validate', 'animation-snapshot'):
+        p = sub.add_parser(command)
+        p.add_argument('--project', required=True, type=Path)
+        if command == 'animation-inspect':
+            p.add_argument('--deck', required=True)
+        elif command in ('animation-check', 'animation-build'):
+            p.add_argument('--plan', required=True, type=Path)
+        else:
+            p.add_argument('--manifest', required=True)
+        if command == 'animation-snapshot':
+            p.add_argument('--output', required=True)
+            p.add_argument('--stage', choices=('initial', 'final'), required=True)
     automation_commands = ('run-start', 'run-configure', 'run-extend', 'run-next', 'run-status', 'run-record',
                            'run-mode', 'run-pause', 'run-resume', 'run-retry', 'run-reconcile', 'run-recheck',
                            'review-prepare', 'review-record', 'review-status')
@@ -90,6 +114,8 @@ def parser():
             p.add_argument('--title', required=True)
             p.add_argument('--layout', choices=state.LAYOUTS, default='legacy')
             p.add_argument('--route', choices=state.ROUTES)
+            p.add_argument('--api-provider', choices=state.API_PROVIDERS)
+            p.add_argument('--api-model')
             p.add_argument('--mode', choices=('full_course', 'selected_modules'))
             p.add_argument('--scope-evidence', default='')
         if command == 'workflow-check':
@@ -117,6 +143,29 @@ def execute(args):
     if c == 'doctor':
         return checks.doctor()
     project = args.project.resolve()
+    if c.startswith('classroom-trial-'):
+        from runtime import classroom_trial
+        operation = c.removeprefix('classroom-trial-')
+        if operation == 'components':
+            return classroom_trial.components(project, state.read_json(args.plan), args.activation)
+        if operation in ('check', 'build'):
+            return getattr(classroom_trial, operation)(project, state.read_json(args.plan),
+                                                       args.components_manifest, args.activation)
+        if operation == 'register':
+            return classroom_trial.register(project, args.manifest, args.activation,
+                                            checks=state.read_json(args.checks) if args.checks else None)
+        return getattr(classroom_trial, operation)(project, args.activation)
+    if c.startswith('animation-'):
+        from runtime import classroom_animation, pptx_editor
+        if c == 'animation-inspect':
+            return classroom_animation.inspect(pptx_editor._inside(project, args.deck))
+        if c == 'animation-check':
+            return classroom_animation.check(project, state.read_json(args.plan))
+        if c == 'animation-build':
+            return classroom_animation.build(project, state.read_json(args.plan))
+        if c == 'animation-validate':
+            return classroom_animation.validate_final(project, args.manifest)
+        return classroom_animation.snapshot(project, args.manifest, args.output, stage=args.stage)
     if c.startswith(('run-', 'review-')):
         from runtime import autopilot, review
         if c == 'run-start': return autopilot.start(project, state.read_json(args.plan))
@@ -139,7 +188,9 @@ def execute(args):
     if c == 'init':
         return state.init_project(project, args.title, args.route,
                                   getattr(args, 'mode', None), getattr(args, 'scope_evidence', ''),
-                                  getattr(args, 'layout', 'legacy'))
+                                  getattr(args, 'layout', 'legacy'),
+                                  api_provider=getattr(args, 'api_provider', None),
+                                  api_model=getattr(args, 'api_model', None))
     if c == 'workflow-check':
         return workflow.check(project, args.step, video_id=args.video_id)
     state.load_project(project)
@@ -161,12 +212,15 @@ def execute(args):
             return image_api.register_builtin(project, state.read_json(args.result))
         batch = state.read_json(args.batch)
         image_api.validate_batch(project, batch, resume=c == 'image-resume')
-        key = image_api.read_key(project, args.key_file, args.key_stdin)
+        provider = image_api.batch_provider(project, batch)
+        key = image_api.read_key(project, args.key_file, args.key_stdin, provider=provider)
         return image_api.run_batch(project, batch, key, resume=c == 'image-resume')
     if c == 'editable-answers':
         from runtime import click_answers, editable_delivery
-        workflow.require(project, 'editable-build')
         plan = state.read_json(args.plan)
+        if plan.get('mode') == 'components_only':
+            raise ValueError('Use classroom-trial-components with explicit activation for a component intermediate')
+        workflow.require(project, 'editable-build')
         pages = state.read_json(state.resolve(project, '_state/pages.json')).get('pages', [])
         if set(plan.get('mapping', {})) != {p['page_id'] for p in pages}:
             raise ValueError('Inline answer scan must cover every page in the current refill scope')

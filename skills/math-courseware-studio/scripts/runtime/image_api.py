@@ -1,8 +1,9 @@
-"""Grsai old API transport and resumable jobs; credentials never enter job records."""
+"""Provider-bound API transports and resumable jobs; credentials never enter job records."""
 import base64
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, ExitStack
 import io
+import hashlib
 import json
 import mimetypes
 import os
@@ -15,14 +16,15 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from PIL import Image
-from . import state, workflow, errors, preferences, image_budget, automation_store as store
+from . import state, workflow, errors, preferences, image_budget, image_providers, automation_store as store
 
 BASE_URL = 'https://grsai.dakka.com.cn'
 ENDPOINT = '/v1/draw/completions'
 RESULT_ENDPOINT = '/v1/draw/result'
 
 
-def read_key(project, key_file=None, stdin=False):
+def read_key(project, key_file=None, stdin=False, provider=None):
+    provider = image_providers.provider_name(provider)
     if key_file and stdin:
         raise ValueError('Choose one credential source')
     if stdin:
@@ -34,9 +36,9 @@ def read_key(project, key_file=None, stdin=False):
             raise ValueError('Secret file must be outside the project')
         value = path.read_text(encoding='utf-8').strip()
     else:
-        value = os.environ.get('GRSAI_API_KEY', '').strip()
+        value = os.environ.get('DUOMI_API_KEY' if provider == 'duomi' else 'GRSAI_API_KEY', '').strip()
     if not value:
-        raise ValueError('No Grsai credential available; use environment, stdin or an external secret file')
+        raise ValueError('No ' + provider + ' credential available; use environment, stdin or an external secret file')
     return value
 
 
@@ -75,7 +77,99 @@ class HttpTransport:
             return response.read()
 
 
+class DuomiTransport(HttpTransport):
+    def _request(self, endpoint, payload, timeout):
+        creating = endpoint == image_providers.DUOMI_ENDPOINT
+        if not creating and not re.fullmatch(r'/v1/tasks/[A-Za-z0-9_-]+', endpoint):
+            raise ValueError('Unsupported Duomi endpoint')
+        if creating != (payload is not None):
+            raise ValueError('Invalid Duomi request method')
+        headers = {'Authorization': self.key}
+        if creating: headers['Content-Type'] = 'application/json'
+        req = urllib.request.Request(image_providers.DUOMI_BASE_URL + endpoint,
+            data=json.dumps(payload, ensure_ascii=False).encode('utf-8') if creating else None,
+            headers=headers, method='POST' if creating else 'GET')
+        class NoRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, *args):
+                return None
+        with urllib.request.build_opener(NoRedirect()).open(req, timeout=timeout) as response:
+            raw = response.read().decode('utf-8')
+        if self.key in raw:
+            raise ValueError('Provider returned credential material; response discarded')
+        return json.loads(raw)
+
+    def post(self, endpoint, payload, timeout):
+        return self._request(endpoint, payload, timeout)
+
+    def get(self, endpoint, timeout):
+        return self._request(endpoint, None, timeout)
+
+
+def _duomi_reference_url(ref):
+    urls = ref.get('provider_urls', {})
+    if not isinstance(urls, dict):
+        raise ValueError('Reference provider_urls must be an object')
+    if 'duomi' not in urls:
+        return None
+    url = urls['duomi']
+    if not isinstance(url, str):
+        raise ValueError('Duomi provider_urls.duomi must be an HTTPS URL')
+    parsed = urllib.parse.urlsplit(url)
+    if (parsed.scheme != 'https' or not parsed.hostname
+            or parsed.username or parsed.password or parsed.fragment):
+        raise ValueError('Duomi provider_urls.duomi must be an HTTPS URL')
+    return url
+
+
+def _build_duomi_payload(project, job):
+    options = job['image_api_input']
+    expected = image_providers.make_input('duomi', options.get('model'), options.get('size'),
+                                          job.get('resolution_tier') == 'high')
+    if options != expected:
+        raise ValueError('Duomi options differ from documented provider settings')
+    prompt = state.resolve(project, job['prompt_path'])
+    if state.sha256(prompt) != job['prompt_sha256']:
+        raise ValueError('Prompt changed after dispatch; prepare a new version')
+    text = prompt.read_text(encoding='utf-8')
+    if len(text) > 5000:
+        raise ValueError('Duomi prompt exceeds the documented 5000 character limit')
+    payload = {key: options[key] for key in ('model', 'size', 'quality', 'background')}
+    payload['prompt'] = text
+    images = []
+    for ref in job.get('references', []):
+        path = state.resolve(project, ref['path'])
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != ref['sha256']:
+            raise ValueError('Reference changed after dispatch')
+        with Image.open(io.BytesIO(raw)) as image:
+            mime = Image.MIME.get(image.format)
+            image.verify()
+        url = _duomi_reference_url(ref)
+        if url is None:
+            if not mime:
+                raise ValueError('Reference image format has no recognized MIME type')
+            url = f'data:{mime};base64,' + base64.b64encode(raw).decode('ascii')
+        images.append(url)
+    if images: payload['image'] = images
+    return payload
+
+
+def _verify_duomi_references(job, transport, timeout, verified=None):
+    if image_providers.job_provider(job) != 'duomi': return
+    for ref in job.get('references', []):
+        url = _duomi_reference_url(ref)
+        if url is None: continue
+        identity = (url, ref['sha256'])
+        if verified is not None and identity in verified: continue
+        raw = transport.download(url, timeout)
+        if hashlib.sha256(raw).hexdigest() != ref['sha256']:
+            raise ValueError('Reference URL content does not match the approved local image')
+        if verified is not None: verified.add(identity)
+
+
 def build_payload(project, job):
+    if image_providers.job_provider(job) == 'duomi':
+        return _build_duomi_payload(project, job)
     options = job['image_api_input']
     if options.get('endpoint') != ENDPOINT or options.get('shutProgress') is not True:
         raise ValueError('Invalid endpoint or shutProgress')
@@ -137,6 +231,28 @@ def parse_response(payload):
     if task_id:
         return {**result, 'status': 'running'}
     raise ValueError('Provider response has neither completed result nor task ID')
+
+
+def parse_duomi_response(payload, query=False):
+    if not isinstance(payload, dict):
+        raise ValueError('Duomi response is not an object')
+    task_id = payload.get('id')
+    if not isinstance(task_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]+', task_id):
+        raise ValueError('Invalid Duomi task ID')
+    result = {'task_id': task_id, 'response_id': task_id}
+    status = payload.get('state')
+    if status in ('pending', 'running') or (status is None and not query):
+        return {**result, 'status': 'running'}
+    if status == 'error':
+        return {**result, 'status': 'failed', 'error_code': 'provider_task_failed'}
+    if status == 'succeeded':
+        data = payload.get('data')
+        images = data.get('images') if isinstance(data, dict) else None
+        url = images[0].get('url') if isinstance(images, list) and images and isinstance(images[0], dict) else None
+        if not isinstance(url, str) or urllib.parse.urlsplit(url).scheme != 'https':
+            raise ValueError('Successful Duomi result missing HTTPS image URL')
+        return {**result, 'status': 'result_ready', 'provider_image_url': url}
+    raise ValueError('Unknown Duomi task state; query stopped without recreating the image')
 
 
 @contextmanager
@@ -209,11 +325,14 @@ def _checked_inputs(project, job, authorization_evidence=''):
 
 
 def _run_job_locked(project, relative, transport, resume=False, timeout=500, poll_interval=5,
-                    authorization_evidence='', reserved=None):
+                    authorization_evidence='', reserved=None, verified_references=None):
     path = state.resolve(project, relative)
     job = state.read_json(path)
     if job['route'] != 'openai_image_api':
         raise ValueError('Built-in image tasks must be executed with the Codex image tool')
+    provider = image_providers.job_provider(job)
+    duomi = provider == 'duomi'
+    endpoint = image_providers.DUOMI_ENDPOINT if duomi else ENDPOINT
     if job['status'] == 'downloaded':
         if state.sha256(state.resolve(project, job['output_path'])) != job['sha256']:
             raise ValueError('Downloaded image changed; preserve it and prepare a new version')
@@ -237,15 +356,19 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
     job['prior_elapsed_seconds'] = job.get('elapsed_seconds', 0)
     if job['status'] == 'pending':
         body = build_payload(project, job)
+        _verify_duomi_references(job, transport, remaining(), verified_references)
         if reserved is None:
             image_budget.reserve_api(project, [relative], authorization_evidence)
         elif image_budget._key(job) not in reserved:
             raise ValueError('Pending image has no bound batch reservation')
-        job.update(status='submitting', api_base_url=BASE_URL, api_endpoint=ENDPOINT,
-                   model=body['model'], aspectRatio=body['aspectRatio'], size=body['aspectRatio'])
+        job.update(status='submitting', api_base_url=image_providers.DUOMI_BASE_URL if duomi else BASE_URL,
+                   api_endpoint=endpoint, model=body['model'], size=job['image_api_input']['size'])
+        if duomi: job['provider'] = provider
+        else: job['aspectRatio'] = body['aspectRatio']
         save()
         try:
-            parsed = parse_response(transport.post(ENDPOINT, body, remaining()))
+            response = transport.post(endpoint, body, remaining())
+            parsed = parse_duomi_response(response) if duomi else parse_response(response)
             job.update({k: v for k, v in parsed.items() if v is not None})
         except Exception as exc:
             # A timeout/connection/parse failure cannot establish whether billing occurred.
@@ -254,7 +377,12 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
         save()
     while job['status'] == 'running' and time.monotonic() < deadline:
         try:
-            parsed = parse_response(transport.post(RESULT_ENDPOINT, {'id': job['task_id']}, remaining()))
+            if duomi:
+                if not re.fullmatch(r'[A-Za-z0-9_-]+', job['task_id']):
+                    raise ValueError('Invalid Duomi task ID')
+                parsed = parse_duomi_response(transport.get('/v1/tasks/' + job['task_id'], remaining()), query=True)
+            else:
+                parsed = parse_response(transport.post(RESULT_ENDPOINT, {'id': job['task_id']}, remaining()))
             if parsed.get('task_id') not in (None, job['task_id']):
                 raise ValueError('Provider returned a different task ID')
             job.update({k: v for k, v in parsed.items() if v is not None})
@@ -297,7 +425,8 @@ def _run_job_locked(project, relative, transport, resume=False, timeout=500, pol
 def validate_batch(project, batch, resume=False):
     """Before reading a key or submitting, use actual batch consent or applicable run consent."""
     if batch.get('route') != 'openai_image_api':
-        raise ValueError('Only Grsai batches use the HTTP executor')
+        raise ValueError('Only API batches use the HTTP executor')
+    batch_provider(project, batch)
     data = store.load_run(project)
     evidence = batch.get('authorization_evidence', '')
     if not data:
@@ -318,10 +447,19 @@ def validate_batch(project, batch, resume=False):
     image_budget.preflight(project, batch['jobs'], resume)
 
 
+def batch_provider(project, batch):
+    """Bind credentials to saved jobs, including retrieval after a preference change."""
+    providers = {image_providers.job_provider(state.read_json(state.resolve(project, relative)))
+                 for relative in batch.get('jobs', [])}
+    if len(providers) != 1:
+        raise ValueError('An API batch requires one recorded provider; split mixed-provider jobs')
+    return providers.pop()
+
+
 def run_batch(project, batch, key, resume=False):
     validate_batch(project, batch, resume)
     concurrency = min(6, max(1, int(batch.get('concurrency', 6))), len(batch['jobs']))
-    transport = HttpTransport(key)
+    transport = DuomiTransport(key) if batch_provider(project, batch) == 'duomi' else HttpTransport(key)
     with ExitStack() as locks:
         execute = run_job
         extra = {}
@@ -330,11 +468,14 @@ def run_batch(project, batch, key, resume=False):
             # reacquire these nonblocking locks or reserve per job under a nested run lock.
             for path in sorted(batch['jobs']):
                 locks.enter_context(job_lock(state.resolve(project, path).with_suffix('.lock')))
+            verified = set()
             for path in batch['jobs']:
                 job = state.read_json(state.resolve(project, path))
                 if job.get('status') == 'pending':
                     _checked_inputs(project, job, batch.get('authorization_evidence', ''))
                     build_payload(project, job)
+                    _verify_duomi_references(job, transport, int(batch.get('timeout_seconds', 500)), verified)
+            extra['verified_references'] = verified
             extra['reserved'] = image_budget.reserve_api(project, batch['jobs'], batch.get('authorization_evidence', ''))
             execute = _run_job_locked
         pool = locks.enter_context(ThreadPoolExecutor(max_workers=concurrency))

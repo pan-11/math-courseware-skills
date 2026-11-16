@@ -18,6 +18,10 @@ def canonical(project):
     image = {}
     route = state.load_project(project).get('image_route')
     if route in state.ROUTES: image['route'] = route
+    if route == 'openai_image_api':
+        settings = state.load_project(project)
+        image['provider'] = settings.get('image_provider', 'grsai')
+        if settings.get('image_model'): image['model'] = settings['image_model']
     choice = workflow.load(project).get('route_choice', {})
     editable = {}
     if choice.get('route') in ('A', 'B') and _text(choice.get('user_evidence')):
@@ -30,7 +34,7 @@ def conflicts(project, data):
     current = canonical(project)
     saved, basis = data.get('preferences', {}), data.get('preference_basis', {})
     return [group + '.' + field + ': canonical preference conflict; record the actual choice with run-configure'
-            for group, fields in (('image', ('route',)), ('editable', ('route', 'entry')))
+            for group, fields in (('image', ('route', 'provider', 'model')), ('editable', ('route', 'entry')))
             for field in fields if field in current[group] and field in saved.get(group, {})
             and (current[group][field] != basis.get(group, {}).get(field)
                  or current[group].get('evidence') != basis.get(group, {}).get(
@@ -45,8 +49,33 @@ def effective(project, data=None, groups=GROUPS, strict=True):
         issues = [item for item in conflicts(project, data) if item.split('.')[0] in groups]
         if strict and issues: raise ValueError('; '.join(issues))
         for group in GROUPS:
-            result[group].update(deepcopy(data.get('preferences', {}).get(group, {})))
+            saved = data.get('preferences', {}).get(group, {})
+            if group == 'image' and saved.get('provider', result[group].get('provider')) != result[group].get('provider'):
+                result[group].pop('model', None)
+            result[group].update(deepcopy(saved))
     return result
+
+
+def image_settings(project, data=None, selection_api=None):
+    """Resolve API choices only; callers keep builtin preparation unchanged."""
+    data = store.load_run(project) if data is None else data
+    image = effective(project, data, groups={'image'})['image']
+    base = {'provider': image.get('provider', 'grsai')}
+    if image.get('model'): base['model'] = image['model']
+    if selection_api is not None:
+        if not isinstance(selection_api, dict) or set(selection_api) - {'provider', 'model'}:
+            raise ValueError('API selection accepts provider and model only')
+        if data and any(base.get(k) != v for k, v in selection_api.items()):
+            raise ValueError('API selection differs from this run; record the choice with run-configure')
+        if selection_api.get('provider', base['provider']) != base['provider']:
+            base.pop('model', None)
+        base.update(selection_api)
+    if base['provider'] not in state.API_PROVIDERS:
+        raise ValueError('Unknown API provider')
+    if 'model' in base and (not isinstance(base['model'], str)
+                           or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', base['model'])):
+        raise ValueError('Invalid API model')
+    return base
 
 
 def scope(project):
@@ -83,21 +112,25 @@ def update(project, data, changes):
     context = deepcopy(data.get('image_authorization_context', {}))
     current = canonical(project)
     for group, patch in changes.items():
-        fields = {'image': {'route', 'evidence', 'authorization'},
+        fields = {'image': {'route', 'provider', 'model', 'evidence', 'authorization'},
                   'video': {'platform', 'model', 'sound', 'evidence'},
                   'editable': {'route', 'entry', 'evidence'}}[group]
         if not isinstance(patch, dict) or not patch or set(patch) - fields:
             raise ValueError('Invalid or unknown ' + group + ' preference')
         if set(patch) - {'authorization'} and not _text(patch.get('evidence')):
             raise ValueError(group + ': actual nonempty evidence required with each update')
+        if group == 'image' and patch.get('provider', result[group].get('provider', 'grsai')) != result[group].get('provider', 'grsai'):
+            result[group].pop('model', None)
         for field, value in patch.items():
             if field == 'authorization': continue
             if not _text(value): raise ValueError(group + '.' + field + ': nonempty text required')
             options = (state.ROUTES if group == 'image' else ('A', 'B')) if field == 'route' else (
-                ('full', 'returned') if field == 'entry' else None)
+                state.API_PROVIDERS if field == 'provider' else ('full', 'returned') if field == 'entry' else None)
             if options and value not in options: raise ValueError(group + '.' + field + ': invalid choice')
+            if group == 'image' and field == 'model' and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', value):
+                raise ValueError('Invalid API model')
             result[group][field] = value
-            if field in ('route', 'entry'):
+            if field in ('route', 'entry', 'provider', 'model'):
                 basis.setdefault(group, {})[field] = current[group].get(field)
                 basis[group][field + '_evidence'] = current[group].get('evidence')
         if 'authorization' in patch:
@@ -123,6 +156,9 @@ def update(project, data, changes):
                 raise ValueError('run scope conflicts with explicit targets; use targets scope')
             result['image']['authorization'] = auth
             context = {'scope': scope(project), 'route': result['image'].get('route')}
+            if context['route'] == 'openai_image_api':
+                context.update(provider=result['image'].get('provider', 'grsai'),
+                               model=result['image'].get('model'))
     # Do not let an unrelated update silently hide a new canonical route conflict.
     candidate = {**data, 'preferences': result, 'preference_basis': basis}
     unresolved = [item for item in conflicts(project, candidate) if item.split('.')[0] in changes]
@@ -156,7 +192,14 @@ def image_authorization_issues(project, requests, route, data=None):
         issues.append('image.authorization: route differs from authorized choice')
     if route == 'openai_image_api' and auth.get('paid_generation') is not True:
         issues.append('image.authorization: explicit paid generation authorization required')
+    if route == 'openai_image_api':
+        if image.get('provider', 'grsai') != context.get('provider', 'grsai'):
+            issues.append('image.authorization: provider differs from authorized choice')
+        if image.get('model') != context.get('model'):
+            issues.append('image.authorization: model differs from authorized choice')
     for job in requests:
+        if route == 'openai_image_api' and job.get('provider', image.get('provider', 'grsai')) != image.get('provider', 'grsai'):
+            issues.append('image.authorization: job provider differs from authorized choice')
         if job.get('run_id', data['run_id']) != data['run_id']:
             issues.append('image.authorization: job belongs to another run')
         if job.get('purpose') not in auth['purposes']:
@@ -217,6 +260,16 @@ def require_image_job(project, job, evidence=''):
     if not data: return  # The existing manual batch entry enforces its route and explicit evidence.
     route = effective(project, data, groups={'image'})['image'].get('route')
     if job.get('route') != route: raise ValueError('Job route differs from current image selection')
+    if route == 'openai_image_api':
+        settings = image_settings(project, data)
+        if job.get('provider', 'grsai') != settings['provider']:
+            raise ValueError('Job provider differs from current API selection')
+        if settings.get('model') or settings['provider'] == 'duomi':
+            from . import image_providers
+            expected = image_providers.make_input(settings['provider'], settings.get('model'),
+                high=job.get('resolution_tier') == 'high')['model']
+            if job.get('image_api_input', {}).get('model') != expected:
+                raise ValueError('Job model differs from current API selection')
     if _text(evidence): return
     bound = (not job.get('run_id') and job.get('input_digest')
              and data.get('image_job_bindings', {}).get(job.get('job_id')) == job['input_digest'])

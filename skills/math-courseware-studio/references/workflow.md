@@ -1,5 +1,7 @@
 # 整课流程与独立模块的共同检查
 
+**显式动画试用入口：** 本次任务明确启用 `课堂动画试用V1` 时，可编辑动画步骤按[试用V1](../../math-courseware-editable/references/classroom-trial-v1.md)的独立入口完成组件、统一编排、登记及PPT收集；缺可选检查可先交并明示状态，不把该PPT登记等同整课complete。旧 `editable-answers` / `collect` 保留，未给口令的新任务继续旧流程。口令不改变本课路线、实际内容采用或其他配套范围。
+
 文件位置统一遵循[每课五目录规范](workspace-layout.md)：课程根由用户开工给定，新课使用five-folders，旧课按原布局续作；本文件中的_state/planning/videos等是逻辑路径，实际落在中间文件下（inputs映射原始资料）。最终教学产品归最终产品，笔记归笔记素材，商品主图与详情归商品详情，控制器collect暂存仍属工作区。目录变化不改变本文件的范围、采用和完成门槛。
 
 本文件是十五Skill共同遵循的有效顺序。专业创作要求仍在各自Skill。执行器只核查范围、实际文件、版本、已记录检查和采用，不能凭JSON证明教学质量、图片效果或WPS播放。
@@ -63,7 +65,7 @@ C5新制作的带字页图默认是`review_complete`完整讲解结果预览：�
 | C3 全部视频准备 | 覆盖蓝图全部V ID的具体剧本、声音、镜头/画面、提示词、制作流程、实际或待取得素材、课堂衔接 | 全部计划视频准备齐备并沿既有审阅采用；单个V完成不代表全课通过 |
 | C4 逐页内容 | 每页教学任务、可见文字、数学、引用、播放区域和衔接；视频页计入已定总页数 | 当前逐页稿采用，页数/顺序及所有视频映射齐全 |
 | C5 图片课件 | 规定格式提示词、带字试样、全套完整讲解结果图和逐页核查、使用同套图的PPTX/PDF | 真实采用参考；沿原试样及整套审阅，不把工具成功当效果采用，也不把结果预览当作课堂初始态或动画验收 |
-| C6 可编辑 | 明确A/B、所需交接、真实回传、页序映射、基础回填＋原位答案动画及对象/显示检查 | 全流程B覆盖全部页面去字并有序汇成完整PPT；默认忠实复原＋异色答案逐个单击出现，明确纯复原/无答案版优先，完整教学后显按明确范围，见[组合规范](../../math-courseware-editable/references/refill-modes.md) |
+| C6 可编辑 | 明确A/B、所需交接、真实回传、页序映射、基础回填＋原位答案动画及对象/显示检查 | 全流程B覆盖全部页面去字并有序汇成完整PPT；默认忠实复原＋异色答案逐个单击出现，明确纯复原/无答案版优先；按需启用[完整教学动画计划](../../math-courseware-editable/references/classroom-animation-plan.md)，在C4先规划教学步骤、C6绑定实际对象，保留原路线及已有动画约束。见[组合规范](../../math-courseware-editable/references/refill-modes.md) |
 | C7 配套 | 教师逐字稿、说课稿、教学设计、学生课堂学习单及电子黑板贴，与采用课件及视频衔接一致 | 配套文稿先核PPT完成状态及现用版本，状态不明再问；仅用户明确要求的草稿可提前并行。内容/页序变化同步受影响文稿、学习单与素材，学习单/黑板贴仅在用户明确省略时免做 |
 | C8 汇合 | 实际必做成片、实际PPT播放区域与回填/播放方式、用户检查确认后的WPS导出视频及接收记录、适用的操作记录、最终文稿、学习单、黑板贴和交付清单 | 按[用户验收与交接规范](wps-export-review.md)记录真实确认并继续，不重复审片；真正完成才声明整课完成；缺成片可交静态阶段稿 |
 
@@ -195,7 +197,7 @@ workflow.final: 共同依据格式
 
 已登记视频产品之间须绑定当前依赖：preview/voice绑定script，director绑定script/voice/assets，storyboard绑定director/assets，style绑定assets/storyboard；运镜prompts绑定script/voice/director/storyboard/style，讲话first-frame绑定script、prompts绑定script/first-frame。整课script还绑定当前蓝图。直接接入后期时只核实际提供的上游产品，不凭空补完整制作史；但已登记的当前产品不能被忽略。只修改上传表仍需复核完整词所引用的当前版本。导演与正式板成组审阅，同一采用记录targets同时覆盖两者的当前实际文件（或复用各自已有采用），不增加导演单独审批；仅把导演哈希写进内部核查不等于用户采用导演。
 
-preparation.files必须含script、voice、frame_plan、prompts、production、classroom；运镜另含director、board_plan。classroom由课程模块写，视频专业模块不承担教师接话。missing_assets逐项含asset_id/reason/acquire/blocks，明确取得办法及影响，不能用笼统“以后再做”代替。平台未知可以如实写在操作包，不能宣称可直接提交。
+preparation.files必须含script、voice、frame_plan、prompts、production、classroom；运镜另含director、board_plan。classroom由课程模块写，视频专业模块不承担教师接话。missing_assets逐项含asset_id/reason/acquire/blocks，明确取得办法及影响，不能用笼统“以后再做”代替。视频素材默认按[通用制作包](../../math-courseware-video-prompts/references/prompt-assembly.md#通用素材包与平台适配边界)完成全部已满足前置的图片、逐次完整TXT、镜号/文件映射和建议上传顺序；不主动询问平台/模型，不将未提供平台视为内容缺失或新增采用条件。平台由用户自行选择，兼容性未核实如实标注，不宣称已验证可提交；用户主动要求具体适配/代操作时才核实该范围，原有内容采用与实际成片门槛不变。
 
 final.files必须引用实际media和playback检查，另有真实采用。media核对受支持MP4/M4V/MOV、WebM/MKV或AVI的扩展名与容器标记；这仅能拒绝文字方案、错格式文件，不能证明编码完整、内容或声音正确。playback是验收JSON，含passed、inspection（actual或user_report）、basis和source_versions，绑定当前media与最终可编辑PPTX；只有图片/剧本/估时不能登记实际成片。用户按[WPS视频交接规范](wps-export-review.md)检查确认当前整课视频无误并回传后，可记录其实际覆盖的片段为user_report，不要求AI再次审片或建立时间映射；media仍是原情景视频，其他未确认项保持原状态。没有课程JSON的单视频，原manifest.workflow可直接放项目范围、inputs及products；检查当前V ID时读取同一manifest，无需自哈希。
 

@@ -542,7 +542,7 @@ def collect(project):
             'destination': _relative(project, state.resolve(project, current_editable['path']))})
 
     for key, artifact in artifacts.items():
-        if artifact.get('intermediate') or key == 'editable-base-pptx':
+        if artifact.get('intermediate') or key in ('editable-base-pptx', 'editable-classroom-trial-v1'):
             continue
         if key == 'editable-pptx' and key in selected:
             continue

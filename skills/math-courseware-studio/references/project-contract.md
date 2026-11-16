@@ -32,7 +32,7 @@ grouped_creative_v2整课自动run按[分组记录协议](../../math-courseware-
 
 ## 权威数据
 
-初始化生成`schema_version=1.0`，`revision=v001`。项目元数据含`project_id/title/image_route/font/branches/artifacts/stale_targets`。内容记录使用：
+初始化生成`schema_version=1.0`，`revision=v001`。项目元数据含`project_id/title/image_route/font/branches/artifacts/stale_targets`。API项目可保存`image_provider/image_model`；路线仍为`openai_image_api`，服务商`grsai/duomi`单独选择，旧记录省略服务商按Grsai兼容，不迁移已有项目。详见[生图线路](image-routing.md)。内容记录使用：
 
 | 文件 | 主要字段 |
 |---|---|
@@ -45,6 +45,8 @@ grouped_creative_v2整课自动run按[分组记录协议](../../math-courseware-
 教学分析由Codex写，执行器检查记录与引用，不自动推断教材或证明数学推理。`source_refs`至少可定位原文件/页码；来源不足的内容保留不确定性，不填假来源。
 
 每条资产`files`为`[{path,sha256,width_px,height_px,view}]`，记录真实字节。`fixed_features`写可直接展开到提示词的完整外观或地点关系。设定图与单独视角可以共存，后续任务选择实际所需参考。
+
+仅API路径支持在现有页面`asset_refs`或任务`reference_assets`各项上补可选`views:[实际视角名]`；不指定时附该资产适用的全部文件。图N、文件顺序、版本合并与角色/场景/风格职责统一按[API参考图规则](image-routing.md#api参考图与整页流程)及其派发格式处理。PPT与视频沿相同已采用资产ID/版本，不新建平行素材记录。内置路径不改变。
 
 页面最小结构：
 
@@ -137,14 +139,14 @@ grouped_creative_v2整课自动run按[分组记录协议](../../math-courseware-
 
 | 命令 | 参数 | 用途 |
 |---|---|---|
-| init | --title TEXT --layout five-folders [--route builtin/openai_image_api] | 新课五目录；不覆盖/迁移已有项目，省略layout仅保留旧脚本兼容 |
+| init | --title TEXT --layout five-folders [--route builtin/openai_image_api] [--api-provider grsai/duomi] [--api-model TEXT] | 新课五目录；API服务商/模型可选，不覆盖/迁移已有项目，省略layout仅保留旧脚本兼容 |
 | status / validate | 无额外参数 | 读取进度/检查引用和哈希 |
 | workflow-check | --step STEP [--video-id ID] | 只读检查本次范围的实际依赖，返回允许项、缺失/过期产物及可继续步骤；步骤名见共用流程 |
 | record-approval | --record FILE | 记录实际用户批准 |
 | impact / record-change | --change FILE | 预览/应用授权变更 |
 | render-prompts | [--render-state review_complete/initial] | 默认review_complete，展开完整讲解结果预览的五段提示词与全部审阅文字；initial仅供用户明确另要的初始态专项图，课堂显示顺序保持原记录 |
 | image-prepare | --selection FILE | 派发任务，不生图 |
-| image-run / image-resume | --batch FILE [--key-file FILE或--key-stdin] | Grsai执行/恢复 |
+| image-run / image-resume | --batch FILE [--key-file FILE或--key-stdin] | 按job保存的API服务商执行/恢复 |
 | image-register | --result FILE | 登记内置工具真实输出 |
 | export-slides | 无额外参数 | 确认图片导出PPTX/PDF |
 | canva-handoff | --selection FILE | A按授权页交接；B全页有序去字PPTX/PDF交接，不改正式带字页 |
@@ -162,7 +164,7 @@ grouped_creative_v2整课自动run按[分组记录协议](../../math-courseware-
 
 ## 自动运行启动偏好
 
-可选run的preferences保存本课image/video/editable设置及真实依据，详见[队列协议](../../math-courseware-autopilot/references/queue-contract.md)。run-configure接受同形部分JSON；run-status只读返回有效值、缺项与冲突。不创建第二份课程或采用记录。共享读取先用有效run偏好，缺项回退project.image_route和有user_evidence的workflow.route_choice；后续规范记录改选与run相冲突时须显式协调。模式切换不清空偏好，未提交工作用新选择，已提交任务保持原线路。
+可选run的preferences保存本课image/video/editable设置及真实依据，详见[队列协议](../../math-courseware-autopilot/references/queue-contract.md)。API image可含`provider/model`，run-configure接受同形部分JSON；run-status只读返回有效值、缺项与冲突。不创建第二份课程或采用记录。共享读取先用有效run偏好，缺项回退project.image_route/image_provider/image_model和有user_evidence的workflow.route_choice；后续规范记录改选与run相冲突时须显式协调。模式切换不清空偏好，新准备工作用新选择，已准备/提交任务保持原线路、服务商和模型；改选服务商或显式模型后，旧费用授权不能自动沿用。
 
 run.json的limits.max_images默认60；image_budget保存记账起点、旧用量是否未知及按实际job/input累计的API尝试/内置成功登记。run-configure接受limits:{max_images,evidence}并保留历史账；run-status只读显示image_budget_status。旧run未配置不能开始新生成，不推算基线；API预占在共享锁内，内置为登记后软计数。回收旧任务不受新增额度拦截，无run不创建预算或自动队列。
 
