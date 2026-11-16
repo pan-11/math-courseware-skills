@@ -24,7 +24,7 @@
 
 > 继续 projects/我的课件项目，先读取AGENTS和HANDOFF，核对状态后从未完成的步骤继续。
 
-首次生图选择当次可用的Codex内置工具或ToAPIs。ToAPIs默认使用gpt-image-2-vip、low、1K。通过已有的 TOAPIS_API_KEY、标准输入或项目外密钥文件提供凭据。默认PPT楷体并使用WPS检查。
+首次生图选择当次可用的Codex内置工具或ToAPIs。ToAPIs默认使用gpt-image-2-vip、low、1K；已有课程或本次明确指定的Grsai、多米服务商及模型继续使用，不迁移旧任务。通过已有的 TOAPIS_API_KEY、标准输入或项目外密钥文件提供凭据。默认PPT楷体并使用WPS检查。
 
 可直接转发的安装提示词与整课、独立回填、两路视频使用示例见[朋友安装与使用说明](docs/friend-install-and-use.md)，另附[离线阅读版](docs/friend-install-and-use.html)。
 
@@ -140,6 +140,6 @@ $controller = (Resolve-Path 'skills/math-courseware-studio/scripts/courseware.py
 
 参考[原PPT Skill固定版本](https://github.com/yinsheng508-byte/ppt-skill-v3-codex-editable/tree/ca7ae6de097be9b99b50033857e22cfa023cfd67)的成熟流程、文字拆分、字体与坐标校准、试样复用和执行证据方法，并结合用户提供的课件聊天、逐页生图模板及教学文稿规范重新适配。新增共享故事资产、版本影响分析、可画已有PPTX保层处理及三种文稿分工。
 
-API新任务采用[ToAPIs](skills/math-courseware-studio/references/toapis.md)，历史Grsai任务按其服务商和任务ID恢复。
+新建API项目默认采用[ToAPIs](skills/math-courseware-studio/references/toapis.md)，同时保留[Grsai与多米、共享参考图及视角选择](skills/math-courseware-studio/references/image-routing.md)。服务商/模型选择与费用授权分别记录，旧任务按保存的服务商和任务ID恢复。
 
 视频流程根据用户历史反馈与指定故事板资料重新编写，参考[create-storyboard-skill固定版本](https://github.com/TateZhouSiu/create-storyboard-skill/tree/4b8662e2fee51b37488c77952bbfa302bfeaf36c)的镜头连续性和制作交接思路，以及[seedance-storyboard固定版本](https://github.com/zcx960/seedance-storyboard/tree/f87fc97e52e28520d6d59ca77725aa5a30ca5ed0)的分段表达方式。未打包外部Skill或执行参考脚本，未把宣传的稳定出片效果当成已验证事实。

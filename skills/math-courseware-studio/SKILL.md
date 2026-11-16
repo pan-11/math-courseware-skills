@@ -7,7 +7,7 @@ description: Coordinate primary-school math courseware with AI scenarios, shared
 
 **动画版本口令：** 当前用户明确要求 `课堂动画试用V1` 时，在可编辑步骤读取[试用版约定](../math-courseware-editable/references/classroom-trial-v1.md)，完成答案组件与讲解统一编排、试用当前PPT登记和收集。仅本次任务及其续作生效；新任务未给口令保留原流程，封面标题人工修改，不切换全局设置或自动重做历史课件。
 
-API 生图使用 ToAPIs：新任务默认 `gpt-image-2-vip`、`low`、`1k`，横版课件用 16:9。内置路线仍可选。先读 [ToAPIs 生图配置](references/toapis.md)，准备任务无需凭据；已有 Grsai 任务按原协议恢复。
+新建 API 项目默认使用 ToAPIs：新任务默认 `gpt-image-2-vip`、`low`、`1k`，横版课件用 16:9。内置路线仍可选。先读 [ToAPIs 生图配置](references/toapis.md)，准备任务无需凭据；本课已明确的服务商/模型优先，保留 Grsai、多米的明确选择及原任务恢复。服务商选择、参考图与授权按[生图线路](references/image-routing.md)执行。
 
 **每次用户可见回复**（含进度、等待、提问、恢复、交付和独立调用）先按[共同回复合同](references/reply-contract.md)填写唯一开头：真实课件/任务、步骤/状态，本步工作及产出、用户检查、用户操作、下一步；编号列项，无检查/操作写明无需，计划与完成分开，不新增批准节点。
 

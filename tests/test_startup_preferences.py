@@ -275,6 +275,7 @@ class StartupPreferencesTests(unittest.TestCase):
     def test_manual_prepare_reused_after_start_preserves_job_and_uses_current_consent(self):
         project = state.load_project(self.root)
         project['image_route'] = 'openai_image_api'
+        project['image_provider'] = 'toapis'
         state.write_json(self.root / '_state/project.json', project)
         manual = self.prepare()
         path = self.root / manual['jobs'][0]
@@ -292,6 +293,7 @@ class StartupPreferencesTests(unittest.TestCase):
     def test_manual_prepare_submitted_job_is_preserved_for_original_recovery(self):
         project = state.load_project(self.root)
         project['image_route'] = 'openai_image_api'
+        project['image_provider'] = 'toapis'
         state.write_json(self.root / '_state/project.json', project)
         manual = self.prepare()
         path = self.root / manual['jobs'][0]

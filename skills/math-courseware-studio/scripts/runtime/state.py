@@ -11,6 +11,7 @@ SCHEMA = '1.0'
 RECORDS = {'materials': 'materials', 'story': 'events', 'math': 'problems',
            'assets': 'assets', 'pages': 'pages'}
 ROUTES = ('builtin', 'openai_image_api')
+API_PROVIDERS = ('grsai', 'duomi', 'toapis')
 LAYOUTS = ('legacy', 'four-folders', 'five-folders')
 FOLDERS = ('01_source', '02_work', '03_final', '04_notes')
 FIVE_FOLDERS = ('原始资料', '中间文件', '最终产品', '笔记素材', '商品详情')
@@ -135,10 +136,19 @@ def load_project(project):
     return data
 
 
-def init_project(project, title, route=None, mode=None, scope_evidence='', layout='legacy'):
+def init_project(project, title, route=None, mode=None, scope_evidence='', layout='legacy',
+                 api_provider=None, api_model=None):
     root = Path(project).resolve()
     if route is not None and route not in ROUTES:
         raise ValueError('Unknown image route')
+    if api_provider is not None or api_model is not None:
+        if route != 'openai_image_api':
+            raise ValueError('API provider/model require the API image route')
+        if api_provider not in (*API_PROVIDERS, None):
+            raise ValueError('Unknown API provider')
+        if api_model is not None and (not isinstance(api_model, str)
+                                     or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', api_model)):
+            raise ValueError('Invalid API model')
     if mode not in (None, 'full_course', 'selected_modules'):
         raise ValueError('Unknown workflow mode')
     if mode is not None and not str(scope_evidence).strip():
@@ -251,6 +261,8 @@ def init_project(project, title, route=None, mode=None, scope_evidence='', layou
             'revision': 'v001', 'created_at': now(), 'image_route': route,
             'font': 'KaiTi', 'artifacts': {}, 'stale_targets': [],
             'branches': {name: 'draft' for name in ['analysis', 'story', 'pages', 'editable', 'documents']}}
+    if route == 'openai_image_api': data['image_provider'] = api_provider or 'toapis'
+    if api_model is not None: data['image_model'] = api_model
     if layout != 'legacy':
         data['storage_layout'] = layout
     write_json(existing, data)
@@ -415,6 +427,12 @@ def record_change(project, change):
                    'revision': f'v{version:03d}'}
     if relative == '_state/project.json' and replacement.get('image_route') not in (*ROUTES, None):
         raise ValueError('Unknown image route')
+    if relative == '_state/project.json' and replacement.get('image_route') == 'openai_image_api':
+        if replacement.get('image_provider', 'grsai') not in API_PROVIDERS:
+            raise ValueError('Unknown API provider')
+        if 'image_model' in replacement and (not isinstance(replacement['image_model'], str)
+                or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', replacement['image_model'])):
+            raise ValueError('Invalid API model')
     archive = f'_state/versions/{path.stem}-{old.get("revision", "v000")}-{sha256(path)[:16]}.json'
     saved = resolve(project, archive)
     if not saved.exists():

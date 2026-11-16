@@ -114,6 +114,8 @@ def parser():
             p.add_argument('--title', required=True)
             p.add_argument('--layout', choices=state.LAYOUTS, default='legacy')
             p.add_argument('--route', choices=state.ROUTES)
+            p.add_argument('--api-provider', choices=state.API_PROVIDERS)
+            p.add_argument('--api-model')
             p.add_argument('--mode', choices=('full_course', 'selected_modules'))
             p.add_argument('--scope-evidence', default='')
         if command == 'workflow-check':
@@ -186,7 +188,9 @@ def execute(args):
     if c == 'init':
         return state.init_project(project, args.title, args.route,
                                   getattr(args, 'mode', None), getattr(args, 'scope_evidence', ''),
-                                  getattr(args, 'layout', 'legacy'))
+                                  getattr(args, 'layout', 'legacy'),
+                                  api_provider=getattr(args, 'api_provider', None),
+                                  api_model=getattr(args, 'api_model', None))
     if c == 'workflow-check':
         return workflow.check(project, args.step, video_id=args.video_id)
     state.load_project(project)
@@ -208,7 +212,8 @@ def execute(args):
             return image_api.register_builtin(project, state.read_json(args.result))
         batch = state.read_json(args.batch)
         image_api.validate_batch(project, batch, resume=c == 'image-resume')
-        key = image_api.read_key(project, args.key_file, args.key_stdin, provider=batch.get('provider', 'grsai'))
+        provider = image_api.batch_provider(project, batch)
+        key = image_api.read_key(project, args.key_file, args.key_stdin, provider=provider)
         return image_api.run_batch(project, batch, key, resume=c == 'image-resume')
     if c == 'editable-answers':
         from runtime import click_answers, editable_delivery

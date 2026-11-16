@@ -12,7 +12,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'skills/math-courseware-studio/scripts'))
-from runtime import image_api, image_toapis, prompts, state
+from runtime import image_api, image_toapis, prompts, state, preferences
 
 
 class FakeTransport:
@@ -78,6 +78,7 @@ class ToapisTests(unittest.TestCase):
 
     def test_default_payload_matches_documented_fields(self):
         job = self.job()
+        self.assertEqual(state.load_project(self.project)['image_provider'], 'toapis')
         self.assertEqual(job['provider'], 'toapis')
         self.assertEqual(self.batch['provider'], 'toapis')
         self.assertEqual(image_api.build_payload(self.project, job), {
@@ -246,6 +247,109 @@ class ToapisTests(unittest.TestCase):
             self.assertEqual(image_api.read_key(self.project, ROOT / 'tests/synthetic-key', provider='toapis'),
                              'offline-secret')
             self.assertEqual(read.call_args.kwargs['encoding'], 'utf-8-sig')
+
+    def test_explicit_project_model_is_used_and_cannot_be_overridden_by_options(self):
+        path = self.project / '_state/project.json'
+        project = state.read_json(path)
+        project['image_model'] = 'gpt-image-2'
+        state.write_json(path, project)
+        selection = {'tasks': [{'purpose': 'test', 'target_id': 'PINNED', 'prompt': 'Pinned model'}]}
+        batch = prompts.prepare(self.project, selection)
+        job = state.read_json(state.resolve(self.project, batch['jobs'][0]))
+        self.assertEqual(job['image_api_input']['model'], 'gpt-image-2')
+        with self.assertRaisesRegex(ValueError, 'model'):
+            prompts.prepare(self.project, {**selection, 'api_options': {'model': 'gpt-image-2-vip'}})
+
+    def test_toapis_run_consent_binds_provider_and_selected_model(self):
+        data = {'run_id': 'run-' + '2' * 32}
+        preferences.update(self.project, data, {'image': {
+            'route': 'openai_image_api', 'provider': 'toapis', 'model': 'gpt-image-2',
+            'evidence': 'Synthetic selected ToAPIs model', 'authorization': {
+                'scope': 'run', 'purposes': ['test'], 'paid_generation': True,
+                'scope_evidence': 'Synthetic provider and model consent'}}})
+        job = {**self.job(), 'run_id': data['run_id']}
+        with patch.object(preferences.store, 'load_run', return_value=data):
+            with self.assertRaisesRegex(ValueError, 'model'):
+                preferences.require_image_job(self.project, job)
+            job['image_api_input'] = {**job['image_api_input'], 'model': 'gpt-image-2'}
+            preferences.require_image_job(self.project, job)
+        preferences.update(self.project, data, {'image': {
+            'provider': 'duomi', 'evidence': 'Synthetic switch, no new generation consent'}})
+        self.assertTrue(any('provider' in issue for issue in preferences.image_authorization_issues(
+            self.project, [{'purpose': 'test', 'provider': 'duomi'}], 'openai_image_api', data)))
+
+    def test_recovery_uses_saved_toapis_provider_after_project_switch(self):
+        job = self.job()
+        job.update(status='running', task_id='saved_toapis')
+        state.write_json(self.path, job)
+        path = self.project / '_state/project.json'
+        project = state.read_json(path)
+        project.update(image_provider='duomi', image_model='gpt-image-2')
+        state.write_json(path, project)
+        transport = FakeTransport()
+        with patch.object(image_toapis, 'HttpTransport', return_value=transport) as factory:
+            result = image_api.run_batch(self.project, self.batch, 'synthetic-key', resume=True)
+        factory.assert_called_once_with('synthetic-key', 'https://toapis.cn')
+        self.assertEqual(result['results'][0]['status'], 'downloaded')
+        self.assertEqual(transport.posts, [])
+        self.assertEqual(transport.queries, ['saved_toapis'])
+
+    def test_toapis_selected_reference_views_keep_upload_order_and_roles(self):
+        from test_api_references import ApiReferenceTests
+        fixture = ApiReferenceTests()
+        fixture.setUp()
+        batch, job = fixture.prepare({'reference_assets': [
+            {'asset_id': 'CHAR001', 'version': 'v001', 'views': ['side']},
+            {'asset_id': 'SCENE001', 'version': 'v001'}]}, api={'provider': 'toapis'})
+        self.assertEqual([ref['path'] for ref in job['references']],
+                         ['assets/characters/side.png', 'assets/scene.png'])
+        transport = FakeTransport()
+        result = image_api.run_job(fixture.root, batch['jobs'][0], transport, timeout=1, poll_interval=0)
+        self.assertEqual(result['status'], 'downloaded')
+        self.assertEqual(transport.uploads, [fixture.root / ref['path'] for ref in job['references']])
+        prompt = transport.posts[0][1]['prompt']
+        self.assertIn('图1：CHAR001', prompt)
+        self.assertIn('图2：SCENE001', prompt)
+        self.assertIn('side', prompt)
+        self.assertNotIn('base64', json.dumps(transport.posts))
+
+    def test_preference_free_old_toapis_project_keeps_provider_for_next_job(self):
+        path = self.project / '_state/project.json'
+        project = state.read_json(path)
+        project.pop('image_provider')
+        state.write_json(path, project)
+        before = path.read_bytes()
+        batch = prompts.prepare(self.project, {'tasks': [
+            {'purpose': 'test', 'target_id': 'NEXT', 'prompt': 'Same existing provider'}]})
+        job = state.read_json(state.resolve(self.project, batch['jobs'][0]))
+        self.assertEqual(job['provider'], 'toapis')
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(self.job()['provider'], 'toapis')
+
+    def test_mixed_old_provider_history_needs_choice_for_new_job(self):
+        path = self.project / '_state/project.json'
+        project = state.read_json(path)
+        project.pop('image_provider')
+        state.write_json(path, project)
+        other = self.project / '_state/jobs/OTHER-test-v001/job.json'
+        state.write_json(other, {'route': 'openai_image_api', 'provider': 'grsai'})
+        selection = {'tasks': [{'purpose': 'test', 'target_id': 'NEW', 'prompt': 'Explicit mixed history'}]}
+        with self.assertRaisesRegex(ValueError, 'Multiple saved API providers'):
+            prompts.prepare(self.project, selection)
+        batch = prompts.prepare(self.project, {**selection, 'api': {'provider': 'toapis'}})
+        self.assertEqual(batch['provider'], 'toapis')
+
+    def test_default_toapis_run_model_cannot_change_through_task_options(self):
+        data = {'run_id': 'run-' + '3' * 32}
+        preferences.update(self.project, data, {'image': {
+            'route': 'openai_image_api', 'evidence': 'Synthetic ToAPIs default', 'authorization': {
+                'scope': 'run', 'purposes': ['test'], 'paid_generation': True,
+                'scope_evidence': 'Synthetic consent to current default'}}})
+        job = {**self.job(), 'run_id': data['run_id']}
+        job['image_api_input'] = {**job['image_api_input'], 'model': 'gpt-image-2'}
+        with patch.object(preferences.store, 'load_run', return_value=data):
+            with self.assertRaisesRegex(ValueError, 'model'):
+                preferences.require_image_job(self.project, job)
 
 
 if __name__ == '__main__':

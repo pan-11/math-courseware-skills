@@ -156,6 +156,7 @@ def prepare(project, selection):
     route = preferences.effective(project, run, groups={'image'})['image'].get('route')
     if route not in state.ROUTES:
         raise ValueError('Select the project image route before preparing jobs')
+    api_settings = preferences.image_settings(project, run, selection.get('api')) if route == 'openai_image_api' else {}
     tasks = selection.get('tasks', [])
     if not tasks:
         raise ValueError('Select at least one image task')
@@ -175,6 +176,21 @@ def prepare(project, selection):
         version = task.get('version', 'v001')
         if not re.fullmatch(r'[A-Za-z0-9_-]+', target) or not re.fullmatch(r'v\d{3,}', version):
             raise ValueError('Unsafe task ID or version')
+        job_id = f'{target}-{purpose}-{version}'
+        directory = f'_state/jobs/{job_id}'
+        path = state.resolve(project, directory + '/job.json')
+        old = state.read_json(path) if path.exists() else None
+        task_api = dict(api_settings)
+        if route == 'openai_image_api' and old and old.get('route') == route:
+            from . import image_providers
+            provider = image_providers.job_provider(old)
+            if selection.get('api', {}).get('provider', provider) != provider:
+                raise ValueError('Task ID already has different inputs (provider); create a new version')
+            task_api = {'provider': provider}
+            if selection.get('api', {}).get('model'):
+                task_api['model'] = selection['api']['model']
+            elif old.get('image_api_input', {}).get('model'):
+                task_api['model'] = old['image_api_input']['model']
         if purpose == 'test':
             required = []
         elif purpose in ('page', 'erase', 'repair'):
@@ -202,19 +218,29 @@ def prepare(project, selection):
             if not candidate: state.require_approved(project, '_state/assets.json')
             snapshots['_state/assets.json'] = state.sha256(state.resolve(project, '_state/assets.json'))
             refs.extend(target_asset.get('reference_assets', []))
-        for ref in task.get('reference_assets', []):
-            if ref not in refs:
-                refs.append(ref)
         files = []
-        for ref in refs:
-            asset = assets.get(ref['asset_id'])
-            if not asset or asset.get('version') != ref.get('version') or not asset.get('files'):
-                raise ValueError('Missing generated reference asset: ' + ref['asset_id'])
-            if not candidate: state.require_approved(project, '_state/assets.json')
-            snapshots['_state/assets.json'] = state.sha256(state.resolve(project, '_state/assets.json'))
-            files.extend(image_ref(project, f) for f in asset['files'])
+        reference_entries = []
+        if route == 'openai_image_api':
+            from . import api_references
+            if purpose != 'erase':
+                reference_entries = api_references.select(assets, refs, task.get('reference_assets', []))
+            if reference_entries:
+                if not candidate: state.require_approved(project, '_state/assets.json')
+                snapshots['_state/assets.json'] = state.sha256(state.resolve(project, '_state/assets.json'))
+                files = [image_ref(project, file) for _, file in reference_entries]
+        else:
+            for ref in task.get('reference_assets', []):
+                if ref not in refs:
+                    refs.append(ref)
+            for ref in refs:
+                asset = assets.get(ref['asset_id'])
+                if not asset or asset.get('version') != ref.get('version') or not asset.get('files'):
+                    raise ValueError('Missing generated reference asset: ' + ref['asset_id'])
+                if not candidate: state.require_approved(project, '_state/assets.json')
+                snapshots['_state/assets.json'] = state.sha256(state.resolve(project, '_state/assets.json'))
+                files.extend(image_ref(project, f) for f in asset['files'])
         high = bool(selection.get('high_resolution', False))
-        size = '3840x2160' if high else '1672x941'
+        size = '3840x2160' if high else ('1792x1008' if task_api.get('provider') == 'duomi' else '1672x941')
         if purpose in ('erase', 'repair'):
             if not task.get('source_image'):
                 raise ValueError('Edit tasks require the confirmed source image')
@@ -241,14 +267,16 @@ def prepare(project, selection):
             prompt = task.get('prompt', '')
             if not prompt.strip():
                 raise ValueError('Asset/cover/test/repair requires a complete prompt')
-        job_id = f'{target}-{purpose}-{version}'
-        directory = f'_state/jobs/{job_id}'
+        if route == 'openai_image_api' and files:
+            captions = []
+            if purpose in ('erase', 'repair'):
+                captions.append('图1：本页已采用的源图，作为本次编辑的唯一底稿；保持原图尺寸和构图。')
+            if reference_entries:
+                captions.append(api_references.instructions(reference_entries, start=2 if purpose == 'repair' else 1))
+            prompt += '\n【实际参考图片及用途】\n' + '\n'.join(captions)
         prompt_path = f'{directory}/prompt.txt'
-        path = state.resolve(project, directory + '/job.json')
-        old = state.read_json(path) if path.exists() else None
-        legacy = old and old.get('route') == 'openai_image_api' and old.get('provider', 'grsai') == 'grsai'
         job = {'job_id': job_id, 'target_id': target, 'purpose': purpose, 'version': version,
-               'route': route, 'provider': 'grsai' if route == 'openai_image_api' else 'codex',
+               'route': route, 'provider': task_api['provider'] if route == 'openai_image_api' else 'codex',
                'prompt_path': prompt_path, 'prompt_sha256': hashlib.sha256(prompt.encode('utf-8')).hexdigest(),
                'references': files, 'input_versions': snapshots,
                'resolution_tier': 'high' if high else 'default',
@@ -256,10 +284,21 @@ def prepare(project, selection):
                                    'model': 'gpt-image-2-vip' if high else 'gpt-image-2.5',
                                    'aspectRatio': size, 'size': size, 'shutProgress': True},
                'status': 'pending', 'output_path': f'{directory}/image.png'}
-        if route == 'openai_image_api' and not legacy:
-            from . import image_toapis
-            job['provider'] = 'toapis'
-            job['image_api_input'] = image_toapis.job_options(selection, task, size)
+        if route == 'openai_image_api':
+            from . import image_providers
+            if task_api['provider'] == 'toapis':
+                from . import image_toapis
+                api_selection = dict(selection)
+                options = dict(selection.get('api_options', {}))
+                if task_api.get('model'):
+                    if any(override.get('model', task_api['model']) != task_api['model']
+                           for override in (options, task.get('api_options', {}))):
+                        raise ValueError('ToAPIs model differs from the selected API model')
+                    options['model'] = task_api['model']
+                api_selection['api_options'] = options
+                job['image_api_input'] = image_toapis.job_options(api_selection, task, size)
+            else:
+                job['image_api_input'] = image_providers.make_input(task_api['provider'], task_api.get('model'), size, high=high)
         if purpose == 'page':
             job['semantic_fingerprint'] = page_fingerprint(data, target)
             job['render_state'] = render_state
@@ -273,7 +312,7 @@ def prepare(project, selection):
         if run: job['run_id'] = run['run_id']
         if old is not None:
             equivalent = purpose == 'page' and all(old.get(k) == job.get(k) for k in
-                ('semantic_fingerprint', 'prompt_sha256', 'references', 'route', 'image_api_input', 'render_state'))
+                ('semantic_fingerprint', 'prompt_sha256', 'references', 'route', 'provider', 'image_api_input', 'render_state'))
             if old.get('input_digest') != job['input_digest'] and not equivalent:
                 raise ValueError('Task ID already has different inputs; create a new version')
             if old.get('status') == 'pending':
@@ -286,7 +325,7 @@ def prepare(project, selection):
         raise ValueError('Duplicate tasks in selection')
     providers = {job['provider'] for job, _, _ in pending}
     if len(providers) != 1:
-        raise ValueError('Prepare separate batches for existing Grsai and new ToAPIs tasks')
+        raise ValueError('Prepare separate batches for jobs with different providers')
     jobs = []
     for job, prompt, directory in pending:
         path = state.resolve(project, directory + '/job.json')
@@ -300,8 +339,8 @@ def prepare(project, selection):
     batch = {'batch_id': batch_id, 'jobs': jobs, 'route': route,
              'authorization_evidence': selection.get('authorization_evidence', ''),
              'concurrency': min(6, len(jobs)), 'timeout_seconds': 500}
-    if providers == {'toapis'}:
-        batch['provider'] = 'toapis'
+    if route == 'openai_image_api' and providers != {'grsai'}:
+        batch['provider'] = next(iter(providers))
     batch['path'] = f'_state/jobs/batch-{batch_id}.json'
     state.write_json(state.resolve(project, batch['path']), batch)
     return batch

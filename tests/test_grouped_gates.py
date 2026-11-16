@@ -785,6 +785,7 @@ class GroupedGateTests(unittest.TestCase):
                     self.setUp(); self.fixture()
                     self.approve_stories()
                     project = state.load_project(self.root); project['image_route'] = 'openai_image_api'
+                    project['image_provider'] = 'toapis'
                     state.write_json(state.resolve(self.root, '_state/project.json'), project)
                     state.record_approval(self.root, dict(targets=[self.ref(p) for p in
                         ('_state/math.json', '_state/story.json', '_state/assets.json')],
