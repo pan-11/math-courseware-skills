@@ -54,6 +54,17 @@ def parser():
     top = argparse.ArgumentParser(description='小学数学AI赋能课件：本地记录、生成任务、可编辑处理和导出')
     sub = top.add_subparsers(dest='command', required=True)
     sub.add_parser('doctor', help='Read-only environment check')
+    for operation in ('components', 'check', 'build', 'register', 'current', 'collect'):
+        p = sub.add_parser('classroom-trial-' + operation)
+        p.add_argument('--project', required=True, type=Path)
+        p.add_argument('--activation', required=True, choices=('课堂动画试用V1',))
+        if operation in ('components', 'check', 'build'):
+            p.add_argument('--plan', required=True, type=Path)
+        if operation in ('check', 'build'):
+            p.add_argument('--components-manifest', required=True)
+        if operation == 'register':
+            p.add_argument('--manifest', required=True)
+            p.add_argument('--checks', type=Path)
     for command in ('animation-inspect', 'animation-check', 'animation-build',
                     'animation-validate', 'animation-snapshot'):
         p = sub.add_parser(command)
@@ -130,6 +141,18 @@ def execute(args):
     if c == 'doctor':
         return checks.doctor()
     project = args.project.resolve()
+    if c.startswith('classroom-trial-'):
+        from runtime import classroom_trial
+        operation = c.removeprefix('classroom-trial-')
+        if operation == 'components':
+            return classroom_trial.components(project, state.read_json(args.plan), args.activation)
+        if operation in ('check', 'build'):
+            return getattr(classroom_trial, operation)(project, state.read_json(args.plan),
+                                                       args.components_manifest, args.activation)
+        if operation == 'register':
+            return classroom_trial.register(project, args.manifest, args.activation,
+                                            checks=state.read_json(args.checks) if args.checks else None)
+        return getattr(classroom_trial, operation)(project, args.activation)
     if c.startswith('animation-'):
         from runtime import classroom_animation, pptx_editor
         if c == 'animation-inspect':
@@ -189,8 +212,10 @@ def execute(args):
         return image_api.run_batch(project, batch, key, resume=c == 'image-resume')
     if c == 'editable-answers':
         from runtime import click_answers, editable_delivery
-        workflow.require(project, 'editable-build')
         plan = state.read_json(args.plan)
+        if plan.get('mode') == 'components_only':
+            raise ValueError('Use classroom-trial-components with explicit activation for a component intermediate')
+        workflow.require(project, 'editable-build')
         pages = state.read_json(state.resolve(project, '_state/pages.json')).get('pages', [])
         if set(plan.get('mapping', {})) != {p['page_id'] for p in pages}:
             raise ValueError('Inline answer scan must cover every page in the current refill scope')

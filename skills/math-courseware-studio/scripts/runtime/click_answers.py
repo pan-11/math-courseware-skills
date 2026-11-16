@@ -1,7 +1,8 @@
 """Immutable, native inline answers added to a retained faithful-restoration PPTX.
 
 OfficeCLI authors only a working copy. Original package bytes are retained except
-for the slides receiving new shapes and a verified extension of their timing.
+for slides receiving new shapes. Inline answers extend verified timing;
+components-only output preserves the entire original timing for later planning.
 Workflow authorization and final artifact selection belong to the calling host.
 """
 from copy import deepcopy
@@ -79,8 +80,11 @@ def _name(page_id, object_id):
 
 def _prepare(project, plan):
     editor._known_fields(plan, {'schema_version', 'source_deck', 'source_sha256', 'output', 'mapping',
-                               'source_versions', 'request', 'pages'}, 'inline answer plan')
+                               'source_versions', 'request', 'pages', 'mode'}, 'inline answer plan')
     _need(plan.get('schema_version') == VERSION, 'Unknown inline answer plan version')
+    mode = plan.get('mode', 'inline_answers')
+    _need(mode in ('inline_answers', 'components_only'), 'Unknown answer mode')
+    components_only = mode == 'components_only'
     _sources(project, plan)
     source = _file(project, plan['source_deck'])
     output = editor._inside(project, plan['output'])
@@ -165,8 +169,9 @@ def _prepare(project, plan):
             answer_text = _text(item.get('answer_text'), 'Answer text')
             _text(item.get('derivation'), 'Answer derivation')
             order = item.get('click_order')
-            _need(type(order) is int and order > 0, 'Positive integer click_order required')
-            clicks.append(order)
+            if not components_only or 'click_order' in item:
+                _need(type(order) is int and order > 0, 'Positive integer click_order required')
+                clicks.append(order)
             box = editor._box({'box': item.get('box')}, inventory['width_pt'], inventory['height_pt'])
             components = item.get('components')
             _need(isinstance(components, list) and bool(components), 'Answer components required')
@@ -217,14 +222,17 @@ def _prepare(project, plan):
                   'Answer components must preserve the logical answer text')
             value['components'] = actual
             normalized.append(value)
-        _need(sorted(clicks) == list(range(1, len(clicks) + 1)), 'Each logical answer needs one consecutive click_order')
+        if not components_only:
+            _need(sorted(clicks) == list(range(1, len(clicks) + 1)), 'Each logical answer needs one consecutive click_order')
         timing = original.find('p:timing', NS)
-        if clicks and timing is not None:
+        if not components_only and clicks and timing is not None:
             _main(timing)
+        answers = [i for i in normalized if i['disposition'] == 'answer']
         prepared.append({'page_id': page_id, 'index': index, 'part': slide['part'], 'original': original,
-                         'items': normalized, 'answers': sorted((i for i in normalized if i['disposition'] == 'answer'),
-                                                              key=lambda i: i['click_order'])})
-    return {'source': source, 'output': output, 'inventory': inventory, 'parts': parts,
+                         'items': normalized, 'answers': answers if components_only else
+                         sorted(answers, key=lambda i: i['click_order'])})
+    return {'source': source, 'output': output, 'inventory': inventory, 'parts': parts, 'mode': mode,
+            'mapping': deepcopy(plan['mapping']),
             'pages': sorted(prepared, key=lambda p: p['index'])}
 
 
@@ -300,6 +308,7 @@ def _timing_check(original, actual, answers):
 
 def _inspect(context, candidate):
     after = editor._parts(candidate)
+    components_only = context['mode'] == 'components_only'
     _need(set(after) == set(context['parts']), 'Output package parts changed')
     mapped = {p['part']: p for p in context['pages']}
     reports = []
@@ -317,7 +326,7 @@ def _inspect(context, candidate):
         _need(len(set(shape_ids)) == len(shape_ids), 'Duplicate output shape IDs')
         answers = []
         for item in page['answers']:
-            ids = []
+            ids, components = [], []
             for component in item['components']:
                 matches = [n for n in nodes if editor._identity(n).get('name') == component['name']]
                 _need(len(matches) == 1 and matches[0].getparent().tag == '{' + NS['p'] + '}spTree',
@@ -342,16 +351,23 @@ def _inspect(context, candidate):
                           and geometry is not None and geometry.get('prst') == 'rect'
                           and not (editor._text(node) or '').strip(), 'Fraction bar must remain native and correctly colored')
                 ids.append(int(editor._identity(node).get('id')))
-            answers.append({'blank_id': item['blank_id'], 'answer_text': item['answer_text'],
-                            'click_order': item['click_order'], 'shape_ids': ids,
-                            'colors': [c['font']['color'] for c in item['components']]})
-        old_clicks = (_timing_check(original, root, answers) if answers else
-                      len(original.findall(".//p:cTn[@nodeType='clickEffect']", NS)))
+                components.append({'shape_id': ids[-1], 'kind': component['kind'],
+                                   'text': component['text'], 'box': component['box']})
+            if components_only:
+                answers.append({'blank_id': item['blank_id'], 'answer_text': item['answer_text'],
+                                'components': components})
+            else:
+                answers.append({'blank_id': item['blank_id'], 'answer_text': item['answer_text'],
+                                'click_order': item['click_order'], 'shape_ids': ids,
+                                'colors': [c['font']['color'] for c in item['components']]})
+        if not components_only:
+            old_clicks = (_timing_check(original, root, answers) if answers else
+                          len(original.findall(".//p:cTn[@nodeType='clickEffect']", NS)))
         restored = deepcopy(root)
         for node in list(editor._shape_nodes(restored)):
             if editor._identity(node).get('name') in {c['name'] for a in page['answers'] for c in a['components']}:
                 node.getparent().remove(node)
-        if answers:
+        if answers and not components_only:
             changed_timing = restored.find('p:timing', NS)
             prior_timing = original.find('p:timing', NS)
             if prior_timing is None:
@@ -360,6 +376,12 @@ def _inspect(context, candidate):
                 restored.replace(changed_timing, deepcopy(prior_timing))
         _need(editor._xml_value(restored) == editor._xml_value(original),
               'Original shapes, layering or slide metadata changed')
+        for item in page['items']:
+            counts['answers' if item['disposition'] == 'answer' else item['disposition']] += 1
+        if components_only:
+            reports.append({'page_id': page['page_id'], 'slide_index': page['index'], 'answers': answers,
+                            'retained_blanks': [i for i in page['items'] if i['disposition'] != 'answer']})
+            continue
         states = [{'click_order': 0, 'absolute_click_index': 0, 'visible_shape_ids': []}]
         visible = []
         for item in answers:
@@ -367,11 +389,15 @@ def _inspect(context, candidate):
             item['absolute_click_index'] = old_clicks + item['click_order']
             states.append({'click_order': item['click_order'], 'absolute_click_index': item['absolute_click_index'],
                            'visible_shape_ids': list(visible)})
-        for item in page['items']:
-            counts['answers' if item['disposition'] == 'answer' else item['disposition']] += 1
         reports.append({'page_id': page['page_id'], 'slide_index': page['index'], 'existing_click_count': old_clicks,
                         'answers': answers, 'answer_states': states,
                         'retained_blanks': [i for i in page['items'] if i['disposition'] != 'answer']})
+    if components_only:
+        return {'mode': 'components_only', 'mapping': context['mapping'], 'ready_for_final': False,
+                'ready_for_animation': counts['ambiguous'] == 0, 'counts': counts, 'pages': reports,
+                'checks': {'source_unchanged': True, 'original_shapes_preserved': True,
+                           'original_timing_preserved': True, 'non_target_parts_preserved': True},
+                'playback': 'unverified'}
     return {'ready_for_final': counts['ambiguous'] == 0, 'counts': counts, 'pages': reports,
             'checks': {'source_unchanged': True, 'original_shapes_preserved': True,
                        'original_timing_preserved': True, 'non_target_parts_preserved': True,
@@ -399,9 +425,10 @@ def _commands(context):
                                  autoFit='none', align='center', valign='middle', lineSpacing='1.0x', margin='0pt,0pt,0pt,0pt')
                     props['font.ea'] = font['east_asian']
                 commands.append({'command': 'add', 'parent': f"/slide[{page['index']}]", 'type': 'shape', 'props': props})
-                commands.append({'command': 'add', 'parent': f"/slide[{page['index']}]/shape[@name={component['name']}]",
-                                 'type': 'animation', 'props': {'effect': 'appear', 'class': 'entrance', 'duration': '1',
-                                 'trigger': 'onClick' if index == 0 else 'withPrevious', 'delay': '0'}})
+                if context['mode'] != 'components_only':
+                    commands.append({'command': 'add', 'parent': f"/slide[{page['index']}]/shape[@name={component['name']}]",
+                                     'type': 'animation', 'props': {'effect': 'appear', 'class': 'entrance', 'duration': '1',
+                                     'trigger': 'onClick' if index == 0 else 'withPrevious', 'delay': '0'}})
     return commands
 
 
@@ -440,14 +467,15 @@ def _candidate(project, context):
                 _need(not any(k.startswith('{' + NS['r'] + '}') for n in matches[0].iter() for k in n.attrib),
                       'Answer shape unexpectedly requires a new package relationship')
                 root.find('p:cSld/p:spTree', NS).append(deepcopy(matches[0]))
-        timing = changed.find('p:timing', NS)
-        _need(timing is not None, 'OfficeCLI did not create native answer timing')
-        previous = root.find('p:timing', NS)
-        if previous is not None:
-            root.replace(previous, deepcopy(timing))
-        else:
-            extension = root.find('p:extLst', NS)
-            root.insert(root.index(extension) if extension is not None else len(root), deepcopy(timing))
+        if context['mode'] != 'components_only':
+            timing = changed.find('p:timing', NS)
+            _need(timing is not None, 'OfficeCLI did not create native answer timing')
+            previous = root.find('p:timing', NS)
+            if previous is not None:
+                root.replace(previous, deepcopy(timing))
+            else:
+                extension = root.find('p:extLst', NS)
+                root.insert(root.index(extension) if extension is not None else len(root), deepcopy(timing))
         patched[page['part']] = ET.tostring(root, xml_declaration=True, encoding='UTF-8', standalone=True)
     candidate = work_dir / 'candidate.pptx'
     with zipfile.ZipFile(context['source']) as source, zipfile.ZipFile(candidate, 'w') as target:
@@ -475,7 +503,8 @@ def build(project, plan):
         output.parent.mkdir(parents=True, exist_ok=True)
         _write_new(plan_path, plan)
     if manifest_path.exists():
-        return validate_final(project, state.relative_path(project, manifest_path))
+        validate = validate_components if context['mode'] == 'components_only' else validate_final
+        return validate(project, state.relative_path(project, manifest_path))
     recovered = output.exists()
     work_directory = None
     if recovered:
@@ -505,6 +534,15 @@ def build(project, plan):
 
 def validate_final(project, manifest):
     """Re-read plan, bound sources and actual PPTX XML; never trust a ready flag."""
+    return _validate(project, manifest, 'inline_answers')
+
+
+def validate_components(project, manifest_ref):
+    """Verify retained answer components without claiming click or final readiness."""
+    return _validate(project, manifest_ref, 'components_only')
+
+
+def _validate(project, manifest, mode):
     project = Path(project).resolve()
     if isinstance(manifest, dict):
         editor._known_fields(manifest, {'path', 'sha256'}, 'manifest reference')
@@ -521,6 +559,8 @@ def validate_final(project, manifest):
     plan = state.read_json(plan_path)
     _need(editor._digest(plan) == data.get('plan_sha256'), 'Manifest plan digest differs')
     context = _prepare(project, plan)
+    _need(context['mode'] == mode, 'Answer mode differs; use the matching component or final validator')
+    _need(data.get('mode', 'inline_answers') == mode, 'Manifest answer mode differs from immutable plan')
     output = context['output']
     _need(plan_path == output.with_suffix('.plan.json') and path == output.with_suffix('.manifest.json'),
           'Manifest/plan must remain beside their immutable output')

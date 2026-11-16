@@ -149,6 +149,8 @@ def _existing_targets(timing):
 
 def inspect(source_path):
     """Read exact native object IDs, paragraph indices and existing targets."""
+    from .classroom_inspect import inspect_timing
+
     source = Path(source_path)
     before = editor.sha256(source)
     parts = editor._parts(source)
@@ -161,7 +163,8 @@ def inspect(source_path):
                        'has_existing_timing': timing is not None,
                        'existing_targets': _existing_targets(timing),
                        'timing_sha256': editor._digest(editor._xml_value(timing)),
-                       'existing_interactive_sequences': len(root.findall(".//p:cTn[@nodeType='interactiveSeq']", NS))})
+                       'existing_interactive_sequences': len(root.findall(".//p:cTn[@nodeType='interactiveSeq']", NS)),
+                       'timeline': inspect_timing(root)})
     _need(editor.sha256(source) == before, 'Source changed during inspection')
     return {'source_sha256': before, 'slides': slides,
             'media': {n: hashlib.sha256(v).hexdigest() for n, v in parts.items() if n.startswith('ppt/media/')},

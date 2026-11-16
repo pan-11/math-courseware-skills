@@ -5,6 +5,8 @@ description: Prepare Canva layer-splitting handoffs and edit returned layered ma
 
 # 可画拆层与可编辑PPT
 
+**可选动画版本：** 用户明确用口令 `课堂动画试用V1` 启用当前任务时，先读[试用V1](references/classroom-trial-v1.md)，使用“答案组件→统一课堂计划→试用当前PPT”入口；封面标题由用户手动处理。口令只绑定当前任务及其续作，新任务没给口令继续下述原流程，不从历史报告或已有试用文件自动激活。
+
 显式 `grouped_creative_v2` 或已有 `grouped_creative_v1` 的full_course自动run，按[D1最终清单](../math-courseware-autopilot/references/grouped-creative-review.md)在C6展示整套真实可编辑结果与具体限制，不另排H19；H23再以同版实机报告检查独立文字/教学图形、视频区/分层、字体换行遮挡及全课使用效果。保留全部A/B选择、去字、可画往返、实际成片与播放门槛；其他模式不变。
 
 先按[每课五目录规范](../math-courseware-studio/references/workspace-layout.md)读取用户已给定的课程根与实际布局。本入口的文件操作和交付链接使用映射后的实际路径，记录沿用逻辑路径；新课工作产物进入中间文件，已有课不自动迁移。
