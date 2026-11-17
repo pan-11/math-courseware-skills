@@ -21,7 +21,7 @@ ET = editor.ET
 ROLES = {'context', 'question', 'evidence', 'answer', 'explanation', 'conclusion', 'marker'}
 KINDS = {'text', 'fraction', 'code', 'diagram', 'group'}
 PURPOSES = {'answer', 'notation_instruction', 'observation', 'explanation'}
-ENTRANCES = {'appear', 'fade', 'wipe'}
+ENTRANCES = {'appear', 'fade', 'wipe', 'peek', 'stretch', 'random_bars', 'wheel'}
 EXITS = {'disappear', 'fade_out'}
 
 
@@ -73,7 +73,7 @@ def _sources(project, plan):
 
 def _instruction(project, plan):
     request = plan['request']
-    _fields(request, {'user_instruction', 'evidence_ref'}, set(), 'request')
+    _fields(request, {'user_instruction', 'evidence_ref'}, {'activation_ref'}, 'request')
     instruction = _text(request['user_instruction'], 'Actual user instruction')
     evidence = request['evidence_ref']
     _fields(evidence, {'path', 'sha256'}, set(), 'instruction evidence')
@@ -96,6 +96,13 @@ def _instruction(project, plan):
         return isinstance(value, list) and any(contains(v) for v in value)
 
     _need(contains(decoded), 'Actual instruction is absent from the locked evidence')
+    if 'activation_ref' in request:
+        activation = request['activation_ref']
+        _fields(activation, {'path', 'sha256'}, set(), 'activation reference')
+        _text(activation['path'], 'activation reference path')
+        _need(plan['source_versions'].get(activation['path']) == activation['sha256']
+              and editor.sha256(_file(project, activation['path'])) == activation['sha256'],
+              'Activation reference must match its locked source hash')
 
 
 def _paragraphs(node):
@@ -116,6 +123,7 @@ def _objects(root):
         objects[sid] = {'node': node, 'shape_id': sid, 'name': identity.get('name'),
                         'type': editor._local(node), 'text': editor._text(node),
                         'paragraphs': _paragraphs(node),
+                        'is_media': any(editor._local(n) in {'videoFile', 'audioFile', 'media'} for n in node.iter()),
                         'ancestors': [int(editor._identity(p).get('id')) for p in parents],
                         'hidden': any(editor._identity(p).get('hidden') in {'1', 'true'}
                                       for p in [node, *parents])}
@@ -234,6 +242,7 @@ def _units(page, objects, label):
 
 
 def _steps(page, units, objects, label):
+    from .classroom_timing import _replay
     _need(isinstance(page['steps'], list), label + ': steps must be an explicit list')
     if not page['steps']:
         _text(page.get('static_reason'), label + ' static_reason')
@@ -242,6 +251,7 @@ def _steps(page, units, objects, label):
     visible = {uid for uid, unit in units.items() if unit['initial_visible']}
     states = [{'step_id': None, 'click_index': 0, 'visible_units': sorted(visible), 'emphasized_units': []}]
     normalized, step_ids, touched, emphasized = [], set(), set(), set()
+    entered = set()
     for position, step in enumerate(page['steps'], 1):
         _fields(step, {'step_id', 'pause_reason', 'actions'}, set(), label + ' step')
         sid = _id(step['step_id'], label + ' step_id')
@@ -252,7 +262,9 @@ def _steps(page, units, objects, label):
         _need(isinstance(step['actions'], list) and bool(step['actions']), where + ': empty click actions')
         actions, last_end, previous_start, previous_end = [], {}, 0, 0
         for index, action in enumerate(step['actions']):
-            _fields(action, {'unit_id', 'effect', 'trigger'}, {'duration_ms', 'delay_ms', 'direction', 'scale'}, where + ' action')
+            _fields(action, {'unit_id', 'effect', 'trigger'},
+                    {'duration_ms', 'delay_ms', 'direction', 'scale', 'orientation', 'spokes', 'replay',
+                     'visibility_duration_ms', 'phase_start_ms'}, where + ' action')
             uid, effect, trigger = action['unit_id'], action['effect'], action['trigger']
             _need(isinstance(uid, str) and uid in units, where + ': unknown unit_id')
             _need(isinstance(effect, str) and effect in ENTRANCES | EXITS | {'emphasize'}, where + ': unsupported effect')
@@ -263,11 +275,24 @@ def _steps(page, units, objects, label):
             _need(type(duration) is int and 1 <= duration <= 5000, where + ': duration_ms must be 1..5000')
             _need(type(delay) is int and 0 <= delay <= 2000, where + ': delay_ms must be 0..2000')
             value = {**action, 'duration_ms': duration, 'delay_ms': delay}
-            if effect == 'wipe':
+            if effect in {'wipe', 'peek'}:
                 _need(isinstance(action.get('direction'), str) and action['direction'] in {'left', 'right', 'up', 'down'},
-                      where + ': wipe requires direction')
+                      where + ': reveal requires direction')
             else:
-                _need('direction' not in action, where + ': direction only applies to wipe')
+                _need('direction' not in action, where + ': direction only applies to wipe/peek')
+            if effect in {'stretch', 'random_bars'}:
+                _need(action.get('orientation') == 'horizontal', where + ': only the verified horizontal orientation is supported')
+            else:
+                _need('orientation' not in action, where + ': orientation only applies to stretch/random_bars')
+            if effect == 'wheel':
+                _need(type(action.get('spokes')) is int and action['spokes'] == 1,
+                      where + ': only the verified one-spoke wheel is supported')
+                _need(type(action.get('visibility_duration_ms', duration)) is int
+                      and 1 <= action.get('visibility_duration_ms', duration) <= duration,
+                      where + ': wheel visibility_duration_ms must be 1..duration_ms')
+            else:
+                _need('spokes' not in action, where + ': spokes only applies to wheel')
+                _need('visibility_duration_ms' not in action, where + ': visibility_duration_ms only applies to wheel')
             if effect == 'emphasize':
                 scale = action.get('scale', 1.25)
                 _need(type(scale) in (int, float) and math.isfinite(scale) and 1 < scale <= 2,
@@ -278,10 +303,16 @@ def _steps(page, units, objects, label):
             else:
                 _need('scale' not in action, where + ': scale only applies to emphasize')
             start = delay + (previous_end if trigger == 'after_previous' else previous_start if trigger == 'with_previous' else 0)
+            if 'phase_start_ms' in action:
+                _need(trigger == 'after_previous', where + ': phase_start_ms only applies to after_previous')
+                _need(type(action['phase_start_ms']) is int and 0 <= action['phase_start_ms'] <= start,
+                      where + ': phase_start_ms must be nonnegative and no later than the action start')
             _need(uid not in last_end or start >= last_end[uid], where + ': overlapping actions on the same unit')
+            replay = _replay(action, units[uid], visible, entered, where)
             if effect in ENTRANCES:
-                _need(uid not in visible, where + ': repeated entrance on an already visible unit')
+                _need(uid not in visible or replay, where + ': repeated entrance on an already visible unit')
                 visible.add(uid)
+                entered.add(uid)
             elif effect in EXITS:
                 _need(uid in visible, where + ': exit requires a visible unit')
                 visible.remove(uid)
@@ -302,10 +333,17 @@ def _steps(page, units, objects, label):
 
 def _prepare(project, plan):
     _fields(plan, {'schema_version', 'mode', 'source_deck', 'source_sha256', 'source_versions',
-                   'output', 'request', 'mapping', 'pages'}, set(), 'classroom animation plan')
+                   'output', 'request', 'mapping', 'pages'}, {'teaching_contract'}, 'classroom animation plan')
     _need(plan['schema_version'] == VERSION and plan['mode'] == 'classroom', 'Unknown classroom plan version or mode')
     _sources(project, plan)
     _instruction(project, plan)
+    if 'teaching_contract' in plan:
+        reference = plan['teaching_contract']
+        _fields(reference, {'path', 'sha256'}, set(), 'teaching contract reference')
+        _text(reference['path'], 'teaching contract path')
+        _need(reference['path'] in plan['source_versions']
+              and plan['source_versions'][reference['path']] == reference['sha256'],
+              'Teaching contract must be bound in source_versions')
     source, output = _file(project, plan['source_deck']), _path(project, plan['output'])
     protected = {output, output.with_suffix('.plan.json'), output.with_suffix('.manifest.json')}
     _need(output.suffix.lower() == '.pptx' and all(_file(project, p) not in protected for p in plan['source_versions']),
@@ -321,7 +359,7 @@ def _prepare(project, plan):
     pages = []
     for page in plan['pages']:
         _fields(page, {'page_id', 'teaching_goal', 'student_action', 'basis', 'initial_reason', 'units', 'steps', 'existing_policy'},
-                {'existing_reason', 'static_reason'}, 'classroom page')
+                {'existing_reason', 'static_reason', 'retime'}, 'classroom page')
         label = _id(page['page_id'], 'page_id')
         for name in ('teaching_goal', 'student_action', 'initial_reason'):
             _text(page[name], label + ' ' + name)
@@ -329,12 +367,14 @@ def _prepare(project, plan):
         _text(page['basis']['path'], label + ' basis path')
         _need(page['basis']['path'] in plan['source_versions'], label + ': page basis must be a bound source')
         _text(page['basis']['locator'], label + ' basis locator')
-        _need(isinstance(page['existing_policy'], str) and page['existing_policy'] in {'reject_conflicts', 'append_after_existing'},
+        _need(isinstance(page['existing_policy'], str) and page['existing_policy'] in {'reject_conflicts', 'append_after_existing', 'replace_managed'},
               label + ': unknown existing_policy')
         if page['existing_policy'] == 'append_after_existing':
             _text(page.get('existing_reason'), label + ' existing_reason')
         elif 'existing_reason' in page:
             _need(False, label + ': existing_reason requires append_after_existing')
+        _need(('retime' in page) == (page['existing_policy'] == 'replace_managed'),
+              label + ': retime requires explicit replace_managed policy')
         index = plan['mapping'][label]
         part = slide_parts[index - 1]
         original = editor._parse(parts[part])
@@ -342,18 +382,23 @@ def _prepare(project, plan):
         units = _units(page, objects, label)
         steps, states = _steps(page, units, objects, label)
         previous = original.find('p:timing', NS)
-        existing_targets = _existing_targets(previous)
+        retained, retiming = previous, None
+        if page['existing_policy'] == 'replace_managed':
+            from .classroom_retime import replace_managed
+            retained, retiming = replace_managed(previous, page['retime'], units, objects)
+        existing_targets = _existing_targets(retained)
         for uid, unit in units.items():
             _need(not any(_overlap(t, existing, objects) for t in unit['targets'] for existing in existing_targets),
                   label + ' unit ' + uid + ': existing animation ownership conflict')
         if steps and previous is not None:
-            _need(page['existing_policy'] == 'append_after_existing',
+            _need(page['existing_policy'] in {'append_after_existing', 'replace_managed'},
                   label + ': existing timing requires explicit append_after_existing and existing_reason')
         from .classroom_timing import compile_timing
-        timing = compile_timing(previous, steps, units) if steps else deepcopy(previous)
+        timing = compile_timing(retained, steps, units) if steps else deepcopy(retained)
         pages.append({'page_id': label, 'slide_index': index, 'part': part, 'original': original,
                       'objects': objects, 'units': units, 'steps': steps, 'states': states,
-                      'existing_timing': previous, 'timing': timing})
+                      'existing_timing': previous, 'timing': timing, 'retiming': retiming,
+                      'timing_changed': editor._xml_value(previous) != editor._xml_value(timing)})
     _sources(project, plan)
     return {'project': project, 'source': source, 'output': output, 'parts': parts,
             'pages': sorted(pages, key=lambda p: p['slide_index'])}
@@ -366,7 +411,8 @@ def _summary(context):
                        'click_count': len(p['steps']), 'states': p['states'],
                        'has_existing_timing': p['existing_timing'] is not None,
                        'existing_targets': _existing_targets(p['existing_timing']),
-                       'managed_units': list(p['units'].values())} for p in context['pages']]}
+                       'managed_units': list(p['units'].values()),
+                       **({'retiming': p['retiming']} if p['retiming'] is not None else {})} for p in context['pages']]}
 
 
 def check(project, plan):
@@ -377,13 +423,16 @@ def check(project, plan):
 def _patched(context):
     patched = {}
     for page in context['pages']:
-        if not page['steps']:
+        if not page['timing_changed']:
             continue
         root = deepcopy(page['original'])
         old = root.find('p:timing', NS)
         if old is not None:
-            root.replace(old, deepcopy(page['timing']))
-        else:
+            if page['timing'] is None:
+                root.remove(old)
+            else:
+                root.replace(old, deepcopy(page['timing']))
+        elif page['timing'] is not None:
             extension = root.find('p:extLst', NS)
             root.insert(root.index(extension) if extension is not None else len(root), deepcopy(page['timing']))
         patched[page['part']] = ET.tostring(root, xml_declaration=True, encoding='UTF-8', standalone=True)
@@ -404,7 +453,7 @@ def _package(context, patched):
 def _verify(context, candidate):
     after = editor._parts(candidate)
     _need(set(after) == set(context['parts']), 'Output package parts changed')
-    mapped = {p['part']: p for p in context['pages'] if p['steps']}
+    mapped = {p['part']: p for p in context['pages'] if p['timing_changed']}
     for part, data in context['parts'].items():
         page = mapped.get(part)
         if page is None:
@@ -414,12 +463,15 @@ def _verify(context, candidate):
         actual = root.find('p:timing', NS)
         _need(editor._xml_value(actual) == editor._xml_value(page['timing']),
               page['page_id'] + ': timing differs from deterministic plan compilation')
-        _need(len(root.findall('p:timing', NS)) == 1, page['page_id'] + ': duplicate timing')
+        _need(len(root.findall('p:timing', NS)) == (0 if page['timing'] is None else 1),
+              page['page_id'] + ': duplicate or unexpected timing')
         old = page['original'].find('p:timing', NS)
-        if old is None:
+        if old is None and actual is not None:
             root.remove(actual)
-        else:
+        elif old is not None and actual is not None:
             root.replace(actual, deepcopy(old))
+        elif old is not None:
+            root.insert(list(page['original']).index(old), deepcopy(old))
         _need(editor._xml_value(root) == editor._xml_value(page['original']),
               page['page_id'] + ': original shapes/layout/media/slide metadata changed')
     return {**_summary(context), 'checks': {'source_unchanged': True, 'slide_content_preserved': True,

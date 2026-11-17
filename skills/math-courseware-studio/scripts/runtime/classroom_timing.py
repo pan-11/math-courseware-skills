@@ -14,10 +14,14 @@ from .click_answers import EMPTY_TIMING
 
 NS, ET = editor.NS, editor.ET
 P = '{' + NS['p'] + '}'
-EFFECTS = {'appear', 'fade', 'wipe', 'disappear', 'fade_out', 'emphasize'}
+EFFECTS = {'appear', 'fade', 'wipe', 'peek', 'stretch', 'random_bars', 'wheel',
+           'disappear', 'fade_out', 'emphasize'}
 TRIGGERS = {'on_click': 'clickEffect', 'with_previous': 'withEffect', 'after_previous': 'afterEffect'}
 # Wipe subtypes describe the revealed edge, whereas the filter names its motion.
 WIPE_SUBTYPES = {'left': '2', 'right': '8', 'up': '1', 'down': '4'}
+# Native Peek uses the origin edge; its motion/filter points toward the slide.
+PEEK_SUBTYPES = {'down': '1', 'left': '2', 'up': '4', 'right': '8'}
+ENTRANCES = EFFECTS - {'disappear', 'fade_out', 'emphasize'}
 
 
 def _need(condition, message):
@@ -48,9 +52,23 @@ def _target(behavior, target):
         _node(_node(shape, 'txEl'), 'pRg', st=target['paragraph'], end=target['paragraph'])
 
 
+def _replay(action, unit, visible, entered, label):
+    """Retain an explicit repeated entrance declaration; playback stays unverified."""
+    if 'replay' not in action:
+        return False
+    uid = action['unit_id']
+    _need(action['replay'] is True, label + ': replay must be the boolean true')
+    _need(action['effect'] in ENTRANCES, label + ': replay only applies to entrance effects')
+    _need(not unit['initial_visible'] and uid in visible and uid in entered,
+          label + ': replay requires a visible, originally hidden unit previously entered by this plan')
+    return True
+
+
 def _checked(steps, units):
     _need(isinstance(steps, list) and isinstance(units, dict), 'Steps and units must be a list and mapping')
     normalized = []
+    visible = {uid for uid, unit in units.items() if isinstance(unit, dict) and unit.get('initial_visible') is True}
+    entered = set()
     for step_index, step in enumerate(steps):
         _need(isinstance(step, dict), 'Step must be an object')
         editor._known_fields(step, {'step_id', 'pause_reason', 'actions'}, 'classroom step')
@@ -62,7 +80,8 @@ def _checked(steps, units):
         for index, action in enumerate(actions):
             _need(isinstance(action, dict), label + ': action must be an object')
             editor._known_fields(action, {'unit_id', 'effect', 'trigger', 'duration_ms', 'delay_ms',
-                                          'direction', 'scale'}, label + ' action')
+                                          'direction', 'scale', 'orientation', 'spokes', 'replay',
+                                          'visibility_duration_ms', 'phase_start_ms'}, label + ' action')
             uid = action.get('unit_id')
             _need(isinstance(uid, str) and uid in units, label + ': unknown unit')
             unit = units[uid]
@@ -91,20 +110,44 @@ def _checked(steps, units):
             delay = action.get('delay_ms', 0)
             _need(type(duration) is int and 1 <= duration <= 5000, label + ': invalid duration_ms')
             _need(type(delay) is int and 0 <= delay <= 2000, label + ': invalid delay_ms')
-            if effect == 'wipe':
+            if effect in {'wipe', 'peek'}:
                 _need(isinstance(action.get('direction'), str) and action['direction'] in WIPE_SUBTYPES,
-                      label + ': wipe direction must be left/right/up/down')
+                      label + ': reveal direction must be left/right/up/down')
             else:
-                _need('direction' not in action, label + ': direction is only supported for wipe')
+                _need('direction' not in action, label + ': direction is only supported for wipe/peek')
+            if effect in {'stretch', 'random_bars'}:
+                _need(action.get('orientation') == 'horizontal', label + ': only the verified horizontal orientation is supported')
+            else:
+                _need('orientation' not in action, label + ': orientation only applies to stretch/random_bars')
+            if effect == 'wheel':
+                _need(type(action.get('spokes')) is int and action['spokes'] == 1,
+                      label + ': only the verified one-spoke wheel is supported')
+                _need(type(action.get('visibility_duration_ms', duration)) is int
+                      and 1 <= action.get('visibility_duration_ms', duration) <= duration,
+                      label + ': wheel visibility_duration_ms must be 1..duration_ms')
+            else:
+                _need('spokes' not in action, label + ': spokes only applies to wheel')
+                _need('visibility_duration_ms' not in action, label + ': visibility_duration_ms only applies to wheel')
             if effect == 'emphasize':
                 scale = action.get('scale', 1.25)
                 _need(type(scale) in {int, float} and math.isfinite(scale) and 1 < scale <= 2,
                       label + ': invalid font scale')
             else:
                 _need('scale' not in action, label + ': scale is only supported for emphasize')
+            replay = _replay(action, unit, visible, entered, label)
+            if effect in ENTRANCES:
+                _need(uid not in visible or replay, label + ': repeated entrance on an already visible unit')
+                visible.add(uid)
+                entered.add(uid)
+            elif effect in {'disappear', 'fade_out'}:
+                visible.discard(uid)
             start = delay if trigger == 'on_click' else previous_start + delay
             if trigger == 'after_previous':
                 start += previous_duration
+            if 'phase_start_ms' in action:
+                _need(trigger == 'after_previous', label + ': phase_start_ms only applies to after_previous')
+                _need(type(action['phase_start_ms']) is int and 0 <= action['phase_start_ms'] <= start,
+                      label + ': phase_start_ms must be nonnegative and no later than the action start')
             checked_actions.append({**action, 'duration_ms': duration, 'start_ms': start})
             previous_start, previous_duration = start, duration
         normalized.append(checked_actions)
@@ -208,8 +251,12 @@ class _Compiler:
     def effect(self, parent, action, target, target_index):
         effect, duration = action['effect'], action['duration_ms']
         category = 'exit' if effect in {'disappear', 'fade_out'} else ('emph' if effect == 'emphasize' else 'entr')
-        preset = {'appear': '1', 'disappear': '1', 'fade': '10', 'fade_out': '10', 'wipe': '22', 'emphasize': '4'}[effect]
-        subtype = WIPE_SUBTYPES[action['direction']] if effect == 'wipe' else ('2' if effect == 'emphasize' else '0')
+        preset = {'appear': '1', 'disappear': '1', 'fade': '10', 'fade_out': '10', 'wipe': '22',
+                  'peek': '12', 'stretch': '17', 'random_bars': '14', 'wheel': '21', 'emphasize': '4'}[effect]
+        subtype = (WIPE_SUBTYPES[action['direction']] if effect == 'wipe' else
+                   PEEK_SUBTYPES[action['direction']] if effect == 'peek' else
+                   '10' if effect in {'stretch', 'random_bars'} else
+                   '1' if effect == 'wheel' else '2' if effect == 'emphasize' else '0')
         node = self._ctn(_node(parent, 'par'), presetID=preset, presetClass=category,
                          presetSubtype=subtype, fill='hold', grpId=self._build(target),
                          nodeType=TRIGGERS[action['trigger']] if target_index == 0 else 'withEffect')
@@ -224,13 +271,36 @@ class _Compiler:
             _node(_node(behavior, 'attrNameLst'), 'attrName').text = 'style.fontSize'
         else:
             if category == 'entr':
-                self._visibility(children, target, True)
-            animation = _node(children, 'animEffect', transition='out' if category == 'exit' else 'in',
-                              filter='wipe(' + action['direction'] + ')' if effect == 'wipe' else 'fade')
-            self._behavior(animation, target, duration)
+                self._visibility(children, target, True, action.get('visibility_duration_ms', duration) if effect == 'wheel' else 1)
+            if effect == 'stretch':
+                self._keyframes(children, target, duration, 'ppt_w', 0, '#ppt_w', hold=True)
+                self._keyframes(children, target, duration, 'ppt_h', '#ppt_h', '#ppt_h', hold=True)
+            else:
+                if effect == 'peek':
+                    horizontal = action['direction'] in {'left', 'right'}
+                    prop, size = ('ppt_x', 'ppt_w') if horizontal else ('ppt_y', 'ppt_h')
+                    sign = '-' if action['direction'] in {'down', 'right'} else '+'
+                    self._keyframes(children, target, duration, prop, '#' + prop + sign + '#' + size + '*1.125000',
+                                    '#' + prop, additive='base')
+                filter_ = ('wipe(' + action['direction'] + ')' if effect in {'wipe', 'peek'} else
+                           'randombar(horizontal)' if effect == 'random_bars' else
+                           'wheel(1)' if effect == 'wheel' else 'fade')
+                animation = _node(children, 'animEffect', transition='out' if category == 'exit' else 'in', filter=filter_)
+                self._behavior(animation, target, duration)
             if category == 'exit':
                 # Native exit samples persist hidden at the final millisecond.
                 self._visibility(children, target, False, delay=duration - 1)
+
+    def _keyframes(self, parent, target, duration, property_, start, end, hold=False, **attributes):
+        # Scalar behaviors reconstructed from native Office-authored examples;
+        # no reference-deck timing XML or shape IDs are transplanted.
+        animation = _node(parent, 'anim', calcmode='lin', valueType='num')
+        behavior = self._behavior(animation, target, duration, hold=hold, **attributes)
+        _node(_node(behavior, 'attrNameLst'), 'attrName').text = property_
+        values = _node(animation, 'tavLst')
+        for time, value in ((0, start), (100000, end)):
+            container = _node(_node(values, 'tav', tm=time), 'val')
+            _node(container, 'strVal' if isinstance(value, str) else 'fltVal', val=value)
 
     def add_step(self, actions, units):
         click = self._ctn(_node(self.main, 'par'), fill='hold')
@@ -238,9 +308,17 @@ class _Compiler:
         simultaneous = self._ctn(_node(_node(click, 'childTnLst'), 'par'), fill='hold')
         _start(simultaneous, 0)
         children = _node(simultaneous, 'childTnLst')
+        phase_start = 0
         for action in actions:
+            if 'phase_start_ms' in action:
+                phase_start = action['phase_start_ms']
+                simultaneous = self._ctn(_node(click.find('p:childTnLst', NS), 'par'), fill='hold')
+                _start(simultaneous, phase_start)
+                children = _node(simultaneous, 'childTnLst')
+            local_action = {**action, 'start_ms': action['start_ms'] - phase_start}
+            _need(local_action['start_ms'] >= 0, 'Action begins before its declared native phase')
             for target_index, target in enumerate(units[action['unit_id']]['targets']):
-                self.effect(children, action, target, target_index)
+                self.effect(children, local_action, target, target_index)
 
 
 def compile_timing(original_timing, steps, units):
@@ -249,6 +327,8 @@ def compile_timing(original_timing, steps, units):
     Inputs are already semantically checked against their slide by the planner.
     on_click creates one manual boundary; with_previous is relative to the prior
     action's start, after_previous to its end. All targets of one unit are parallel.
+    Explicit phase_start_ms opens a sibling native phase without changing the
+    absolute action offset. Its absence preserves historical flat timing trees.
     """
     actions = _checked(steps, units)
     _need(original_timing is None or isinstance(original_timing, ET._Element)

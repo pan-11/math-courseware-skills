@@ -23,7 +23,47 @@ def register_base(root, plan):
         'source_versions': plan['source_versions'], 'intermediate': True, 'refill_stage': 'base'})
 
 
-def classroom_plan(component_report, component_plan):
+def bind_teaching_contract(root, plan, name='teaching-contract.json'):
+    from runtime import classroom_teaching_contract
+    inventory = trial.classroom_animation.inspect(state.resolve(root, plan['source_deck']))
+    contract = {'schema_version': classroom_teaching_contract.VERSION,
+        'source': {'path': plan['source_deck'], 'sha256': plan['source_sha256']},
+        'basis': {'path': 'inputs/answer-basis.json', 'sha256': plan['source_versions']['inputs/answer-basis.json']},
+        'mapping': plan['mapping'], 'pages': []}
+    for page in plan['pages']:
+        objects = {o['shape_id']: o for o in inventory['slides'][plan['mapping'][page['page_id']] - 1]['objects']}
+        targets = [t for u in page['units'] for t in u['targets']]
+        for obj in objects.values():
+            target = {'shape_id': obj['shape_id'], 'expected_text': obj['text']}
+            if obj['type'] != 'grpSp' and (obj['text'] or '').strip() and not any(
+                    trial.classroom_animation._overlap(target, t, objects) for t in targets):
+                page['units'].append({'unit_id': 'static-shape-' + str(obj['shape_id']), 'role': 'context',
+                    'kind': 'text', 'purpose': 'observation', 'initial_visible': True, 'targets': [target]})
+                targets.append(target)
+        retained = []
+        retained_targets = []
+        for obj in objects.values():
+            target = {'shape_id': obj['shape_id'], 'expected_text': obj['text']}
+            if any(trial.classroom_animation._overlap(target, t, objects) for t in targets + retained_targets):
+                continue
+            retained.append({'category': 'background', 'reason': 'Synthetic source context; intentionally static in this fixture',
+                             'targets': [target]})
+            retained_targets.append(target)
+        entry = {'page_id': page['page_id'], 'page_type': 'teaching' if page['steps'] else 'activity_static',
+                 'managed_units': [{k: copy.deepcopy(u[k]) for k in ('unit_id', 'initial_visible', 'targets')}
+                                   for u in page['units']],
+                 'retained_objects': retained, 'expected_steps': copy.deepcopy(page['steps'])}
+        if not page['steps']:
+            entry['static_reason'] = 'Synthetic activity has no new determinate answer or teaching reveal'
+        contract['pages'].append(entry)
+    relative = 'inputs/' + name
+    state.write_json(state.resolve(root, relative), contract)
+    plan['teaching_contract'] = {'path': relative, 'sha256': state.sha256(state.resolve(root, relative))}
+    plan['source_versions'][relative] = plan['teaching_contract']['sha256']
+    return plan
+
+
+def classroom_plan(component_report, component_plan, root):
     pages = []
     for page in component_report['pages']:
         units, steps = [], []
@@ -47,12 +87,13 @@ def classroom_plan(component_report, component_plan):
         if not steps:
             entry['static_reason'] = 'No determinate new answers on this scanned page'
         pages.append(entry)
-    return {'schema_version': 'classroom_animation_v1', 'mode': 'classroom',
+    plan = {'schema_version': 'classroom_animation_v1', 'mode': 'classroom',
             'source_deck': component_report['output'], 'source_sha256': component_report['output_sha256'],
             'source_versions': {**component_plan['source_versions'],
                                 component_report['output']: component_report['output_sha256']},
             'output': 'editable/output/classroom.pptx', 'request': copy.deepcopy(component_plan['request']),
             'mapping': component_report['mapping'], 'pages': pages}
+    return bind_teaching_contract(root, plan)
 
 
 class ClassroomTrialActivationTests(unittest.TestCase):
@@ -84,11 +125,12 @@ class ClassroomTrialIntegrationTests(unittest.TestCase):
             cls.component_plan['pages'][0]['items'].append(retained)
         register_base(cls.seed, cls.component_plan)
         cls.component_report = trial.components(cls.seed, cls.component_plan, trial.ACTIVATION)
-        cls.plan = classroom_plan(cls.component_report, cls.component_plan)
+        cls.plan = classroom_plan(cls.component_report, cls.component_plan, cls.seed)
         legacy_plan = copy.deepcopy(cls.component_plan)
         legacy_plan['output'] = 'editable/output/legacy.pptx'
         cls.legacy = click_answers.build(cls.seed, legacy_plan)
         cls.copy_paths = set(cls.component_plan['source_versions'])
+        cls.copy_paths.add(cls.plan['teaching_contract']['path'])
         for report in (cls.component_report, cls.legacy):
             cls.copy_paths.update((report['output'], report['plan']['path'], report['manifest']))
         print('TRIAL_SYNTHETIC_SEED=' + str(cls.seed), flush=True)
@@ -180,7 +222,7 @@ class ClassroomTrialIntegrationTests(unittest.TestCase):
                     'targets': [{'shape_id': obj['shape_id'], 'expected_text': obj['text']}]})
                 plan['pages'][0]['steps'].append({'step_id': 'show-original', 'pause_reason': 'Synthetic negative case',
                     'actions': [{'unit_id': 'hide-original', 'effect': 'appear', 'trigger': 'on_click'}]})
-                with self.assertRaisesRegex(ValueError, 'originally visible'):
+                with self.assertRaisesRegex(ValueError, 'teaching.*contract'):
                     trial.check(root, plan, self.component_report['manifest'], trial.ACTIVATION)
 
     def test_registered_scope_and_actual_base_slides_cannot_be_omitted(self):
@@ -230,7 +272,7 @@ class ClassroomTrialIntegrationTests(unittest.TestCase):
             plan['output'] = 'editable/output/no-answer-components.pptx'
             plan['pages'][0]['items'] = [non_answer('ambiguous' if ambiguous else 'open_blank')]
             comp = trial.components(root, plan, trial.ACTIVATION)
-            animated = classroom_plan(comp, plan)
+            animated = classroom_plan(comp, plan, root)
             result = trial.build(root, animated, comp['manifest'], trial.ACTIVATION)
             trial.register(root, result['manifest'], trial.ACTIVATION)
             current = trial.current(root, trial.ACTIVATION)

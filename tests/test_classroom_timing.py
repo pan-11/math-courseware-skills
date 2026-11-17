@@ -81,6 +81,40 @@ def media_timing():
 
 
 class ClassroomTimingTests(unittest.TestCase):
+    def test_legacy_after_previous_without_phase_field_keeps_original_timing_identity(self):
+        tree = compiler(self)(None, [step(action('a', 'fade', duration_ms=500),
+            action('b', 'fade', 'after_previous', delay_ms=30),
+            action('c', 'appear', 'with_previous', delay_ms=20))],
+            {'a': unit(10), 'b': unit(11), 'c': unit(12)})
+        # Frozen before phase support: existing classroom manifests must remain verifiable.
+        self.assertEqual(editor._digest(editor._xml_value(tree)),
+                         '5c07a5bbbd85328452be600e4070f30421eae3bae0ff0bdf509f23fc7d69bc30')
+
+    def test_explicit_after_previous_has_its_own_sibling_phase_and_preserves_total_offsets(self):
+        compile_timing = compiler(self)
+        units = {'a': unit(10), 'b': unit(11), 'c': unit(12)}
+        tree = compile_timing(None, [step(action('a', 'fade', duration_ms=500),
+            action('b', 'fade', 'after_previous', delay_ms=30, phase_start_ms=500),
+            action('c', 'appear', 'with_previous', delay_ms=20))], units)
+        phases = main(tree)[0].findall('p:cTn/p:childTnLst/p:par/p:cTn', NS)
+        self.assertEqual([p.find('p:stCondLst/p:cond', NS).get('delay') for p in phases], ['0', '500'])
+        self.assertEqual([start_offset(e) for e in effects(tree)], [0, 530, 550])
+        later = phases[1].findall('p:childTnLst/p:par/p:cTn', NS)
+        self.assertEqual([n.get('nodeType') for n in later], ['afterEffect', 'withEffect'])
+        self.assertEqual([n.find('p:stCondLst/p:cond', NS).get('delay') for n in later], ['30', '50'])
+
+    def test_explicit_native_phase_preserves_500_parent_plus_420_effect_delay(self):
+        compile_timing = compiler(self)
+        units = {str(n): unit(n) for n in range(10, 14)}
+        tree = compile_timing(None, [step(action('10', 'fade', duration_ms=500),
+            action('11', 'wipe', 'with_previous', direction='up', duration_ms=420),
+            action('12', 'appear', 'with_previous', delay_ms=420),
+            action('13', 'appear', 'after_previous', delay_ms=499, phase_start_ms=500))], units)
+        phases = main(tree)[0].findall('p:cTn/p:childTnLst/p:par/p:cTn', NS)
+        self.assertEqual([p.find('p:stCondLst/p:cond', NS).get('delay') for p in phases], ['0', '500'])
+        self.assertEqual(effects(tree)[-1].find('p:stCondLst/p:cond', NS).get('delay'), '420')
+        self.assertEqual([start_offset(e) for e in effects(tree)], [0, 0, 420, 920])
+
     def test_one_click_reveals_all_logical_fraction_components_together(self):
         compile_timing = compiler(self)
         fraction = unit(10)

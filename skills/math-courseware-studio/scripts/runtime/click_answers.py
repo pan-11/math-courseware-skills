@@ -93,7 +93,11 @@ def _prepare(project, plan):
                                                output.with_suffix('.manifest.json')}
               for p in plan['source_versions']), 'Output cannot be its own source')
     request = plan.get('request', {})
-    editor._known_fields(request, {'user_instruction', 'evidence_ref'}, 'request')
+    editor._known_fields(request, {'user_instruction', 'evidence_ref'} |
+                         ({'activation_ref'} if components_only else set()), 'request')
+    if 'activation_ref' in request:
+        from . import classroom_trial
+        classroom_trial._continuation(project, plan)
     _text(request.get('user_instruction'), 'Actual fabrication instruction')
     evidence = request.get('evidence_ref', {})
     editor._known_fields(evidence, {'path', 'sha256'}, 'instruction evidence')

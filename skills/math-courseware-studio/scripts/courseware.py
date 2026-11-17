@@ -54,11 +54,11 @@ def parser():
     top = argparse.ArgumentParser(description='小学数学AI赋能课件：本地记录、生成任务、可编辑处理和导出')
     sub = top.add_subparsers(dest='command', required=True)
     sub.add_parser('doctor', help='Read-only environment check')
-    for operation in ('components', 'check', 'build', 'register', 'current', 'collect'):
+    for operation in ('import', 'components', 'check', 'build', 'register', 'current', 'collect'):
         p = sub.add_parser('classroom-trial-' + operation)
         p.add_argument('--project', required=True, type=Path)
         p.add_argument('--activation', required=True, choices=('课堂动画试用V1',))
-        if operation in ('components', 'check', 'build'):
+        if operation in ('import', 'components', 'check', 'build'):
             p.add_argument('--plan', required=True, type=Path)
         if operation in ('check', 'build'):
             p.add_argument('--components-manifest', required=True)
@@ -146,6 +146,9 @@ def execute(args):
     if c.startswith('classroom-trial-'):
         from runtime import classroom_trial
         operation = c.removeprefix('classroom-trial-')
+        if operation == 'import':
+            from runtime import classroom_refill_input
+            return classroom_refill_input.import_refill(project, state.read_json(args.plan), args.activation)
         if operation == 'components':
             return classroom_trial.components(project, state.read_json(args.plan), args.activation)
         if operation in ('check', 'build'):
