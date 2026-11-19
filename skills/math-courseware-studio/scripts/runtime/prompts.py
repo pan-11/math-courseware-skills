@@ -13,6 +13,12 @@ LESS = ('版式疏朗，视觉重心明确，标题与正文大而清晰，适�
         '知识与练习页突出教学内容，背景适度简化，保留操作区与清晰间距。'
         '内容较多时先删无关装饰与重复UI，不要把全部元素一起缩小，也不降低已定画风的材质与光影完成度。')
 
+PAGE_GRAPHICS = ('沿用本课选定的画风、背景、构图和配色。题签、文字底板、表格及教学图示按设计保留原有形状。'
+                 '实色色块填色均匀，边缘清晰，原本闭合的轮廓要连贯完整，避免无意的断线、毛边、模糊和杂色斑块。'
+                 '需要单独编辑的图形，四周留出适当间距，让装饰物避开它的边缘。'
+                 '背景和插画保留画风本身的笔触、纹理和渐变。虚线、辅助线、留白和有意的开口按教学用途保留。'
+                 '修整已有页图时，只调整指定部分，其余照原图保留。')
+
 
 def records(project):
     return {name: state.read_json(state.resolve(project, '_state/' + name + '.json'))
@@ -93,7 +99,8 @@ def page_prompt(page, data, render_state='review_complete'):
             f'场景、核心插画与教学画面：{visual}。'
             f'固定角色/地点/道具：{"；".join(character) if character else "本页无指定共享角色"}。'
             '按页面布局清晰呈现以下真实文案，逐字准确，不增删题目条件：\n' +
-            ('\n'.join('「' + text + '」' for text in texts) if texts else '初始画面无上屏文字；保留待回答位置，不提前显示答案。') + '\n' + LESS + '\n本页限制：' + restrictions)
+            ('\n'.join('「' + text + '」' for text in texts) if texts else '初始画面无上屏文字；保留待回答位置，不提前显示答案。') +
+            '\n' + LESS + '\n' + PAGE_GRAPHICS + '\n本页限制：' + restrictions)
     if any(phrase in body for phrase in ('同上', '延续上一页风格')):
         raise ValueError('Prompts must expand every page independently')
     formatted = (f'【页面编号】{page["page_id"]}\n【页面名称】{page["title"]}\n'
@@ -267,6 +274,8 @@ def prepare(project, selection):
             prompt = task.get('prompt', '')
             if not prompt.strip():
                 raise ValueError('Asset/cover/test/repair requires a complete prompt')
+            if purpose in ('cover', 'repair'):
+                prompt = PAGE_GRAPHICS + '\n' + prompt
         if route == 'openai_image_api' and files:
             captions = []
             if purpose in ('erase', 'repair'):
