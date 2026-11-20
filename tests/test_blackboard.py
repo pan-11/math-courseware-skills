@@ -9,6 +9,7 @@ import unittest
 from contextlib import contextmanager
 from unittest.mock import patch
 from PIL import Image, ImageChops, ImageFilter
+from pypdf import PdfReader
 from reportlab.pdfgen.canvas import Canvas
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -164,7 +165,7 @@ class BlackboardTests(unittest.TestCase):
             self.assertFalse(out.exists())
 
 
-    def test_electronic_package_exports_objects_and_no_pdf(self):
+    def test_electronic_package_exports_objects_and_actual_size_print_pair(self):
         engine = self.engine()
         with preserved_case() as folder:
             spec, _ = self.fixture(folder)
@@ -172,17 +173,116 @@ class BlackboardTests(unittest.TestCase):
             engine.render(spec, destination)
             result = engine.export(destination)
             self.assertEqual(result['pictures'], 2)
-            self.assertNotIn('pdf', result)
             self.assertTrue(engine.verify(destination)['passed'])
             output = destination / 'output'
-            self.assertFalse(list(output.glob('*.pdf')))
             manifest = engine.load_json(destination / 'manifest.json')
-            self.assertFalse(any(row['file'].endswith('.pdf') for row in manifest['files']))
+            printed=manifest['print']
+            self.assertEqual(set(result['pdfs']),{'A4','A3'})
+            self.assertEqual({p.name for p in output.glob('*.pdf')},set(printed['files'].values()))
+            self.assertEqual([p['id'] for p in printed['pieces']],['keyword','term'])
+            for paper,(width,height) in {'A4':(210,297),'A3':(420,297)}.items():
+                pages=PdfReader(result['pdfs'][paper]).pages
+                self.assertEqual(len(pages),printed['sheets'][paper])
+                for page in pages:
+                    self.assertAlmostEqual(float(page.mediabox.width)*25.4/72,width,places=2)
+                    self.assertAlmostEqual(float(page.mediabox.height)*25.4/72,height,places=2)
+                for piece in printed['pieces']:
+                    self.assertGreaterEqual(piece['effective_dpi'],299.5)
+                    self.assertTrue(piece['tiles'][paper])
             html = (output / '素材总览.html').read_text(encoding='utf-8')
+            for name in printed['files'].values():self.assertIn(name,html)
             for link in re.findall(r'(?:href|src)="([^"]+)"', html):
                 self.assertTrue((output / link).is_file(), link)
             with self.assertRaises(FileExistsError):
                 engine.export(destination)
+            manifest.pop('print')
+            engine.write_json(destination/'manifest.json',manifest)
+            with self.assertRaisesRegex(ValueError,'print|Print'):
+                engine.verify(destination)
+
+    def test_geometry_keeps_aspect_and_size_when_tiled_and_repeated(self):
+        engine=self.engine()
+        with preserved_case() as folder:
+            path,spec=self.fixture(folder)
+            diagram=folder/'figure.png';Image.new('RGBA',(600,240),'#2194b6').save(diagram)
+            first=spec['assets'][0]
+            first.update(kind='image',print_role='diagram',print_width_mm=320,
+                         params={'source':diagram.name,'sha256':engine.digest(diagram)})
+            spec['boards'][0]['items'].append({'id':first['id'],'box':[1200,780,600,240]})
+            engine.write_json(path,spec);destination=folder/'geometry'
+            engine.render(path,destination);engine.export(destination)
+            self.assertTrue(engine.verify(destination)['passed'])
+            piece=engine.load_json(destination/'manifest.json')['print']['pieces'][0]
+            self.assertAlmostEqual(piece['width_mm'],320)
+            self.assertAlmostEqual(piece['height_mm'],128)
+            self.assertEqual(piece['copies'],2)
+            self.assertLess(piece['effective_dpi'],300)
+            for paper,columns in {'A4':2,'A3':1}.items():
+                tiles=piece['tiles'][paper]
+                for copy in (1,2):
+                    group=[t for t in tiles if t['copy']==copy]
+                    self.assertEqual(len(group),columns)
+                    last=group[-1]['source_mm']
+                    self.assertAlmostEqual(last[0]+last[2],320)
+
+    def test_math_prints_digit_and_standalone_operator_at_same_type_scale(self):
+        engine=self.engine()
+        with preserved_case() as folder:
+            path,spec=self.fixture(folder)
+            for asset,text in zip(spec['assets'],('2+2=4','=')):
+                asset.update(kind='card',role='math',text=text,params={})
+            engine.write_json(path,spec);destination=folder/'math'
+            engine.render(path,destination);engine.export(destination)
+            equation,symbol=engine.load_json(destination/'manifest.json')['print']['pieces']
+            self.assertAlmostEqual(equation['ink_height_mm'],41,delta=2)
+            self.assertLess(symbol['ink_height_mm'],equation['ink_height_mm']*.65)
+            self.assertTrue(engine.verify(destination)['passed'])
+
+    def test_rotated_strip_uses_two_a4_pages_with_ten_mm_shared_and_one_a3(self):
+        printer=self.engine().print_engine()
+        with preserved_case() as folder:
+            src=folder/'strip.png'
+            Image.new('RGBA',(384,80),'#2194b6').save(src)
+            asset={'id':'strip','kind':'image','file':src.name,'print_width_mm':384}
+            data={'title':'数轴','assets':[asset],'layout':{'boards':[{'items':[{'id':'strip','w':384}]}]}}
+            record=printer.export_print(data,folder,folder)
+            self.assertEqual(record['sheets'],{'A4':2,'A3':1})
+            printer.verify_print(data,folder,record)
+            # Invert the actual 90-degree image placement at the edges of each PDF clip.
+            # The source's horizontal 384 mm axis lies along the printed vertical axis.
+            intervals=[]
+            for page in PdfReader(folder/record['files']['A4']).pages:
+                rectangles=[args for args,op in page.get_contents().operations if op==b're']
+                matrices=[]
+                def collect_image(op,operands,cm,tm):
+                    if op==b'Do':matrices.append(cm.copy())
+                page.extract_text(visitor_operand_before=collect_image)
+                self.assertEqual(len(rectangles),1);self.assertEqual(len(matrices),1)
+                _,y,_,height=map(float,rectangles[0])
+                a,b,c,d,_,origin_y=matrices[0]
+                self.assertAlmostEqual(a,0);self.assertAlmostEqual(d,0)
+                self.assertAlmostEqual(b*25.4/72,384,places=2)
+                self.assertAlmostEqual(-c*25.4/72,80,places=2)
+                intervals.append(((y-origin_y)*384/b,(y+height-origin_y)*384/b))
+            left,right=sorted(intervals)
+            self.assertAlmostEqual(left[0],0,places=2)
+            self.assertAlmostEqual(left[1]-right[0],10,places=2)
+            self.assertAlmostEqual(right[1],384,places=2)
+
+    def test_export_resumes_after_interrupting_final_publication(self):
+        engine=self.engine()
+        with preserved_case() as folder:
+            path,_=self.fixture(folder);destination=folder/'interrupted'
+            engine.render(path,destination)
+            rename=Path.rename
+            def fail_on_pptx(source,target):
+                if source.suffix=='.pptx':raise OSError('simulated interrupted publication')
+                return rename(source,target)
+            with patch.object(Path,'rename',fail_on_pptx):
+                with self.assertRaisesRegex(OSError,'interrupted'):engine.export(destination)
+            self.assertFalse(engine.load_json(destination/'manifest.json')['exported'])
+            engine.export(destination)
+            self.assertTrue(engine.verify(destination)['passed'])
 
     def test_historical_pdf_package_still_verifies(self):
         engine = self.engine()
@@ -197,6 +297,13 @@ class BlackboardTests(unittest.TestCase):
             canvas.showPage()
             canvas.save()
             manifest = engine.load_json(destination / 'manifest.json')
+            content=engine.load_json(destination/'content.json')
+            content.pop('print_required');engine.write_json(destination/'content.json',content)
+            print_names=manifest.pop('print')['files'].values()
+            manifest['files']=[row for row in manifest['files'] if row['file'] not in print_names]
+            for name in print_names:(destination/'output'/name).rename(destination/name)
+            engine.write_json(destination/'manifest.json',manifest)
+            self.assertTrue(engine.verify(destination)['passed'])
             manifest['files'].append({'file': pdf.name, 'sha256': engine.digest(pdf)})
             engine.write_json(destination / 'manifest.json', manifest)
             self.assertTrue(engine.verify(destination)['passed'])

@@ -127,6 +127,35 @@ class ExportTests(unittest.TestCase):
             exports.collect(root)
         self.assertFalse(list((root / 'deliveries').glob('delivery-v*')))
 
+    def test_collect_requires_both_print_files_of_new_board_packages(self):
+        from reportlab.lib.pagesizes import A4, A3, landscape
+        from reportlab.pdfgen.canvas import Canvas
+        from test_delivery_roles import package, save_package
+
+        root = fixture()
+        data = enable_modules(root, modules=['documents'])
+        manifest = package(root, data, ('worksheet', 'blackboard'))
+        out = root / 'assets/board-v001/output'
+        out.mkdir(parents=True)
+        state.write_json(out.parent / 'content.json', {'print_required': True})
+        files = {'A4': 'board-A4.pdf', 'A3': 'board-A3.pdf'}
+        state.write_json(out.parent / 'manifest.json', {'exported': True, 'print': {'files': files}})
+        for paper, size in (('A4', A4), ('A3', landscape(A3))):
+            path = out / files[paper]
+            canvas = Canvas(str(path), pagesize=size)
+            canvas.drawString(72, 72, 'print sample')
+            canvas.save()
+            manifest['roles']['blackboard'].append(
+                {'path': path.relative_to(root).as_posix(), 'sha256': state.sha256(path)})
+            save_package(root, data, manifest)
+            if paper == 'A4':
+                with self.assertRaisesRegex(ValueError, 'A4 and A3'):
+                    exports.collect(root)
+        delivered = exports.collect(root)['artifacts'].values()
+        copies = {Path(row['delivery_path']).name: root / row['delivery_path'] for row in delivered}
+        for filename in files.values():
+            self.assertEqual(state.sha256(copies[filename]), state.sha256(out / filename))
+
     def test_collect_normalizes_private_names_for_every_artifact_entrance(self):
         from test_delivery_roles import package, save_package, file_ref
         for entrance in ('source', 'destination', 'materials'):

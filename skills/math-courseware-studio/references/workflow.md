@@ -159,7 +159,7 @@ approval: {path: 必要时指向真实用户采用记录JSON, sha256: 实际哈�
 - **editable**：files中的pptx指向实际可读取且页数符合蓝图的PPTX；图层、文字和视觉效果另有真实逐页检查，不用“可打开”代替可编辑性验收。
 - **documents**：files中的classroom-script、lesson-presentation、lesson-plan分别指向真实三文稿，默认交可编辑DOCX，内部核查PDF留在中间文件；检查器兼容历史MD/PDF，不代表默认要生成或交付这些格式；full_course另核worksheet、blackboard和已承诺interactive，绑定当前pages与可编辑PPT。多格式/离线依赖可用[实际材料清单](../../math-courseware-documents/references/delivery-materials.md)，不能用三文稿成功代替齐套。独立任务只核所选范围，真实省略须当前用户证据。
 - **学习单配套**：整课默认交[学生课堂学习单](../../math-courseware-documents/references/student-worksheet.md)，独立任务按指定范围。保存来源页/任务对应、实际DOCX、内容及分页检查、交付manifest；C8另核真实文件与同文件夹副本。现有export-documents仍只导出三份教师文稿，没有worksheet步骤/命令；控制器documents或complete通过不代表学习单已完成，不能只登记源稿。
-- **黑板贴配套**：按[专门规范](../../math-courseware-documents/references/blackboard-stickers.md)保存独立spec/content/layout/manifest及实际视觉核查。整课默认必交，单模块按指定范围。现有控制器没有单独blackboard制作步骤；collect/complete会核必交角色、实际文件格式与来源绑定。C8仍须核内容、PNG/PPT独立对象、预览、使用依赖、视觉及中文普通目录的交付副本；默认无布局或打印PDF，只有明确另要打印版时才核对应打印尺寸与文件。不能用三文稿通过代替，也不能把单做黑板贴冒充三文稿完成。
+- **黑板贴配套**：按[专门规范](../../math-courseware-documents/references/blackboard-stickers.md)保存独立spec/content/layout/manifest及实际视觉核查。整课默认必交，单模块按指定范围。现有控制器没有单独blackboard制作步骤；collect/complete会核必交角色、实际文件格式与来源绑定。C8仍须核内容、PNG/PPT独立对象、预览、使用依赖、视觉及中文普通目录的交付副本；新套板贴另核两个原尺寸打印PDF的实际纸型、贴片等大及裁后完整性，按现有清单交付。不能用三文稿通过代替，也不能把单做黑板贴冒充三文稿完成。
 - **delivery**：files含manifest及wps，后者指向显示/播放验收JSON。默认接收用户自行检查确认后提供的整课视频地址，按[交接规范](wps-export-review.md)登记`inspection:user_report`、确认依据与当前PPT/视频/覆盖的媒体版本，不重复看听或生成审片报告。JSON沿用passed、inspection、basis及source_versions；已有“检查后交接”约定与实际回传可合记，不重问确认。未覆盖的操作/交付项目保持实际状态，仅视频确认不充当全课已通过汇总。
 
 ## 第一阶段的可见报告及source-review摘要

@@ -108,7 +108,7 @@ V1逐项判断首屏必需内容、每次点击推进的教学部分、对象分
 
 整课配套默认制作[学生课堂学习单](skills/math-courseware-documents/references/student-worksheet.md)，与定稿课件/教案一致、默认无答案学生版、A4纵向、按任务和作答空间安排1—3页。交实际可编辑的“课题_课堂学习单.docx”，中文文件名，与其他配套放同一交付文件夹。也可单独要求制作学习单；三份教师文稿导出器不自动包含学习单，需按专门规则实际制作并查看分页。
 
-整课配套默认增加[电子黑板贴](skills/math-courseware-documents/references/blackboard-stickers.md)：AI读定稿课件决定内容与布局，沿用短词/说明/读作的固定字体分工，程序绘制并检查真实字形安全区。交透明PNG、逐件可移动PPT、整板预览、离线总览和使用说明，打印PDF按需追加；独立也可直接说“按这份课件制作电子黑板贴”。已有成品不覆盖，素材数量按本课决定。
+整课配套默认增加[电子黑板贴](skills/math-courseware-documents/references/blackboard-stickers.md)：AI读定稿课件决定内容与布局，沿用短词/说明/读作的固定字体分工，程序绘制并检查真实字形安全区。交透明PNG、逐件可移动PPT、整板预览、离线总览、使用说明和文字源清单，同时交A4、A3实尺寸打印PDF；同一贴片在两种纸上打印出来一样大；独立也可直接说“按这份课件制作电子黑板贴”。已有成品不覆盖，素材数量按本课决定。
 
 Python 3.12+，Pillow、python-pptx、python-docx、pypdf、ReportLab及OfficeCLI；黑板贴渲染另用fontTools核缺字。Windows中文PDF使用实际已安装字体，系统字体不随包分发；黑板贴包内仅包含三款已核许可的开源字体。建议优先使用Codex已提供的文档运行时，渲染和文档导出可以用各自已有的环境。
 

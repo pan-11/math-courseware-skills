@@ -232,6 +232,27 @@ def check(project, data=None):
     for role in required_roles:
         if role not in found and role not in waived:
             issues.append('materials: required role missing: ' + role)
+    # A newly generated board package declares its print files in its own manifest.
+    # Keep collection explicit and allow older electronic-only products.
+    board_outputs = {}
+    for item in artifacts.values():
+        if item.get('role') == 'blackboard':
+            path = state.resolve(project, item['path'])
+            if path.parent.name == 'output':
+                board_outputs.setdefault(path.parent, set()).add(path.name)
+    for output, selected in board_outputs.items():
+        content = output.parent / 'content.json'
+        if not content.is_file() or not state.read_json(content).get('print_required'):
+            continue
+        manifest = output.parent / 'manifest.json'
+        if not manifest.is_file():
+            issues.append('blackboard: export manifest missing for ' + str(output))
+            continue
+        exported = state.read_json(manifest)
+        papers = exported.get('print', {}).get('files', {})
+        if (not exported.get('exported') or set(papers) != {'A4', 'A3'}
+                or len(set(papers.values())) != 2 or not set(papers.values()) <= selected):
+            issues.append('blackboard: register both A4 and A3 print PDFs from ' + str(output))
     destinations = {}
     for item in artifacts.values():
         destination = str(PureWindowsPath(item.get('destination', item['path']))).casefold()

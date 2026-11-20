@@ -2,6 +2,8 @@
 
 2026-09-24，用户认可最终混合字体与留白版，并明确选择“默认作为配套一起制作”。本次保留十二模块，将黑板贴接入C7配套文稿，C8核实际交付。独立制作只核指定课件，不补造其他阶段或强制三份文稿。
 
+以下是首次接入时的测试记录。现行板贴默认随电子素材输出 A4、A3 打印 PDF，两种纸型共用成品尺寸，制作和验收见[板贴打印规范](../skills/math-courseware-documents/references/blackboard-stickers.md#6-先定成品尺寸再排-a4-和-a3)。
+
 ## 实施
 
 - [制作规范](../skills/math-courseware-documents/references/blackboard-stickers.md)：AI从定稿课件选择教学内容、来源、形状和板书组织；固定A短词/B说明/C读法字体、描边、标签内距及中文普通目录交付，数量不绑定某一课。

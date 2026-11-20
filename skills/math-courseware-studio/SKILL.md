@@ -88,7 +88,7 @@ C2情境选择默认按[原课情境对照](../math-courseware-plan/references/s
 
 整课C7四类文档默认只交可编辑DOCX，同源排版核查PDF留在中间文件，不列为默认交付物。先按[已验证的结构与篇幅基准](../math-courseware-documents/references/teaching-pack-profile.md)区分教案、说课、师生逐字稿与学习单；逐字稿按环节展开，逐页核对而不强制每页单设标题。默认制作[学生课堂学习单](../math-courseware-documents/references/student-worksheet.md)，依据定稿课件与教学设计选核心任务，默认学生版，提供足够作答空间和实际可编辑中文DOCX；与其他配套放同一交付文件夹。用户明确省略除外，独立任务不扩范围。C8核真实文件与来源、内容、分页及交付副本，不能用三文稿导出成功代替学习单完成。
 
-整课C7默认随三份文稿制作[电子黑板贴](../math-courseware-documents/references/blackboard-stickers.md)，除非用户明确省略；已有课件单独制作也可走此分支。AI从有效课件决定清单、内容与整板，固定字体分工/描边/字形安全区，交独立透明素材、可移动PPT、整板预览、离线总览、使用说明和文字源清单，默认不交布局PDF或A3/A4打印PDF。C8按其manifest另行收集并核查实际交付；collect/complete会核必交角色、实际文件格式与来源绑定；黑板贴内容、PPT独立对象、视觉与依赖仍须实际核查，只有用户明确另要打印版时才核打印尺寸与文件。普通检查问题直接修，不增加逐件审批。
+整课C7默认随三份文稿制作[电子黑板贴](../math-courseware-documents/references/blackboard-stickers.md)，除非用户明确省略；已有课件单独制作也可走此分支。AI从有效课件决定清单、内容与整板，固定字体分工/描边/字形安全区，交独立透明素材、可移动PPT、整板预览、离线总览、使用说明、文字源清单和A4、A3两份实尺寸打印PDF。同一贴片共用毫米尺寸，按纸型分别排页。C8按其manifest另行收集并核查实际交付；collect/complete会核必交角色、实际文件格式与来源绑定；黑板贴内容、PPT独立对象、视觉与依赖仍须实际核查，新套板贴另核两份PDF页型、纸面字高、图片比例与拼接完整性。普通检查问题直接修，不增加逐件审批。
 
 课堂观看任务、教师接话、预留页、成片回填和播放由本入口协调plan/pages/documents/editable，统一按[视频与整课衔接](references/video-integration.md)执行；不要求视频编剧或导演为此新增课堂活动段落。
 
